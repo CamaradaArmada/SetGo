@@ -818,17 +818,30 @@ local function CreateNav()
 
 	-- Modules: a big button per module (its picture, name and a few words),
 	-- with its switch on the right; the button opens its options
+	-- in a list that scrolls (mouse wheel or the bar) when they don't fit
+	local scrollTemplate = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("ScrollFrameTemplate")
+		and "ScrollFrameTemplate" or "UIPanelScrollFrameTemplate"
 	local mbox = CreateFrame("Frame", nil, nav)
 	mbox:SetPoint("TOPLEFT", PAD, -LIST_TOP)
-	mbox:SetSize(LW, 470)
+	mbox:SetSize(LW, 468)
 	nav.modulesBox = mbox
+	local BW = LW - 22 -- room for the scroll bar
+	local mscroll = CreateFrame("ScrollFrame", nil, mbox, scrollTemplate)
+	mscroll:SetPoint("TOPLEFT")
+	mscroll:SetSize(BW, 468)
+	if mscroll.ScrollBar and mscroll.ScrollBar.SetHideIfUnscrollable then
+		mscroll.ScrollBar:SetHideIfUnscrollable(true)
+	end
+	local mlist = CreateFrame("Frame", nil, mscroll)
+	mlist:SetSize(BW, 10)
+	mscroll:SetScrollChild(mlist)
 	nav.moduleButtons = {}
 	local MOD_H, PIC = 112, 96
 	local y = 0
 	for _, m in ipairs(ns.KNOWN_MODULES) do
 		if ns.AddonInstalled(m.addon) then
-			local b = CreateFrame("Button", nil, mbox)
-			b:SetSize(LW, MOD_H)
+			local b = CreateFrame("Button", nil, mlist)
+			b:SetSize(BW, MOD_H)
 			b:SetPoint("TOPLEFT", 0, -y)
 			Card(b)
 			b.key = m.key
@@ -836,7 +849,7 @@ local function CreateNav()
 			b.pic:SetSize(PIC, PIC)
 			b.pic:SetPoint("LEFT", 8, 0)
 			b.pic:SetTexture("Interface\\AddOns\\SetGo\\Media\\" .. m.addon)
-			local textW = LW - PIC - 60
+			local textW = BW - PIC - 60
 			b.title = W.Text(b, W.FONT_HEADER, textW, L[m.title])
 			b.title:SetPoint("TOPLEFT", b.pic, "TOPRIGHT", 12, -6)
 			b.desc = W.Text(b, W.FONT_SMALL, textW, L[m.desc], 0.8)
@@ -864,6 +877,7 @@ local function CreateNav()
 			y = y + MOD_H + 8
 		end
 	end
+	mlist:SetHeight(math.max(y - 8, 10))
 	if #nav.moduleButtons == 0 then
 		local note = W.Text(mbox, W.FONT_BODY, LW, L.NO_MODULES, 0.8)
 		note:SetPoint("TOPLEFT")
