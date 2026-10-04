@@ -1950,7 +1950,7 @@ local function CreateWindow()
 	frame:SetScript("OnDragStart", frame.StartMoving)
 	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 	Try(frame.SetTitle, frame, L.ADDON)
-	Try(frame.SetPortraitToAsset, frame, "Interface\\Icons\\Ability_Rogue_Sprint")
+	Try(frame.SetPortraitToAsset, frame, "Interface\\AddOns\\SetGo\\Media\\SetGo")
 	if type(frame.Inset) == "table" then
 		frame.Inset:Hide()
 	end

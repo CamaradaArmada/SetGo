@@ -72,7 +72,7 @@ function ns.SetupMinimapButton()
 	local object = LDB:NewDataObject(ADDON, {
 		type = "launcher",
 		text = L.ADDON,
-		icon = "Interface\\Icons\\Ability_Rogue_Sprint",
+		icon = "Interface\\AddOns\\SetGo\\Media\\SetGo",
 		OnClick = function(self, button)
 			if button == "RightButton" then
 				ns.ContextMenu(self)
