@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="SETGO_LOOK" category="ADDONS">
+		SetGo_ToggleLook()
+	</Binding>
+</Bindings>

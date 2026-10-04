@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: SetGo! Look!
+## Notes: Mouse camera with a dot in the middle of the screen and soft targeting, like an action game. A SetGo! module.
+## Notes-ptBR: Câmara controlada pelo rato, com um ponto no centro do ecrã e soft targeting, como num jogo de acção. Um módulo do SetGo!.
+## Author: Armada
+## Version: 1.0.0
+## Dependencies: SetGo
+## DefaultState: enabled
+## SavedVariables: SetGoLookDB
+## SavedVariablesPerCharacter: SetGoLookCharDB
+## IconTexture: Interface\Icons\Ability_Hunter_Pathfinding
+
+Look.lua

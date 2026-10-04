@@ -1,0 +1,42 @@
+# SetGo!
+
+Quick setup for the Blizzard UI, made for World of Warcraft Forever.
+
+SetGo! puts the game's own options in one book, and keeps your setup in
+**profiles** you can put on any character with two clicks:
+
+- an **Edit Mode layout**, the action bars it shows and the UI elements it
+  switches on (cooldown manager, resource display, damage meter, swing timer);
+- the **modules** it switches on, with their options;
+- if you want, its own **character settings**;
+- your **keybinds** and what sits on your **action bars**, per character and
+  specialization.
+
+Profiles can be exported as text and imported on another account.
+
+## Modules
+
+Each module is a separate addon folder. They are switched on and off inside
+SetGo!, not in the game's addon list.
+
+| Module | What it does |
+| --- | --- |
+| **Fetch!** | A bar of up to 12 buttons, each with a six slot flyout for spells, items and macros. It can sit right on top of the bag bar. |
+| **Look!** | A key turns the mouse into camera control, with a dot in the middle of the screen and soft targeting, like an action game. |
+| **Speak!** | A cleaner chat in the style of the new interface: Blizzard fonts, fading tabs and one settings button. |
+| **Hide!** | Hides Blizzard frames like a macro: always, or only when (or except when) you are in combat, mounted, holding a key and more. |
+| **Quick!** | A small menu by the minimap for the settings you change in the moment: nameplates, NPC names, volume and the world channels. |
+
+## Install
+
+Copy the folder `SetGo` and the `SetGo_*` modules you want into the
+game's `Interface\AddOns` folder. `SetGo` is required; the
+modules are optional.
+
+## Languages
+
+English and Portuguese.
+
+## License
+
+MIT. The bundled libraries keep their own licenses.

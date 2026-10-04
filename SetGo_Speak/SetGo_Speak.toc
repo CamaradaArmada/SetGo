@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: SetGo! Speak!
+## Notes: A cleaner chat in the style of the new interface, in two looks: soft or tooltip. A SetGo! module.
+## Notes-ptBR: Um chat mais limpo, no estilo da nova interface, com dois estilos: esbatido ou tooltip. Um módulo do SetGo!.
+## Author: Armada
+## Version: 1.0.0
+## Dependencies: SetGo
+## OptionalDeps: SetGo_Chat
+## DefaultState: enabled
+## SavedVariables: SetGoSpeakDB
+## IconTexture: Interface\Icons\INV_Letter_15
+
+Speak.lua

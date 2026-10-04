@@ -1,0 +1,22 @@
+## Interface: 16001
+## Title: SetGo! Fetch!
+## Notes: A bar of up to 12 buttons, each with a six slot flyout. It can sit right on top of the bag bar. A SetGo! module.
+## Notes-ptBR: Barra com até 12 botões, cada um com um menu de seis espaços. Pode ficar mesmo por cima da barra dos sacos. Um módulo do SetGo!.
+## Author: Armada
+## Version: 0.8.1
+## Dependencies: SetGo
+## DefaultState: enabled
+## SavedVariables: SetGoFetchLayoutDB
+## SavedVariablesPerCharacter: SetGoFetchDB
+## IconTexture: Interface\Icons\INV_Misc_Bag_10
+
+Libs\LibEditMode\namespaced.lua
+Libs\LibEditMode\embed.xml
+
+Locale.lua
+Core.lua
+Button.lua
+Bar.lua
+Bags.lua
+EditMode.lua
+Settings.lua

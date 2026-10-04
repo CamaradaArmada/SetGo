@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="SETGO_TOGGLE" header="SETGO" category="ADDONS">
+		SetGo_Toggle()
+	</Binding>
+</Bindings>

@@ -1,0 +1,15 @@
+package-as: SetGo
+
+move-folders:
+  SetGo/SetGo: SetGo
+  SetGo/SetGo_Fetch: SetGo_Fetch
+  SetGo/SetGo_Look: SetGo_Look
+  SetGo/SetGo_Speak: SetGo_Speak
+  SetGo/SetGo_Hide: SetGo_Hide
+  SetGo/SetGo_Quick: SetGo_Quick
+
+ignore:
+  - README.md
+  - CHANGELOG.md
+  - MODULES.md
+  - .gitignore

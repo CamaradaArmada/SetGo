@@ -1,0 +1,14 @@
+<Bindings>
+	<Binding name="CLICK SetGoFetchButton1:LeftButton" header="SETGO_FETCH"/>
+	<Binding name="CLICK SetGoFetchButton2:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton3:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton4:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton5:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton6:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton7:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton8:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton9:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton10:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton11:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton12:LeftButton"/>
+</Bindings>
