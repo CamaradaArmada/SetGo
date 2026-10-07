@@ -1,4 +1,4 @@
-local ADDON = ...
+local ADDON, ns = ...
 
 local L = {
 	TITLE = "Hide!",
@@ -507,6 +507,10 @@ local function Start()
 		end, owner)
 	end
 	Apply()
+	ns.hideStarted = true
+	if ns.ArtStart then
+		ns.ArtStart()
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -732,6 +736,22 @@ local function Items()
 		-- every frame's two settings, so profiles keep them
 		{ kind = "custom", name = L.TITLE, settings = all, build = SectionsBuilder(settings) },
 	}
+	-- the action bar art copy (Art.lua): its switch is a setting with no
+	-- "settings" list, so profiles leave it out
+	local AL = ns.ArtL
+	if AL then
+		local art = Pseudo("SETGO_HIDE_ART", AL.TOGGLE, AL.TOGGLE_DESC, false, function()
+			return ns.ArtOn()
+		end, function(value)
+			ns.ArtSetOn(value)
+		end)
+		items[#items + 1] = { kind = "header", name = AL.HEADER }
+		if ns.ArtExists() then
+			items[#items + 1] = { kind = "checkbox", setting = art, name = AL.TOGGLE, tooltip = AL.TOGGLE_DESC }
+		else
+			items[#items + 1] = { kind = "note", name = AL.MISSING }
+		end
+	end
 	return items
 end
 
@@ -744,6 +764,7 @@ events:SetScript("OnEvent", function(self, event, arg1)
 		if arg1 == ADDON then
 			SetGoHideDB = type(SetGoHideDB) == "table" and SetGoHideDB or {}
 			db = SetGoHideDB
+			ns.hideDB = db
 		elseif revealing then
 			-- the spellbook can be an addon of Blizzard's that loads later
 			HookSpellbooks()

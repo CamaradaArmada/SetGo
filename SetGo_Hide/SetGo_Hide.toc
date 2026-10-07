@@ -3,10 +3,14 @@
 ## Notes: Hides Blizzard frames with macro conditionals: always, or only when (or except when) you are in combat, mounted, holding a key and more. A SetGo! module.
 ## Notes-ptBR: Esconde frames da Blizzard com condições de macro: sempre, ou só quando (ou excepto quando) estás em combate, montado, a carregar numa tecla e mais. Um módulo do SetGo!.
 ## Author: Armada
-## Version: 0.4.0
+## Version: 0.5.0
 ## Dependencies: SetGo
 ## DefaultState: enabled
 ## SavedVariables: SetGoHideDB
 ## IconTexture: Interface\Icons\Ability_Stealth
 
+Libs\LibEditMode\namespaced.lua
+Libs\LibEditMode\embed.xml
+
+Art.lua
 Hide.lua

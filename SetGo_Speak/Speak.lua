@@ -12,26 +12,26 @@ local ADDON = ...
 local LAYOUT = {
 	-- Look "Soft": the damage meter's soft background
 	soft = {
-		body = { 12, 12, 4, 10 }, -- around the messages
-		editBox = { -4, -4, -4, -4 }, -- around the typing box
+		body = { 12, 12, 6, 8 }, -- around the messages
+		editBox = { 0, 0, -4, -4 }, -- around the typing box
 		-- the typing box without and with the cursor in it
-		editBoxAlpha = { rest = 0.25, focus = 0.75 },
+		editBoxAlpha = { rest = 0.25, focus = 0.5 },
 		-- where the tabs sit: x sideways (negative to the left), y up
 		-- (negative down)
-		tabs = { x = 0, y = 2 },
+		tabs = { x = -8, y = 0 },
 	},
 	-- Look "Bordered": the tooltip's border
 	bordered = {
-		body = { 12, 12, 6, 0 }, -- around the messages
+		body = { 6, 2, 2, 0 }, -- around the messages
 		editBox = { -4, -4, -4, -4 }, -- around the typing box
 		-- around each tab. The bottom number sets the gap between the tabs
 		-- and the messages: lower it to open the gap, raise it to close it.
 		tab = { -2, -2, -10, 0 },
 		-- the typing box without and with the cursor in it
-		editBoxAlpha = { rest = 0.6, focus = 1 },
+		editBoxAlpha = { rest = 0.6, focus = 0.85 },
 		-- where the tabs sit: x sideways (negative to the left), y up
 		-- (negative down)
-		tabs = { x = 0, y = 6 },
+		tabs = { x = -6, y = 4 },
 	},
 	-- (tabs, in both looks: higher than about 28 and Blizzard stops counting
 	-- the tabs as part of the chat for its hover)
@@ -191,17 +191,18 @@ local function FontFile()
 	end
 end
 
+-- Blizzard's own list (read only, never changed here), or the default
+-- windows before it exists
+local DEFAULT_NAMES = {}
+for i = 1, NUM_CHAT_WINDOWS or 10 do
+	DEFAULT_NAMES[i] = "ChatFrame" .. i
+end
+
 local function ChatNames()
-	local names = {}
-	for _, name in ipairs(CHAT_FRAMES or {}) do
-		names[#names + 1] = name
+	if CHAT_FRAMES and #CHAT_FRAMES > 0 then
+		return CHAT_FRAMES
 	end
-	if #names == 0 then
-		for i = 1, NUM_CHAT_WINDOWS or 10 do
-			names[#names + 1] = "ChatFrame" .. i
-		end
-	end
-	return names
+	return DEFAULT_NAMES
 end
 
 local function HasAtlas(atlas)
@@ -277,8 +278,9 @@ Skin.__index = Skin
 
 -- host: the frame that draws it; sublevel: under the host's other art
 function Skin.New(host, layer, sublevel)
-	local self = setmetatable({ host = host, all = {} }, Skin)
+	local self = setmetatable({ host = host, all = {}, fill = {} }, Skin)
 	self.soft = host:CreateTexture(nil, layer, nil, sublevel)
+	self.fill[self.soft] = true
 	if HasAtlas(SOFT) then
 		self.soft:SetAtlas(SOFT)
 	end
@@ -287,6 +289,7 @@ function Skin.New(host, layer, sublevel)
 	if layout then
 		self.tip = {}
 		self.center = host:CreateTexture(nil, layer, nil, sublevel)
+		self.fill[self.center] = true
 		SetSliceAtlas(self.center, layout.Center.atlas)
 		self.all[#self.all + 1] = self.center
 		for _, s in ipairs(SLICES) do
@@ -370,10 +373,7 @@ end
 
 -- border: the border's own alpha (active: full), or the fill's when nil
 function Skin:FadeTo(alpha, duration, border)
-	local fill = { [self.soft] = true }
-	if self.center then
-		fill[self.center] = true
-	end
+	local fill = self.fill
 	for _, tex in ipairs(self.all) do
 		FadeTo(tex, (fill[tex] or not border) and alpha or border, duration)
 	end
@@ -552,7 +552,10 @@ local function StyleEdit(name)
 	PlaceEdit(box)
 
 	-- focus: Blizzard shows its focus art, in the colour of the chat type
-	box.setGoFocus = box.focusLeft and box.focusLeft:IsShown() or false
+	-- at login Blizzard opens and closes the box once; with the classic chat
+	-- style the focus art stays marked as shown on the hidden box, so only a
+	-- box that is really open counts
+	box.setGoFocus = (box:IsVisible() and box.focusLeft and box.focusLeft:IsShown()) and true or false
 	if box.focusLeft then
 		local r, g, b = box.focusLeft:GetVertexColor()
 		box.setGoColor = { r or 1, g or 1, b or 1 }
@@ -593,7 +596,9 @@ local function StyleEdit(name)
 	if box.SetFocusRegionVertexColors then
 		hooksecurefunc(box, "SetFocusRegionVertexColors", function(_, color)
 			if color and color.r then
-				box.setGoColor = { color.r, color.g, color.b }
+				local c = box.setGoColor or {}
+				c[1], c[2], c[3] = color.r, color.g, color.b
+				box.setGoColor = c
 				UpdateEdit(box)
 			end
 		end)
