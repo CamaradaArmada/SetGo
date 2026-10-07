@@ -96,7 +96,8 @@ local function Same(a, b)
 	return true
 end
 
--- the profile's keys become this character's, as they are now
+-- a set of keys (a profile's own, or the shared one) becomes this
+-- character's, as they are now
 function ns.StoreKeys(p)
 	local keys = Current()
 	p.keys = ns.KeepUnknownKeys(p.keys, keys)
@@ -133,7 +134,9 @@ function ns.ApplyKeys(keys)
 end
 
 -- The player saved key bindings (Blizzard's menu, Quick Keybind Mode):
--- when they changed, they go into the profile this character uses.
+-- what changed goes into the set the profile in use takes its keys from
+-- (its own, or the shared one). Only the changes: a key changed on another
+-- character using the shared set stays.
 local function OnSaveBindings()
 	if ns.applyingKeys or not ns.db then
 		return
@@ -149,14 +152,29 @@ local function OnSaveBindings()
 	if Same(baseline, keys) then
 		return
 	end
+	local before = baseline
 	baseline = ns.CopyKeys(keys)
-	if type(p) ~= "table" or p.applyKeys == false then
+	if type(p) ~= "table" then
 		return
 	end
-	p.keys = ns.KeepUnknownKeys(p.keys, keys)
-	p.keysBy = ns.CharName()
-	p.keysAt = time()
-	ns.Print(L.MSG_KEYS_IN_PRESET:format(name))
+	local holder = ns.KeysHolder(p)
+	if type(holder.keys) ~= "table" then
+		holder.keys = ns.CopyKeys(keys)
+	else
+		for key, command in pairs(keys) do
+			if before[key] ~= command then
+				holder.keys[key] = command
+			end
+		end
+		for key in pairs(before) do
+			if keys[key] == nil then
+				holder.keys[key] = nil
+			end
+		end
+	end
+	holder.keysBy = ns.CharName()
+	holder.keysAt = time()
+	ns.Print((holder == p and L.MSG_KEYS_IN_PRESET or L.MSG_KEYS_SHARED):format(name))
 	if ns.Refresh then
 		ns.Refresh()
 	end
@@ -165,6 +183,9 @@ end
 -- at login, once the bindings are loaded
 function ns.WatchKeys()
 	baseline = Current()
+	if ns.db and ns.db.shared and not ns.db.shared.keys then
+		ns.StoreKeys(ns.db.shared)
+	end
 	if SaveBindings and hooksecurefunc and not ns.keysHooked then
 		ns.keysHooked = true
 		hooksecurefunc("SaveBindings", function()

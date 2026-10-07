@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.22.0
+
+- Profiles have a Settings tab in place of Options: character settings,
+  keybinds and action bars, each Global (shared) or the profile's own, with
+  Copy from.
+- Changes made in Blizzard's Options window are saved into the profile in
+  use (or the shared set), like keybinds and action bars.
+- The Game Settings tab, the search and the Blizzard defaults page are gone.
+- Module buttons show each module's icon. SetGo! uses a game icon; the
+  logo files are gone.
+
 ## 0.21.0
 
 First version on GitHub.

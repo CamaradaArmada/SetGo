@@ -4,7 +4,8 @@ local Try = ns.Try
 
 --------------------------------------------------------------------------------
 -- Skills: what sits on the action bars, kept per character, per profile and
--- per talent group (SetGoCharDB.skills[profile id][group] = { [slot] = entry }).
+-- per talent group (SetGoCharDB.skills[profile id][group] = { [slot] = entry }),
+-- for a profile that keeps its own (its bars scope is profile).
 -- Recorded as the player arranges them; put back when this character
 -- applies the profile again or switches talent group. Only out of combat.
 -- An entry: "spell:<id>", "item:<id>", "macro:<name>", "mount:<spell id>",
@@ -98,7 +99,8 @@ end
 local function ActiveProfile()
 	local name = ns.ActivePreset and ns.ActivePreset()
 	local p = name and ns.db.profiles[name]
-	if type(p) == "table" and p.applySkills ~= false then
+	-- Global: the bars are the player's, SetGo! leaves them alone
+	if type(p) == "table" and ns.ScopeOf(p, "bars") == "profile" then
 		return p
 	end
 end

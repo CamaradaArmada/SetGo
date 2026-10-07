@@ -389,3 +389,81 @@ if GetLocale() == "ptBR" then
 		L[key] = value
 	end
 end
+
+--------------------------------------------------------------------------------
+-- 0.22: the Settings tab (Global or Profile), no more Game Settings
+--------------------------------------------------------------------------------
+
+local EN22 = {
+	FORM_TAB_SETTINGS = "Settings",
+	SCOPE_SETTINGS = "Character settings",
+	SCOPE_KEYS = "Keybinds",
+	SCOPE_BARS = "Action bars",
+	SCOPE_GLOBAL = "Global",
+	SCOPE_PROFILE = "Profile",
+	SCOPE_GLOBAL_SETTINGS_DESC = "The shared settings: every profile set to Global uses the same ones, and a change made with any of them goes there.",
+	SCOPE_GLOBAL_KEYS_DESC = "The shared keybinds: every profile set to Global uses the same ones, and a change made with any of them goes there.",
+	SCOPE_GLOBAL_BARS_DESC = "Blizzard's own way: what sits on the action bars stays as it is when you switch profiles.",
+	SCOPE_PROFILE_SETTINGS_DESC = "Settings of its own: changes made while it is in use go into this profile only.",
+	SCOPE_PROFILE_KEYS_DESC = "Keybinds of its own: changes made while it is in use go into this profile only.",
+	SCOPE_PROFILE_BARS_DESC = "Action bars of its own, per character and specialization: applying it puts them back.",
+	SCOPE_COPY_SETTINGS_DESC = "Current: this character's settings as they are now. Or what another profile applies. Nothing is kept until you save.",
+	SCOPE_COPY_KEYS_DESC = "Current: the keybinds as they are now. Or what another profile applies. Nothing is kept until you save.",
+	SCOPE_COPY_BARS_DESC = "Current: the action bars as they are when it is applied. Or another profile's, on this character. Nothing is kept until you save.",
+	SCOPE_GLOBAL_SETTINGS_NOTE = "Uses the shared settings.",
+	SCOPE_GLOBAL_KEYS_NOTE = "Uses the shared keybinds.",
+	SCOPE_GLOBAL_BARS_NOTE = "The action bars are left as they are.",
+	SCOPE_PROFILE_SETTINGS_NOTE = "Its own: %d settings.",
+	SCOPE_PROFILE_SETTINGS_EMPTY = "Its own: they start as the game has them when it is applied.",
+	SCOPE_PROFILE_KEYS_NOTE = "Its own: %d keybinds.",
+	SCOPE_PROFILE_BARS_NOTE = "Its own: kept for this character.",
+	SCOPE_PROFILE_BARS_NEW = "Its own: they start as the bars are when it is applied.",
+	SCOPE_COPIED = "Copied from: %s",
+	MSG_SETTINGS_IN_PROFILE = "Settings saved into \"%s\".",
+	MSG_SETTINGS_SHARED = "Settings saved into the shared ones (\"%s\" uses them).",
+	MSG_KEYS_SHARED = "Keybinds saved into the shared ones (\"%s\" uses them).",
+	POPUP_EXPORT_PROFILE = "The profile \"%s\" as text (name, icon, layout, action bars, UI elements and, when it has its own, its settings and modules). Copy it with Ctrl+C:",
+	NP_NEXT_DESC = "The next tab. A new profile goes through all three before it is saved.",
+}
+
+local PT22 = {
+	FORM_TAB_SETTINGS = "Definições",
+	SCOPE_SETTINGS = "Definições da personagem",
+	SCOPE_KEYS = "Atalhos de teclado",
+	SCOPE_BARS = "Barras de acção",
+	SCOPE_GLOBAL = "Global",
+	SCOPE_PROFILE = "Perfil",
+	SCOPE_GLOBAL_SETTINGS_DESC = "As definições partilhadas: todos os perfis em Global usam as mesmas, e uma alteração feita com qualquer um deles fica lá.",
+	SCOPE_GLOBAL_KEYS_DESC = "Os atalhos partilhados: todos os perfis em Global usam os mesmos, e uma alteração feita com qualquer um deles fica lá.",
+	SCOPE_GLOBAL_BARS_DESC = "Como a Blizzard faz: o que está nas barras de acção fica como está quando trocas de perfil.",
+	SCOPE_PROFILE_SETTINGS_DESC = "Definições próprias: as alterações feitas enquanto está em uso ficam só neste perfil.",
+	SCOPE_PROFILE_KEYS_DESC = "Atalhos próprios: as alterações feitas enquanto está em uso ficam só neste perfil.",
+	SCOPE_PROFILE_BARS_DESC = "Barras de acção próprias, por personagem e especialização: aplicá-lo volta a pô-las.",
+	SCOPE_COPY_SETTINGS_DESC = "Actual: as definições desta personagem como estão agora. Ou as que outro perfil aplica. Nada fica guardado até guardares.",
+	SCOPE_COPY_KEYS_DESC = "Actual: os atalhos como estão agora. Ou os que outro perfil aplica. Nada fica guardado até guardares.",
+	SCOPE_COPY_BARS_DESC = "Actual: as barras de acção como estiverem quando for aplicado. Ou as de outro perfil, nesta personagem. Nada fica guardado até guardares.",
+	SCOPE_GLOBAL_SETTINGS_NOTE = "Usa as definições partilhadas.",
+	SCOPE_GLOBAL_KEYS_NOTE = "Usa os atalhos partilhados.",
+	SCOPE_GLOBAL_BARS_NOTE = "As barras de acção ficam como estão.",
+	SCOPE_PROFILE_SETTINGS_NOTE = "Próprias: %d definições.",
+	SCOPE_PROFILE_SETTINGS_EMPTY = "Próprias: começam como o jogo as tiver quando for aplicado.",
+	SCOPE_PROFILE_KEYS_NOTE = "Próprios: %d atalhos.",
+	SCOPE_PROFILE_BARS_NOTE = "Próprias: guardadas para esta personagem.",
+	SCOPE_PROFILE_BARS_NEW = "Próprias: começam como as barras estiverem quando for aplicado.",
+	SCOPE_COPIED = "Copiado de: %s",
+	MSG_SETTINGS_IN_PROFILE = "Definições guardadas em \"%s\".",
+	MSG_SETTINGS_SHARED = "Definições guardadas nas partilhadas (\"%s\" usa-as).",
+	MSG_KEYS_SHARED = "Atalhos guardados nos partilhados (\"%s\" usa-os).",
+	MSG_KEYS_IN_PRESET = "Atalhos guardados no perfil \"%s\".",
+	POPUP_EXPORT_PROFILE = "O perfil \"%s\" em texto (nome, ícone, layout, barras de acção, elementos e, quando tem as suas, as definições e os módulos). Copia com Ctrl+C:",
+	NP_NEXT_DESC = "A aba seguinte. Um perfil novo passa pelas três antes de ser guardado.",
+}
+
+for key, value in pairs(EN22) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT22) do
+		L[key] = value
+	end
+end

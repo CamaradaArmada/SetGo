@@ -303,6 +303,19 @@ function ns.Pseudo(var, name, tooltip, default, get, set)
 	return s
 end
 
+-- SetGo!'s own icon (the addon list, the minimap button, the window)
+ns.ICON = "Interface\\Icons\\inv_misc_gear_01"
+
+-- a module's icon: the one its .toc gives the addon list
+function ns.ModuleIcon(addon)
+	local meta = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+	local icon = meta and ns.Try(meta, addon, "IconTexture")
+	if type(icon) == "string" and icon ~= "" then
+		return icon
+	end
+	return 134400 -- the question mark
+end
+
 -- the modules SetGo! knows about, in the order they are listed
 ns.KNOWN_MODULES = {
 	{ addon = "SetGo_Fetch", key = "fetch", title = "MOD_FETCH", desc = "MOD_FETCH_DESC" },

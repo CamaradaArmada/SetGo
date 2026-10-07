@@ -13,8 +13,9 @@ local U = ns.ui
 --     one copies), action bars 1 to 8 and the elements it switches on.
 --   Modules: Change modules (unticked: the profile leaves them alone), then
 --     each module, one open at a time: on or off, and its options.
---   Options: Apply own settings (unticked: the profile neither saves nor
---     applies character settings), then the option pages.
+--   Settings: character settings, keybinds and action bars, each Global
+--     (the shared set; for the bars, left to the player) or Profile (its
+--     own, with Copy from).
 --   At the bottom, always: one button. A new profile: Next until every tab
 --     has been seen, then Save and Apply. One in the list: Save when
 --     something changed, then Apply.
@@ -24,7 +25,7 @@ local U = ns.ui
 local form = {}
 ns.form = form
 
-local FORM_TABS = { "layout", "modules", "options" }
+local FORM_TABS = { "layout", "modules", "settings" }
 local BLIZZARD_TINT = { 0.12, 0.23, 0.45 } -- Blizzard's layouts: blue ink
 local CELL_H, CELL_GAP = 28, 3
 local LIST_ROWS = 5 -- the account's layouts, all shown
@@ -36,9 +37,7 @@ local TAB_H = 28
 local BODY_TOP = TABS_TOP + TAB_H + 8
 local FOOT_H = 70 -- the button, the line over it and the rule
 local BODY_H = 564 - BODY_TOP - FOOT_H
-local ROW_H = 30 -- Change modules / Apply own settings
--- a profile's Options tab: the option pages in a box under its row
-ns.FORM_BOX = { top = BODY_TOP + ROW_H + 4, bottom = FOOT_H + 2 }
+local ROW_H = 30 -- Change modules
 
 local head, foot, np
 
@@ -158,7 +157,9 @@ local function FormDefaults(edit)
 	-- what it switches on and its modules: the profile's, else the game's
 	form.ui = ns.UILive()
 	form.modules = ns.ModuleStates()
-	form.custom, form.customModules = false, false
+	form.customModules = false
+	form.scope = ns.SharedScope()
+	form.copied = {}
 	if p then
 		for key, on in pairs(p.ui or {}) do
 			form.ui[key] = on
@@ -169,8 +170,11 @@ local function FormDefaults(edit)
 			end
 		end
 		form.icon = p.icon
-		form.custom = p.custom and true or false
+		for _, field in ipairs(ns.SCOPE_FIELDS) do
+			form.scope[field] = ns.ScopeOf(p, field)
+		end
 		form.settings = Copy(p.settings)
+		form.keys = Copy(p.keys)
 		form.customModules = p.customModules and true or false
 		form.moduleSettings = Copy(p.moduleSettings)
 	end
@@ -180,7 +184,7 @@ local function FormDefaults(edit)
 	end
 	form.orig = {
 		use = index, ui = Copy(form.ui), modules = Copy(form.modules), icon = form.icon,
-		custom = form.custom, settings = Copy(form.settings),
+		scope = Copy(form.scope), settings = Copy(form.settings), keys = Copy(form.keys),
 		customModules = form.customModules, moduleSettings = Copy(form.moduleSettings),
 	}
 end
@@ -197,11 +201,12 @@ local function Dirty()
 	if form.layout.new or form.layout.use ~= o.use or form.icon ~= o.icon then
 		return true
 	end
-	if form.custom ~= o.custom or form.customModules ~= o.customModules then
+	if form.customModules ~= o.customModules or form.skillsFrom then
 		return true
 	end
 	return not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules)
-		and SameValues(form.settings, o.settings) and SameValues(form.moduleSettings, o.moduleSettings))
+		and SameValues(form.scope, o.scope) and SameValues(form.settings, o.settings)
+		and SameValues(form.keys, o.keys) and SameValues(form.moduleSettings, o.moduleSettings))
 end
 ns.FormDirty = Dirty
 
@@ -233,17 +238,12 @@ function ns.OpenForm(edit, tab)
 end
 
 function ns.ShowFormTab(tab)
-	if tab == "options" and not ns.SettingsReady() then
-		ns.Print(L.MSG_NOT_READY)
-		return
+	if tab == "options" then
+		tab = "settings"
 	end
 	form.tab = tab
 	form.visited[tab] = true
-	if tab == "options" then
-		ns.Select("profileopts")
-	else
-		ns.Select("newpreset")
-	end
+	ns.Select("newpreset")
 end
 
 -- Leaves the form (nothing on it is kept until saved)
@@ -255,18 +255,46 @@ function ns.LeaveForm(after)
 	end
 end
 
--- Apply own settings: ticked on a profile without any, they start as this
--- character has them. Unticked, they are kept.
-function ns.SetFormCustom(on)
-	form.custom = on and true or false
-	if form.custom and not form.settings then
-		form.settings = ns.OptionSnapshot()
+-- The Settings tab: Global or Profile. Profile on a profile without any of
+-- its own: they start as the game has them now (or Copy from). Back to
+-- Global, its own are kept.
+function ns.SetFormScope(field, scope)
+	form.scope[field] = scope
+	if scope == "profile" then
+		if field == "settings" and not form.settings and ns.SettingsReady() then
+			form.settings = ns.OptionSnapshot()
+		elseif field == "keys" and not form.keys then
+			form.keys = ns.CopyKeys(ns.CurrentKeybinds())
+		end
 	end
-	if U.state.group == "profileopts" then
-		ns.ShowIndex(U.state.index or 1, true)
-	else
-		ns.Refresh()
+	ns.Refresh()
+end
+
+-- Copy from, on the Settings tab: the game as it is now (p nil) or another
+-- profile (what it applies)
+function ns.FormCopyField(field, p, label)
+	if field == "settings" then
+		local from = p and ns.SettingsOf(p)
+		if p and not from then
+			return
+		end
+		if not p and not ns.SettingsReady() then
+			ns.Print(L.MSG_NOT_READY)
+			return
+		end
+		form.settings = from and Copy(from) or ns.OptionSnapshot()
+	elseif field == "keys" then
+		local from = p and ns.KeysHolder(p).keys
+		if p and not from then
+			return
+		end
+		form.keys = from and Copy(from) or ns.CopyKeys(ns.CurrentKeybinds())
+	elseif field == "bars" then
+		form.skillsFrom = p and p.id or "current"
 	end
+	form.scope[field] = "profile"
+	form.copied[field] = label
+	ns.Refresh()
 end
 
 -- Change modules: the same, for the modules and their options
@@ -308,9 +336,6 @@ local function CopyFrom(p, what)
 			form.moduleSettings = ns.ModuleSnapshot()
 		end
 		ns.SetFormModules(true)
-	elseif what == "options" then
-		form.settings = p and Copy(p.settings) or ns.OptionSnapshot()
-		ns.SetFormCustom(true)
 	end
 end
 ns.FormCopyFrom = CopyFrom
@@ -367,7 +392,7 @@ function ns.ImportProfile(text)
 	end
 	form.icon = profile.icon
 	if profile.custom then
-		form.custom, form.settings = true, profile.settings
+		form.scope.settings, form.settings = "profile", profile.settings
 	end
 	if profile.customModules then
 		form.customModules = true
@@ -663,7 +688,7 @@ local function FormSave(name, apply)
 	local first = #ns.ProfileSlots() == 0
 	local opts = {
 		name = name, replace = form.edit, icon = form.icon, ui = Copy(form.ui), modules = form.modules,
-		custom = form.custom, settings = form.settings,
+		scope = Copy(form.scope), settings = form.settings, skillsFrom = form.skillsFrom,
 		customModules = form.customModules, moduleSettings = form.moduleSettings,
 		noApply = true,
 	}
@@ -688,6 +713,10 @@ local function FormSave(name, apply)
 		end
 	else
 		opts.layout = { use = form.layout.use }
+	end
+	-- its own keys, when they changed on the form
+	if form.keys and not SameValues(form.keys, (form.orig or {}).keys) then
+		opts.keys = form.keys
 	end
 	-- a new layout made now is made active when applied right after
 	opts.noApply = not apply
@@ -718,7 +747,7 @@ function ns.FormHasChanges()
 	end
 	local o = form.orig or {}
 	return NameText() ~= "" or form.layout.new or form.layout.use ~= o.use or form.icon ~= nil
-		or form.custom or form.customModules
+		or form.customModules or form.skillsFrom or not SameValues(form.scope, o.scope)
 		or not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules))
 end
 
@@ -796,8 +825,7 @@ local function CopySources(root)
 		local b = root:CreateButton(name, function()
 			CopyFrom(p, what)
 		end)
-		local empty = (what == "options" and not (p and p.settings))
-			or (what == "modules" and not (p and (p.customModules or p.moduleSettings)))
+		local empty = (what == "modules" and not (p and (p.customModules or p.moduleSettings)))
 		if empty and b and b.SetEnabled then
 			b:SetEnabled(false)
 		end
@@ -1010,6 +1038,8 @@ function ns.RefreshFormHead(onForm)
 		return
 	end
 	head.icon.tex:SetTexture(form.icon or DEFAULT_ICON)
+	-- the Settings tab has a Copy from for each of its parts
+	head.copy:SetShown(form.tab ~= "settings")
 	for tab, t in pairs(head.tabs) do
 		t:SetOn(tab == form.tab)
 	end
@@ -1450,28 +1480,153 @@ local function RefreshModulesBody()
 end
 
 --------------------------------------------------------------------------------
--- The Options tab: Apply own settings, over the box the option pages show in
--- (UI.lua places them)
+-- The Settings tab: character settings, keybinds and action bars. Each one
+-- Global (the shared set; for the bars, the player's own arranging) or
+-- Profile (its own), with Copy from under Profile.
 --------------------------------------------------------------------------------
 
-local function CreateOptionsRow(rightPage, width)
-	local row = CreateFrame("Frame", nil, rightPage)
-	row:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
-	row:SetSize(width, BODY_H)
-	row:SetFrameLevel(rightPage:GetFrameLevel() + 20)
-	row:EnableMouse(false)
-	np.optionsRow = row
-	np.custom = CustomRow(row, L.FORM_CUSTOM, L.FORM_CUSTOM_DESC, ns.SetFormCustom)
-	-- the box
-	local box = CreateFrame("Frame", nil, row)
-	box:SetPoint("TOPLEFT", 0, -(ns.FORM_BOX.top - BODY_TOP))
-	box:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
-	U.Card(box)
-	box:Look(0.03, 0.4, false)
-	box:EnableMouse(false)
-	-- under the pages it frames
-	box:SetFrameLevel(rightPage:GetFrameLevel())
-	row:Hide()
+local FIELDS = {
+	{ key = "settings", title = "SCOPE_SETTINGS" },
+	{ key = "keys", title = "SCOPE_KEYS" },
+	{ key = "bars", title = "SCOPE_BARS" },
+}
+
+-- Copy from, for one part: as the game is now, or another profile (only
+-- the ones that have something to give)
+local function FieldSources(field, root)
+	root:CreateButton(L.COPY_CURRENT, function()
+		ns.FormCopyField(field, nil, L.COPY_CURRENT)
+	end)
+	local others = {}
+	for _, name in ipairs(ns.ProfileSlots()) do
+		if name ~= form.edit then
+			others[#others + 1] = name
+		end
+	end
+	if #others > 0 then
+		root:CreateDivider()
+	end
+	for _, name in ipairs(others) do
+		local p = ns.ProfileOf(name)
+		local b = root:CreateButton(name, function()
+			ns.FormCopyField(field, p, name)
+		end)
+		local has
+		if field == "settings" then
+			has = ns.SettingsOf(p) ~= nil
+		elseif field == "keys" then
+			has = ns.KeysHolder(p).keys ~= nil
+		else
+			has = ns.ScopeOf(p, "bars") == "profile" and p.id and ns.charDB.skills[p.id] ~= nil
+		end
+		if not has and b and b.SetEnabled then
+			b:SetEnabled(false)
+		end
+	end
+end
+
+local function CreateSettingsBody(width)
+	local body = CreateFrame("Frame", nil, np)
+	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
+	body:SetSize(width, BODY_H)
+	np.settingsBody = body
+	local r, g, bl = W.Ink()
+	np.fields = {}
+	local y = 0
+	local half = (width - 6) / 2
+	for _, f in ipairs(FIELDS) do
+		local row = {}
+		-- its title and rule
+		local title = W.Text(body, W.FONT_HEADER, width, L[f.title])
+		title:SetPoint("TOPLEFT", 0, -(y + 4))
+		local rule = body:CreateTexture(nil, "ARTWORK")
+		rule:SetHeight(1)
+		rule:SetColorTexture(r, g, bl, 0.35)
+		rule:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
+		rule:SetPoint("RIGHT", body, "LEFT", width, 0)
+		y = y + 4 + 16 + 3 + 8
+		-- Global or Profile
+		row.global = Toggle(body, half, 26, L.SCOPE_GLOBAL)
+		row.global:SetPoint("TOPLEFT", 0, -y)
+		row.global:SetScript("OnClick", function()
+			ns.SetFormScope(f.key, "global")
+		end)
+		W.TipScripts(row.global, L.SCOPE_GLOBAL, L["SCOPE_GLOBAL_" .. f.key:upper() .. "_DESC"])
+		row.own = Toggle(body, half, 26, L.SCOPE_PROFILE)
+		row.own:SetPoint("TOPLEFT", half + 6, -y)
+		row.own:SetScript("OnClick", function()
+			ns.SetFormScope(f.key, "profile")
+		end)
+		W.TipScripts(row.own, L.SCOPE_PROFILE, L["SCOPE_PROFILE_" .. f.key:upper() .. "_DESC"])
+		y = y + 26 + 6
+		-- what the choice means, in a line or two
+		row.note = W.Text(body, W.FONT_SMALL, width, "", 0.8)
+		row.note:SetPoint("TOPLEFT", 0, -y)
+		Try(row.note.SetMaxLines, row.note, 2)
+		-- Profile: Copy from, a line of ink that opens the menu
+		row.copy = CreateFrame("Button", nil, body)
+		row.copy:SetSize(220, 18)
+		row.copy:SetPoint("TOPLEFT", 0, -(y + 28))
+		row.copy.text = W.Text(row.copy, W.FONT_BODY, nil, L.NP_COPY_FROM, 0.85)
+		row.copy.text:SetPoint("LEFT")
+		row.copy.arrow = row.copy:CreateTexture(nil, "ARTWORK")
+		row.copy.arrow:SetSize(14, 14)
+		row.copy.arrow:SetPoint("LEFT", row.copy.text, "RIGHT", 4, -1)
+		row.copy.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+		row.copy.arrow:SetVertexColor(r, g, bl)
+		local line = row.copy:CreateTexture(nil, "HIGHLIGHT")
+		line:SetHeight(1)
+		line:SetColorTexture(r, g, bl, 0.6)
+		line:SetPoint("BOTTOMLEFT", row.copy.text, "BOTTOMLEFT", 0, -2)
+		line:SetPoint("BOTTOMRIGHT", row.copy.text, "BOTTOMRIGHT", 0, -2)
+		row.copy:SetScript("OnClick", function(self)
+			if MenuUtil and MenuUtil.CreateContextMenu then
+				MenuUtil.CreateContextMenu(self, function(_, root)
+					FieldSources(f.key, root)
+				end)
+			end
+		end)
+		W.TipScripts(row.copy, L.NP_COPY_PROFILE, L["SCOPE_COPY_" .. f.key:upper() .. "_DESC"])
+		y = y + 28 + 18 + 6
+		np.fields[f.key] = row
+	end
+end
+
+-- what a part holds now, under its buttons
+local function FieldNote(key, own)
+	if not own then
+		return L["SCOPE_GLOBAL_" .. key:upper() .. "_NOTE"]
+	end
+	if key == "keys" then
+		local n = 0
+		for _ in pairs(form.keys or {}) do
+			n = n + 1
+		end
+		return L.SCOPE_PROFILE_KEYS_NOTE:format(n)
+	elseif key == "settings" then
+		local n = 0
+		for _ in pairs(form.settings or {}) do
+			n = n + 1
+		end
+		return n > 0 and L.SCOPE_PROFILE_SETTINGS_NOTE:format(n) or L.SCOPE_PROFILE_SETTINGS_EMPTY
+	end
+	local p = form.edit and ns.ProfileOf(form.edit)
+	local kept = p and p.id and ns.charDB.skills[p.id] ~= nil and form.skillsFrom == nil
+	return kept and L.SCOPE_PROFILE_BARS_NOTE or L.SCOPE_PROFILE_BARS_NEW
+end
+
+local function RefreshSettingsBody()
+	for _, f in ipairs(FIELDS) do
+		local row = np.fields[f.key]
+		local own = form.scope[f.key] == "profile"
+		row.global:SetOn(not own)
+		row.own:SetOn(own)
+		row.note:SetText(FieldNote(f.key, own))
+		row.copy:SetShown(own)
+		local from = form.copied[f.key]
+		row.copy.text:SetText(from and L.SCOPE_COPIED:format(from) or L.NP_COPY_FROM)
+		row.copy:SetWidth((row.copy.text:GetStringWidth() or 120) + 22)
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -1480,24 +1635,16 @@ function ns.RefreshNewPreset()
 	if not (np and ns.creating and form.layout) then
 		return
 	end
-	local modules = form.tab == "modules"
-	np.layoutBody:SetShown(not modules)
-	np.modulesBody:SetShown(modules)
-	if modules then
+	local tab = form.tab
+	np.layoutBody:SetShown(tab == "layout")
+	np.modulesBody:SetShown(tab == "modules")
+	np.settingsBody:SetShown(tab == "settings")
+	if tab == "modules" then
 		RefreshModulesBody()
+	elseif tab == "settings" then
+		RefreshSettingsBody()
 	else
 		RefreshLayoutBody()
-	end
-end
-
--- the Options tab's row and box (shown with the option pages)
-function ns.RefreshFormOptions(shown)
-	if not np then
-		return
-	end
-	np.optionsRow:SetShown(shown and true or false)
-	if shown then
-		np.custom:SetChecked(form.custom and true or false)
 	end
 end
 
@@ -1510,7 +1657,7 @@ function ns.CreateProfileForm()
 	rightPage.newpreset = np
 	CreateLayoutBody(width)
 	CreateModulesBody(width)
-	CreateOptionsRow(rightPage, width)
+	CreateSettingsBody(width)
 	CreateHead(rightPage, width)
 	CreateFoot(rightPage, width)
 end

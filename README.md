@@ -2,15 +2,17 @@
 
 Quick setup for the Blizzard UI, made for World of Warcraft Forever.
 
-SetGo! puts the game's own options in one book, and keeps your setup in
-**profiles** you can put on any character with two clicks:
+SetGo! keeps your setup in **profiles** you can put on any character with
+two clicks:
 
 - an **Edit Mode layout**, the action bars it shows and the UI elements it
   switches on (cooldown manager, resource display, damage meter, swing timer);
 - the **modules** it switches on, with their options;
-- if you want, its own **character settings**;
-- your **keybinds** and what sits on your **action bars**, per character and
-  specialization.
+- your **character settings**, **keybinds** and **action bars**. Each one is
+  either **Global** (one set shared by every profile that uses it; for the
+  action bars, Blizzard's own behaviour) or the profile's own. Changes you
+  make in the game are saved into whichever set the profile uses. Action
+  bars are kept per character and specialization.
 
 Profiles can be exported as text and imported on another account.
 

@@ -8,16 +8,21 @@ local Try = ns.Try
 --   { id, icon, favorite, layout = { preset = n } or { name }, layoutMade,
 --     ui = { [element key] = true/false } (action bars 2 to 8 and the
 --       elements Edit Mode places but a setting turns on),
---     custom = true/false, settings = { [variable] = value } (its own
---       character options; applied only when custom, kept when not),
+--     scope = { settings, keys, bars = "global" or "profile" }: each from
+--       the shared set (SetGoDB.shared, Global) or its own (Profile); for
+--       the action bars Global means SetGo! leaves them alone,
+--     settings = { [variable] = value } (its own character options, used
+--       when its scope is profile; kept when not),
 --     customModules = true/false, modules = { [module key] = true/false },
 --       moduleSettings = { [variable] = value } (the modules' own options;
 --       applied only when customModules, kept when not),
---     keys = { [key] = command }, keysBy, keysAt (who saved them, when),
+--     keys = { [key] = command }, keysBy, keysAt (who saved them, when; its
+--       own, used when its scope is profile),
 --     created, saved, class }
--- The keys go into the profile in use when the player saves them in
--- Blizzard's key bindings menu (Keybinds.lua); the action bars are kept per
--- character and talent group (Skills.lua).
+-- What the player changes goes into the set the profile in use takes it
+-- from: the keys when saved in Blizzard's key bindings menu (Keybinds.lua),
+-- the settings when Blizzard's Options window closes (below), the action
+-- bars as they are arranged, per character and talent group (Skills.lua).
 --------------------------------------------------------------------------------
 
 local function PresetOf(name)
@@ -42,6 +47,38 @@ local function Copy(t)
 		out[k] = Copy(v)
 	end
 	return out
+end
+
+--------------------------------------------------------------------------------
+-- Global or Profile: where a profile takes each part from
+--------------------------------------------------------------------------------
+
+ns.SCOPE_FIELDS = { "settings", "keys", "bars" }
+
+function ns.ScopeOf(p, field)
+	local scope = type(p) == "table" and type(p.scope) == "table" and p.scope[field]
+	return scope == "profile" and "profile" or "global"
+end
+
+function ns.SharedScope()
+	return { settings = "global", keys = "global", bars = "global" }
+end
+
+-- the settings a profile applies (nil: none kept yet)
+function ns.SettingsOf(p)
+	if ns.ScopeOf(p, "settings") == "profile" then
+		return p.settings
+	end
+	return ns.db.shared.settings
+end
+
+-- the table its keys live in (.keys, .keysBy, .keysAt): its own or the
+-- shared set
+function ns.KeysHolder(p)
+	if ns.ScopeOf(p, "keys") == "profile" then
+		return p
+	end
+	return ns.db.shared
 end
 
 local function Save(name, p)
@@ -170,6 +207,73 @@ function ns.OptionSnapshot()
 	return settings
 end
 
+-- The settings as they were when last read: Blizzard's Options window
+-- closing records only what changed since, into the set the profile in use
+-- takes them from (so a change made on another character isn't undone).
+local settingsBase
+
+-- the shared set starts as the game is now (the first time it's needed)
+function ns.EnsureShared()
+	local shared = ns.db.shared
+	if not shared.keys and ns.StoreKeys then
+		ns.StoreKeys(shared)
+	end
+	if not shared.settings and ns.SettingsReady() then
+		shared.settings = ns.OptionSnapshot()
+	end
+end
+
+local function RecordSettings()
+	if not (ns.db and ns.SettingsReady()) then
+		return
+	end
+	local now = ns.OptionSnapshot()
+	local base = settingsBase
+	settingsBase = now
+	local name = ns.ActivePreset()
+	local p = PresetOf(name)
+	if not (base and p) then
+		return
+	end
+	local changed = {}
+	for var, value in pairs(now) do
+		if base[var] == nil or not ns.Same(base[var], value) then
+			changed[var] = value
+		end
+	end
+	if not next(changed) then
+		return
+	end
+	local own = ns.ScopeOf(p, "settings") == "profile"
+	local holder = own and p or ns.db.shared
+	if type(holder.settings) ~= "table" then
+		holder.settings = Copy(now)
+	end
+	for var, value in pairs(changed) do
+		holder.settings[var] = value
+	end
+	ns.Print((own and L.MSG_SETTINGS_IN_PROFILE or L.MSG_SETTINGS_SHARED):format(name))
+	if ns.Refresh then
+		ns.Refresh()
+	end
+end
+
+-- at login, once the game's settings are ready
+function ns.WatchSettings()
+	if not ns.SettingsReady() then
+		return false
+	end
+	ns.EnsureShared()
+	settingsBase = ns.OptionSnapshot()
+	if SettingsPanel and not ns.settingsHooked then
+		ns.settingsHooked = true
+		SettingsPanel:HookScript("OnHide", function()
+			C_Timer.After(0, RecordSettings)
+		end)
+	end
+	return true
+end
+
 -- How this character differs from a set of options:
 --   change = { { setting, value, name } } what Apply changes here
 function ns.SettingsDiff(settings)
@@ -273,25 +377,8 @@ local function ModuleSettingsDiff(settings)
 	return out
 end
 
--- Save to active profile (the Game Settings and Modules tabs): what the
--- game has, with the changes waiting
-function ns.SaveOptionsToProfile(name)
-	local p = PresetOf(name)
-	if not p then
-		return false
-	end
-	local settings = ns.OptionSnapshot()
-	for var, value in pairs(ns.staged) do
-		local setting = ns.known and ns.known[var]
-		if setting and settings[var] ~= nil and ns.Scope(setting) == "char" and type(value) ~= "table" then
-			settings[var] = value
-		end
-	end
-	p.settings, p.custom = settings, true
-	Save(name, p)
-	return true
-end
-
+-- Save to active profile (the Modules tab): which modules are on, and
+-- their options
 function ns.SaveModulesToProfile(name)
 	local p = PresetOf(name)
 	if not p then
@@ -345,8 +432,8 @@ function ns.ProfileDiff(name)
 		lines[#lines + 1] = (d.on and L.DIFF_UI_ON or L.DIFF_UI_OFF):format(d.label)
 		short[#short + 1] = (d.on and L.SHORT_ON or L.SHORT_OFF):format(d.short)
 	end
-	if p.custom then
-		local n = #ns.SettingsDiff(p.settings).change
+	do
+		local n = #ns.SettingsDiff(ns.SettingsOf(p)).change
 		if n > 0 then
 			diff.total = diff.total + n
 			lines[#lines + 1] = L.SHORT_OPTIONS:format(n)
@@ -367,15 +454,16 @@ function ns.ProfileDiff(name)
 			short[#short + 1] = L.SHORT_MODULE_OPTIONS:format(n)
 		end
 	end
-	if p.applyKeys ~= false and p.keys then
-		local n = ns.KeysDiff(p.keys)
+	local keys = ns.KeysHolder(p).keys
+	if keys then
+		local n = ns.KeysDiff(keys)
 		if n > 0 then
 			diff.total = diff.total + n
 			lines[#lines + 1] = L.DIFF_KEYS:format(n)
 			short[#short + 1] = L.SHORT_KEYS:format(n)
 		end
 	end
-	if p.applySkills ~= false and ns.SkillsDiff then
+	if ns.ScopeOf(p, "bars") == "profile" and ns.SkillsDiff then
 		local n = ns.SkillsDiff(p)
 		if n > 0 then
 			diff.total = diff.total + n
@@ -424,19 +512,23 @@ function ns.ApplyProfile(name, force)
 	ns.AllSettings() -- builds ns.known
 	ns.optionsDraft = nil
 	ns.SetActiveProfile(name)
-	-- its action bars: put back now, then checked again once the server has
-	-- confirmed them (after the reload, if one follows; see Skills.lua)
-	if ns.RestoreSkills then
+	ns.EnsureShared()
+	-- its action bars (when it keeps its own): put back now, then checked
+	-- again once the server has confirmed them (after the reload, if one
+	-- follows; see Skills.lua)
+	if ns.ScopeOf(p, "bars") == "profile" and ns.RestoreSkills then
 		ns.RestoreSkills(p)
 		ns.QueueSkills(p)
 	end
+	-- its keys, or the shared ones (none kept yet: the game's become them)
 	do
-		if p.keys then
-			if ns.KeysDiff(p.keys) > 0 then
-				ns.ApplyKeys(p.keys)
+		local holder = ns.KeysHolder(p)
+		if holder.keys then
+			if ns.KeysDiff(holder.keys) > 0 then
+				ns.ApplyKeys(holder.keys)
 			end
 		else
-			ns.StoreKeys(p)
+			ns.StoreKeys(holder)
 		end
 	end
 	-- global options changed on its pages wait in the staging; they go too
@@ -449,8 +541,14 @@ function ns.ApplyProfile(name, force)
 			ns.Print(L.MSG_LAYOUT_MISSING:format(name))
 		end
 	end
-	if p.custom then
-		StageOptions(p.settings)
+	-- its settings, or the shared ones (the same: none kept yet, the
+	-- game's become them)
+	if ns.SettingsOf(p) then
+		StageOptions(ns.SettingsOf(p))
+	elseif ns.ScopeOf(p, "settings") == "profile" then
+		p.settings = ns.OptionSnapshot()
+	else
+		ns.db.shared.settings = ns.OptionSnapshot()
 	end
 	-- its modules (they load or sleep on the reload) and their options (at
 	-- once)
@@ -494,9 +592,9 @@ local function NewProfile()
 		ui = ns.UILive(),
 		modules = ns.ModuleStates(),
 		customModules = false,
-		custom = false,
+		scope = ns.SharedScope(),
 	}
-	ns.StoreKeys(p)
+	ns.EnsureShared()
 	return p
 end
 
@@ -529,8 +627,10 @@ ns.StorePreset = ns.StoreProfile
 --                                              template (and its bars)
 --          | { template = data, from, imported }  a copy or an import
 --   ui, modules = { [key] = true/false }       nil: as the game has them
---   custom = true/false, settings = { [variable] = value }
---   icon, applyKeys, applySkills
+--   scope = { settings, keys, bars }, settings = { [variable] = value },
+--   keys = { [key] = command } (its own), skillsFrom = a profile's id (its
+--   action bars here are copied) or "current" (the bars as they are now)
+--   icon
 --   noApply: only stored (a new layout is made, but not made active)
 -- Applied after storing unless noApply. Returns true.
 --------------------------------------------------------------------------------
@@ -574,20 +674,24 @@ function ns.CreateProfile(opts)
 	if opts.moduleSettings then
 		p.moduleSettings = Copy(opts.moduleSettings)
 	end
-	if opts.custom ~= nil then
-		p.custom = opts.custom and true or false
+	if opts.scope then
+		p.scope = Copy(opts.scope)
 	end
 	if opts.settings then
 		p.settings = Copy(opts.settings)
 	end
+	if opts.keys then
+		p.keys = Copy(opts.keys)
+		p.keysBy, p.keysAt = ns.CharName(), time()
+	end
+	if opts.skillsFrom and opts.skillsFrom ~= p.id then
+		-- this character's bars for it: another profile's, or (current)
+		-- what the bars hold when it is applied
+		local from = opts.skillsFrom ~= "current" and ns.charDB.skills[opts.skillsFrom]
+		ns.charDB.skills[p.id] = from and Copy(from) or nil
+	end
 	if opts.icon ~= nil then
 		p.icon = opts.icon
-	end
-	if opts.applyKeys ~= nil then
-		p.applyKeys = opts.applyKeys
-	end
-	if opts.applySkills ~= nil then
-		p.applySkills = opts.applySkills
 	end
 	local created
 	if layout.use then
@@ -781,7 +885,7 @@ function ns.ExportProfile(name)
 		table.sort(list)
 		return table.concat(list, ",")
 	end
-	if p.custom and p.settings then
+	if ns.ScopeOf(p, "settings") == "profile" and p.settings then
 		parts[#parts + 1] = "S=" .. Values(p.settings)
 	end
 	if p.customModules then

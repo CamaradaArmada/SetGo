@@ -3,9 +3,9 @@ local L, W = ns.L, ns.Widgets
 local Try = ns.Try
 
 --------------------------------------------------------------------------------
--- The window: a book. Left page: four tabs (Profiles, Modules, Game
--- Settings, SetGo!); Profiles holds the player's profiles as cards, the
--- others a list of pages. Right page: what is chosen (a profile's form is in
+-- The window: a book. Left page: three tabs (Profiles, Modules, SetGo!);
+-- Profiles holds the player's profiles as cards, Modules a button per
+-- module, SetGo! a list of pages. Right page: what is chosen (a profile's form is in
 -- ProfileForm.lua).
 --------------------------------------------------------------------------------
 
@@ -22,7 +22,7 @@ local frame, book, leftPage, rightPage
 -- kept) or leaving (the player chose in the unsaved changes popup)
 local keeping, leaving, resumeAfterCombat = false, false, false
 
--- something not saved: the profile's form, or Settings' changes waiting
+-- something not saved: the profile's form, or changes waiting
 local function HasChanges()
 	return (ns.FormHasChanges and ns.FormHasChanges()) or ns.CountStaged() > 0
 end
@@ -208,36 +208,6 @@ local function CreateBook()
 	end)
 	book.home:SetPoint("RIGHT", book, "TOPRIGHT", -20, -26)
 	W.TipScripts(book.home, L.HOME, L.HOME_DESC)
-	-- search every option, left of the home button
-	local templateOK = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("SearchBoxTemplate")
-	book.search = CreateFrame("EditBox", nil, book, templateOK and "SearchBoxTemplate" or "InputBoxTemplate")
-	book.search:SetSize(200, 20)
-	book.search:SetAutoFocus(false)
-	book.search:SetPoint("RIGHT", book.home, "LEFT", -14, 0)
-	if book.search.Instructions then
-		book.search.Instructions:SetText(L.SEARCH_HINT)
-	end
-	local token = 0
-	book.search:HookScript("OnTextChanged", function(self, userInput)
-		local text = self:GetText() or ""
-		if text == "" then
-			-- cleared (by the player or the clear button): back to where it was
-			if state.group == "search" then
-				ns.EndSearch()
-			end
-			return
-		end
-		if not userInput then
-			return
-		end
-		token = token + 1
-		local mine = token
-		C_Timer.After(0.25, function()
-			if mine == token then
-				ns.ShowSearch(self:GetText())
-			end
-		end)
-	end)
 	book.crumb = book:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 	-- clear of the portrait in the window's corner
 	book.crumb:SetPoint("LEFT", book, "TOPLEFT", 64, -26)
@@ -353,13 +323,10 @@ local function LayoutOptions()
 	return list
 end
 
--- group: a profile's own pages leave the Edit Mode layout to its form
-local function BuildSettingsPage(page, group)
-	-- a profile's pages sit in a box, a little narrower
-	local CW = group == "profileopts" and CW - 20 or CW
+local function BuildSettingsPage(page)
 	local pf = NewPage(CW)
 	local y = 0
-	if page.layout and group ~= "profileopts" then
+	if page.layout then
 		y = W.Header(pf, y, CW, L.SEC_EDITMODE)
 		y = W.Dropdown(pf, y, CW, false, L.EDITMODE_LAYOUT, L.EDITMODE_LAYOUT_DESC, LayoutOptions, ns.GetLayout, function(index)
 			ns.SetLayout(index)
@@ -381,7 +348,7 @@ end
 local TAB_H, ROW_H = 26, 22
 local LIST_TOP = PAD_TOP + TAB_H + 16
 
--- what the Modules, Game Settings and SetGo! tabs list; group = the right page
+-- what the Modules and SetGo! tabs list; group = the right page
 local function Entries(tab)
 	if tab == "modules" then
 		local list = {}
@@ -389,27 +356,18 @@ local function Entries(tab)
 			list[#list + 1] = { label = page.title, group = "modules", index = i }
 		end
 		return list
-	elseif tab == "game" then
-		local list = {}
-		if ns.SettingsReady() then
-			for i, page in ipairs(ns.BuildPath("options")) do
-				list[#list + 1] = { label = page.title, group = "game", index = i }
-			end
-		end
-		return list
 	end
-	return { { label = L.SETGO_TITLE, group = "setgo" }, { label = L.RESET_TITLE, group = "reset" } }
+	return { { label = L.SETGO_TITLE, group = "setgo" } }
 end
 
 -- the tab a group lives in
 local TAB_OF = {
-	newpreset = "presets", profileopts = "presets",
-	modules = "modules", game = "game", setgo = "settings", reset = "settings",
+	newpreset = "presets", modules = "modules", setgo = "settings",
 }
 
--- the game's option pages, paged with the arrows: straight on the game
--- (Game Settings), or a profile's own (its Options tab)
-local PAGED = { game = true, profileopts = true }
+-- groups paged with the arrows (none now: the game's option pages are
+-- Blizzard's own again)
+local PAGED = {}
 
 -- a text tab with a line under it when chosen
 local function MakeTab(parent, label, width, onClick, font)
@@ -836,7 +794,7 @@ local function CreateNav()
 	mlist:SetSize(BW, 10)
 	mscroll:SetScrollChild(mlist)
 	nav.moduleButtons = {}
-	local MOD_H, PIC = 112, 96
+	local MOD_H, PIC = 112, 72
 	local y = 0
 	for _, m in ipairs(ns.KNOWN_MODULES) do
 		if ns.AddonInstalled(m.addon) then
@@ -845,10 +803,10 @@ local function CreateNav()
 			b:SetPoint("TOPLEFT", 0, -y)
 			Card(b)
 			b.key = m.key
-			b.pic = b:CreateTexture(nil, "ARTWORK")
-			b.pic:SetSize(PIC, PIC)
-			b.pic:SetPoint("LEFT", 8, 0)
-			b.pic:SetTexture("Interface\\AddOns\\SetGo\\Media\\" .. m.addon)
+			-- its icon (the one its .toc gives the addon list), round
+			b.pic = RoundIcon(b, PIC)
+			b.pic:SetPoint("LEFT", 16, 0)
+			b.pic:SetTexture(ns.ModuleIcon(m.addon))
 			local textW = BW - PIC - 60
 			b.title = W.Text(b, W.FONT_HEADER, textW, L[m.title])
 			b.title:SetPoint("TOPLEFT", b.pic, "TOPRIGHT", 12, -6)
@@ -900,10 +858,10 @@ end
 
 
 --------------------------------------------------------------------------------
--- Right page: title (with the page arrows, the eye and Defaults on its
--- line), scrolling options, and at the bottom the buttons: Apply (the
--- changes waiting, on the game) and Save to active profile. A profile's
--- Options tab puts the same pages in a box under the form's header.
+-- Right page: title (with the page arrows and Defaults on its line),
+-- scrolling options, and at the bottom the buttons: Apply (changes
+-- waiting, on the game; only when there are some) and Save to active
+-- profile (the Modules tab).
 --------------------------------------------------------------------------------
 
 -- a square button in the style of Apply, with an icon on it (the first of
@@ -983,61 +941,6 @@ local function CreatePages()
 	rp.next = W.PageArrow(rp, "Next", function()
 		ns.ShowIndex(state.index + 1)
 	end)
-	-- Game Settings: show or hide the global options (an eye)
-	rp.eye = CreateFrame("Button", nil, rp)
-	rp.eye:SetSize(26, 26)
-	rp.eye.tex = rp.eye:CreateTexture(nil, "ARTWORK")
-	rp.eye.tex:SetAllPoints()
-	-- the raid manager's eye; the closed one if the client has it, else the
-	-- same eye, faded
-	local function FirstAtlas(list)
-		for _, atlas in ipairs(list) do
-			if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
-				return atlas
-			end
-		end
-	end
-	local OPEN = FirstAtlas({ "GM-icon-visible", "socialqueuing-icon-eye" })
-	local CLOSED = FirstAtlas({ "GM-icon-hidden", "GM-icon-invisible", "GM-icon-visible-off", "GM-icon-notVisible" })
-	function rp.eye:Update()
-		local hidden = ns.HideGlobal()
-		local atlas = hidden and CLOSED or OPEN
-		if atlas then
-			self.tex:SetAtlas(atlas)
-		else
-			self.tex:SetColorTexture(0.3, 0.2, 0.1, 0.6)
-		end
-		self.tex:SetAlpha((hidden and not CLOSED) and 0.4 or 1)
-	end
-	rp.eye:SetScript("OnEnter", function(self)
-		local atlas = self.tex.GetAtlas and self.tex:GetAtlas()
-		if atlas and OPEN and atlas == OPEN and C_Texture.GetAtlasInfo(OPEN .. "-hover") then
-			self.tex:SetAtlas(OPEN .. "-hover")
-		end
-	end)
-	rp.eye:SetScript("OnClick", function()
-		ns.db.hideGlobal = not ns.HideGlobal()
-		-- the same page, from the other list (the first one if it went away)
-		local page = state.pages and state.pages[state.index]
-		local want = page and page.key
-		local index = 1
-		for i, p in ipairs(ns.BuildPath("options")) do
-			if p.key == want then
-				index = i
-			end
-		end
-		state.last.game = nil
-		ns.Select("game", index, true)
-	end)
-	W.TipScripts(rp.eye, function()
-		return ns.HideGlobal() and L.SHOW_GLOBAL or L.HIDE_GLOBAL
-	end, function()
-		return ns.HideGlobal() and L.SHOW_GLOBAL_DESC or L.HIDE_GLOBAL_DESC
-	end, true)
-	rp.eye:HookScript("OnLeave", function(self)
-		self:Update()
-	end)
-
 	-- at the bottom: Apply and Save to active profile, the changes waiting
 	-- over them, Discard on the right
 	rp.main = W.Button(rp, 140, L.APPLY, function()
@@ -1052,7 +955,7 @@ local function CreatePages()
 		if not name then
 			return L.SAVE_TO_PROFILE_NONE
 		end
-		return (state.group == "modules" and L.SAVE_MODULES_DESC or L.SAVE_OPTIONS_DESC):format(name)
+		return L.SAVE_MODULES_DESC:format(name)
 	end)
 	rp.pending = W.Text(rp, W.FONT_SMALL, width, "", 0.8)
 	rp.pending:SetJustifyH("CENTER")
@@ -1068,20 +971,9 @@ local function CreatePages()
 	end)
 	rp.discard:SetPoint("BOTTOMRIGHT", rp, "BOTTOMRIGHT", -PAD, 17)
 	W.TipScripts(rp.discard, L.DISCARD, L.DISCARD_DESC)
-	-- a profile's Options tab with its own settings unticked: in place of
-	-- the pages, why they don't show
-	rp.off = W.Text(rp, W.FONT_BODY, width - 24, L.FORM_OPTIONS_OFF, 0.85)
-
-	-- mode: nil (a plain page), "game" (the eye) or "profile" (the pages in
-	-- the form's box). off: the profile has no settings of its own (only the
-	-- note shows).
-	function rp:Place(mode, off)
+	-- mode: nil (a plain page) or "paged" (the page arrows)
+	function rp:Place(mode)
 		local left, top, right, bottom = PAD, PAD_TOP, PAD, 76
-		if mode == "profile" then
-			local box = ns.FORM_BOX
-			left, right = PAD + 10, PAD + 10
-			top, bottom = box.top + 8, box.bottom + 8
-		end
 		self.title:ClearAllPoints()
 		self.title:SetPoint("TOPLEFT", left, -top)
 		self.divider:ClearAllPoints()
@@ -1090,30 +982,14 @@ local function CreatePages()
 		scroll:ClearAllPoints()
 		scroll:SetPoint("TOPLEFT", left, -(top + 46))
 		-- in the box, the arrows go under the pages, on the right
-		scroll:SetPoint("BOTTOMRIGHT", -(right + 14), mode == "profile" and bottom + 30 or bottom)
+		scroll:SetPoint("BOTTOMRIGHT", -(right + 14), bottom)
 		self.defaults:ClearAllPoints()
 		self.defaults:SetPoint("TOPRIGHT", self, "TOPRIGHT", -right, -(top + 2))
 		self.jump:SetShown(mode ~= nil)
 		self.prev:ClearAllPoints()
 		self.next:ClearAllPoints()
-		if mode == "profile" then
-			self.next:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -(right - 6), bottom - 4)
-		else
-			self.next:SetPoint("RIGHT", self.defaults, "LEFT", -4, 0)
-		end
+		self.next:SetPoint("RIGHT", self.defaults, "LEFT", -4, 0)
 		self.prev:SetPoint("RIGHT", self.next, "LEFT", 2, 0)
-		self.eye:ClearAllPoints()
-		self.eye:SetPoint("RIGHT", self.prev, "LEFT", -6, 0)
-		self.eye:SetShown(mode == "game")
-		if mode == "game" then
-			self.eye:Update()
-		end
-		self.off:ClearAllPoints()
-		self.off:SetPoint("TOPLEFT", left, -(top + 4))
-		self.off:SetShown(off and true or false)
-		self.title:SetShown(not off)
-		self.divider:SetShown(not off)
-		scroll:SetShown(not off)
 	end
 	rp:Place(nil)
 end
@@ -1124,59 +1000,6 @@ U.Card, U.Popup, U.Confirm, U.EditBoxOf, U.Atlas = Card, Popup, Confirm, EditBox
 U.MakeTab, U.PlaceTabs, U.Rule = MakeTab, PlaceTabs, Rule
 U.RenderItems = RenderItems
 
-
---------------------------------------------------------------------------------
--- Right page: Blizzard defaults
---------------------------------------------------------------------------------
-
-local function CreateReset()
-	local rr = CreateFrame("Frame", nil, rightPage)
-	rr:SetAllPoints()
-	rightPage.reset = rr
-	local rt = W.Text(rr, W.FONT_TITLE, PAGE_W - PAD * 2, L.RESET_TITLE)
-	rt:SetPoint("TOPLEFT", PAD, -PAD_TOP)
-	local ask = W.Text(rr, W.FONT_BODY, PAGE_W - PAD * 2, L.RESET_WHAT)
-	ask:SetPoint("TOPLEFT", PAD, -(PAD_TOP + 50))
-	local radios = {}
-	local choice = "all"
-	local function Radio(i, key, label)
-		local r = CreateFrame("CheckButton", nil, rr, "UIRadioButtonTemplate")
-		r:SetSize(20, 20)
-		r:SetPoint("TOPLEFT", PAD, -(PAD_TOP + 80 + (i - 1) * 28))
-		local fs = W.Text(rr, W.FONT_BODY, PAGE_W - PAD * 2 - 30, label)
-		fs:SetPoint("LEFT", r, "RIGHT", 6, 0)
-		r:SetScript("OnClick", function()
-			choice = key
-			for k, other in pairs(radios) do
-				other:SetChecked(k == key)
-			end
-		end)
-		r:SetChecked(key == choice)
-		radios[key] = r
-	end
-	Radio(1, "all", L.RESET_EVERYTHING)
-	Radio(2, "account", L.RESET_GLOBAL)
-	Radio(3, "char", L.RESET_CHARACTER)
-	local note = W.Text(rr, W.FONT_SMALL, PAGE_W - PAD * 2, L.RESET_NOTE, 0.8)
-	note:SetPoint("TOPLEFT", PAD, -(PAD_TOP + 175))
-	local reset = W.Button(rr, 160, L.RESET_BUTTON, function()
-		if not ns.SettingsReady() then
-			ns.Print(L.MSG_NOT_READY)
-			return
-		end
-		Confirm(L.POPUP_RESET, function()
-			ns.ClearStaged()
-			if choice ~= "char" then
-				ns.StageDefaults(ns.PathItems("account"), false)
-			end
-			if choice ~= "account" then
-				ns.StageDefaults(ns.PathItems("char"), true)
-			end
-			ns.FinishApply(ns.ApplyStaged())
-		end)
-	end)
-	reset:SetPoint("BOTTOM", rr, "BOTTOM", 0, 24)
-end
 
 --------------------------------------------------------------------------------
 -- Blizzard windows: Quick Keybind mode, the key bindings menu, the Cooldown
@@ -1270,27 +1093,21 @@ end
 local function PagesOf(group)
 	if group == "setgo" then
 		return { { key = "setgo", title = L.SETGO_TITLE, items = ns.SetGoItems(), own = true } }
-	elseif group == "game" then
-		-- the game's options, global ones too unless hidden
-		return ns.BuildPath("options")
-	elseif group == "profileopts" then
-		-- a profile's own: character options only
-		return ns.BuildPath("options", "char")
 	end
 	return ns.BuildPath(group)
 end
 
 local GROUP_NAMES = {
-	modules = "MODULES", setgo = "SETGO_TITLE", reset = "RESET_TITLE", game = "TAB_GAME",
+	modules = "MODULES", setgo = "SETGO_TITLE",
 }
 
 -- the right page's own frames, one per mode
-local MODES = { "pages", "reset", "newpreset" }
-local SPECIAL = { reset = true, newpreset = true }
+local MODES = { "pages", "newpreset" }
+local SPECIAL = { newpreset = true }
 
 -- the profile form shows on the right page (any of its tabs)
 local function OnForm()
-	return state.group == "newpreset" or state.group == "profileopts"
+	return state.group == "newpreset"
 end
 ns.OnForm = OnForm
 
@@ -1298,24 +1115,17 @@ local function Crumb()
 	local group = state.group
 	if OnForm() and ns.creating then
 		return ns.creating.edit and L.CRUMB_PRESET:format(ns.creating.edit) or L.NEW_PRESET
-	elseif group == "search" then
-		return L.SEARCH
 	end
 	return L[GROUP_NAMES[group]] or L.ADDON
 end
 
--- The profile's own options are what the pages show and change, while its
--- Options tab is open with its own settings ticked; everywhere else they
--- show the game.
+-- The profile's own module options are what the module rows show and
+-- change, while its Modules tab is open with Change modules ticked;
+-- everywhere else they show the game.
 local function SyncDraft()
 	local f = ns.form
 	local open = frame and frame:IsShown() and ns.creating and f
-	if open and state.group == "profileopts" and f.custom then
-		ns.optionsDraft = f
-	else
-		ns.optionsDraft = nil
-	end
-	-- the same for the module options, on its Modules tab
+	ns.optionsDraft = nil
 	if open and state.group == "newpreset" and f.tab == "modules" and f.customModules then
 		if ns.ModuleVars and not ns.moduleVars then
 			ns.ModuleVars()
@@ -1353,12 +1163,11 @@ UpdateChrome = function()
 		return
 	end
 	local rp = rightPage.pages
-	-- Game Settings and search: Apply puts the changes waiting on this
-	-- character. Game Settings and the Modules tab: Save to active profile.
-	-- A profile's Options tab: the form's own button.
+	-- Changes waiting (a module page's Blizzard setting): Apply puts them on
+	-- this character. The Modules tab: Save to active profile.
 	local group = state.group
-	local staging = group == "game" or group == "search"
-	local saving = group == "game" or group == "modules"
+	local staging = state.mode == "pages" and ns.CountStaged() > 0
+	local saving = group == "modules"
 	rp.main:SetShown(staging)
 	rp.save:SetShown(saving)
 	rp.pending:SetShown(staging)
@@ -1374,9 +1183,6 @@ UpdateChrome = function()
 		rp.save:SetPoint("BOTTOMRIGHT", rp, "BOTTOMRIGHT", -PAD, 17)
 	end
 	rp.save:SetEnabled(ns.ActivePreset() ~= nil)
-	if group == "profileopts" and ns.RefreshFormButton then
-		ns.RefreshFormButton()
-	end
 	if not staging then
 		return
 	end
@@ -1396,7 +1202,6 @@ function ns.Refresh()
 	RefreshList()
 	if ns.RefreshFormHead then
 		ns.RefreshFormHead(OnForm())
-		ns.RefreshFormOptions(state.group == "profileopts")
 	end
 	if state.mode == "pages" and state.current then
 		Refreshers(state.current.refreshers)
@@ -1442,18 +1247,15 @@ function ns.ShowIndex(index, quiet)
 
 	local rp = rightPage.pages
 	local paged = PAGED[state.group]
-	local profile = state.group == "profileopts"
-	-- a profile without its own settings: the pages don't apply to it
-	local off = profile and not (ns.form and ns.form.custom)
-	rp:Place(profile and "profile" or (paged and "game") or nil, off)
+	rp:Place(paged and "paged" or nil)
 	rp.title:SetText(page.title or "")
-	local arrows = paged and PageCount() > 1 and not off
+	local arrows = paged and PageCount() > 1
 	rp.prev:SetShown(arrows)
 	rp.next:SetShown(arrows)
 	rp.prev:SetEnabled(index > 1)
 	rp.next:SetEnabled(index < PageCount())
 	-- our own pages apply at once and have no Blizzard defaults
-	rp.defaults:SetShown(not page.own and not off)
+	rp.defaults:SetShown(not page.own)
 	if turning and not quiet then
 		PageTurn()
 	end
@@ -1463,20 +1265,9 @@ end
 -- Show a group on the right page (index: which page). Staged changes stay
 -- until applied or discarded.
 function ns.Select(group, index, quiet)
-	-- the option pages of older versions are Game Settings now
-	if group == "char" or group == "account" or group == "changed" or group == "options" then
-		group = "game"
-	end
-	if group == "search" then
-		-- reopened during a search: back to where it started
-		local back = state.beforeSearch or {}
-		group, index = back.group or "newpreset", back.index
-		if group == "search" then
-			group = "newpreset"
-		end
-	end
-	-- a profile's Options tab needs its form
-	if group == "profileopts" and not ns.creating then
+	-- pages that are gone (the game's option pages, the search, Blizzard
+	-- defaults): back to the profiles
+	if not (group == "newpreset" or TAB_OF[group]) then
 		ns.SelectTab("presets")
 		return
 	end
@@ -1495,10 +1286,6 @@ function ns.Select(group, index, quiet)
 	end
 	local sameGroup = group == state.group
 	state.group = group
-	if book.search and book.search:GetText() ~= "" then
-		book.search:SetText("") -- the group is set first, so this doesn't restore
-		book.search:ClearFocus()
-	end
 	if special then
 		state.pages = nil
 		if group == "newpreset" and not ns.creating then
@@ -1672,7 +1459,7 @@ function ns.SlotMenu(b)
 	end)
 end
 
--- Apply: every change waiting (Game Settings, search), after asking: the
+-- Apply: every change waiting, after asking: the
 -- reload must come from Blizzard's own popup
 function ns.ApplyAndSave()
 	local n = ns.CountStaged()
@@ -1689,40 +1476,17 @@ function ns.ApplyAndSave()
 	end)
 end
 
--- Save to active profile: Game Settings (its character options, with the
--- changes waiting, then those applied) or Modules (which are on, and their
--- options)
+-- Save to active profile (the Modules tab): which modules are on, and their
+-- options
 function ns.SaveToActiveProfile()
 	local name = ns.ActivePreset()
 	if not name then
 		ns.Print(L.SAVE_TO_PROFILE_NONE)
 		return
 	end
-	if state.group == "modules" then
-		ns.SaveModulesToProfile(name)
-		ns.Print(L.MSG_SAVED_MODULES:format(name))
-		ns.Refresh()
-		return
-	end
-	if not ns.SettingsReady() then
-		ns.Print(L.MSG_NOT_READY)
-		return
-	end
-	local n = ns.CountStaged()
-	if n == 0 then
-		ns.SaveOptionsToProfile(name)
-		ns.Print(L.MSG_SAVED_OPTIONS:format(name))
-		ns.Refresh()
-		return
-	end
-	Confirm(L.POPUP_SAVE_APPLY_GAME:format(name, n), function()
-		if InCombatLockdown() then
-			ns.Print(L.MSG_COMBAT)
-			return
-		end
-		ns.SaveOptionsToProfile(name)
-		ns.FinishApply(ns.ApplyStaged())
-	end)
+	ns.SaveModulesToProfile(name)
+	ns.Print(L.MSG_SAVED_MODULES:format(name))
+	ns.Refresh()
 end
 ns.MainButton = ns.ApplyAndSave
 
@@ -1765,175 +1529,6 @@ end
 
 
 --------------------------------------------------------------------------------
--- Search: every option SetGo! shows (Character, Global, Quick settings,
--- modules, SetGo!'s own), by name or description. The results are the same
--- rows as on their pages, grouped by where they live; each row is built once
--- and kept, so searching again costs nothing.
---------------------------------------------------------------------------------
-
-local SEARCHABLE = {
-	checkbox = true, dropdown = true, slider = true, cbslider = true, cbdropdown = true,
-	keybind = true, button = true, blizzard = true,
-}
-
-local searchPage, noResults
-local searchRows = {} -- [item] = frame
-local searchHeads = {}
-
-local function Plain(tip)
-	if type(tip) == "function" then
-		local ok, text = pcall(tip)
-		tip = ok and text or nil
-	end
-	return type(tip) == "string" and tip or ""
-end
-
-local function Matches(item, text)
-	if not SEARCHABLE[item.kind] then
-		return false
-	end
-	local hay = (tostring(item.name or "") .. " " .. tostring(item.secondName or "") .. " "
-		.. Plain(item.tooltip) .. " " .. Plain(item.secondTooltip)):lower()
-	return hay:find(text, 1, true) ~= nil
-end
-
--- where to look, in the order results are listed
-local function SearchSources()
-	local list = {}
-	local function Add(groupLabel, pages)
-		for _, page in ipairs(pages or {}) do
-			list[#list + 1] = { label = ("%s \194\183 %s"):format(groupLabel, page.title or ""), items = page.items or {} }
-		end
-	end
-	-- every option, global ones too, whatever the list hides
-	if ns.SettingsReady() then
-		Add(L.OPTIONS_TITLE, ns.BuildPath("options", "all"))
-	end
-	Add(L.MODULES, ns.BuildPath("modules"))
-	Add(L.TAB_SETTINGS, { { title = "", items = ns.SetGoItems() } })
-	return list
-end
-
-local function SearchHead(i)
-	if not searchHeads[i] then
-		searchHeads[i] = W.Text(searchPage, W.FONT_HEADER, CW, "")
-	end
-	return searchHeads[i]
-end
-
--- the search results, text given
-local function ShowResults(kind, text)
-	text = strtrim(text or ""):lower()
-	if #text < 2 then
-		return
-	end
-	if not searchPage then
-		searchPage = CreateFrame("Frame", nil, rightPage.scroll)
-		searchPage:SetWidth(CW)
-		searchPage.refreshers = {}
-		noResults = W.Text(searchPage, W.FONT_BODY, CW, "", 0.8)
-		noResults:SetPoint("TOPLEFT")
-	end
-	if state.group ~= "search" then
-		state.beforeSearch = { group = state.group, index = state.index, tab = state.tab }
-	end
-	-- the results show and change the game
-	local turning = state.group ~= kind
-	state.group = kind
-	state.pages = nil
-	ShowMode("pages", true)
-	if state.current and state.current ~= searchPage then
-		state.current:Hide()
-	end
-
-	for _, f in pairs(searchRows) do
-		f:Hide()
-	end
-	for _, h in ipairs(searchHeads) do
-		h:Hide()
-	end
-	wipe(searchPage.refreshers)
-	local y, heads, found = 0, 0, 0
-	local sources = SearchSources()
-	for _, source in ipairs(sources) do
-		local headed = false
-		for _, item in ipairs(source.items) do
-			if Matches(item, text) then
-				if not headed then
-					headed = true
-					heads = heads + 1
-					local h = SearchHead(heads)
-					h:SetText((source.label:gsub(" \194\183 $", "")))
-					h:ClearAllPoints()
-					h:SetPoint("TOPLEFT", searchPage, "TOPLEFT", 0, -(y + (y > 0 and 10 or 0)))
-					h:Show()
-					y = y + (y > 0 and 10 or 0) + h:GetStringHeight() + 8
-				end
-				local f = searchRows[item]
-				if not f then
-					f = CreateFrame("Frame", nil, searchPage)
-					f:SetWidth(CW)
-					f.refreshers = {}
-					f:SetHeight(RenderItems(f, { item }, 0))
-					searchRows[item] = f
-				end
-				f:ClearAllPoints()
-				f:SetPoint("TOPLEFT", searchPage, "TOPLEFT", 0, -y)
-				f:Show()
-				for _, refresh in ipairs(f.refreshers) do
-					searchPage.refreshers[#searchPage.refreshers + 1] = refresh
-				end
-				y = y + f:GetHeight()
-				found = found + 1
-			end
-		end
-	end
-	noResults:SetText(L.SEARCH_NONE)
-	noResults:SetShown(found == 0)
-	searchPage:SetHeight(math.max(y, 20) + 10)
-
-	state.current = searchPage
-	rightPage.scroll:SetScrollChild(searchPage)
-	searchPage:Show()
-	rightPage.scroll:SetVerticalScroll(0)
-	local rp = rightPage.pages
-	rp:Place(nil)
-	rp.title:SetText(L.SEARCH_TITLE:format(found))
-	rp.prev:Hide()
-	rp.next:Hide()
-	rp.step:Hide()
-	rp.defaults:Hide()
-	ns.Refresh()
-end
-
-function ns.ShowSearch(text)
-	ShowResults("search", text)
-end
-
--- the search box was cleared: back to the page it started from
-function ns.EndSearch()
-	local back = state.beforeSearch or {}
-	state.beforeSearch = nil
-	if searchPage then
-		searchPage:Hide()
-	end
-	if state.current == searchPage then
-		state.current = nil
-	end
-	state.group = nil
-	if back.tab then
-		state.tab = back.tab
-	end
-	if back.group == "newpreset" or back.group == "profileopts" then
-		ns.SelectTab("presets")
-	elseif back.group and back.group ~= "search" then
-		ns.Select(back.group, back.index, true)
-	else
-		ns.GoHome(true)
-	end
-end
-
---------------------------------------------------------------------------------
 -- Window
 --------------------------------------------------------------------------------
 
@@ -1950,7 +1545,7 @@ local function CreateWindow()
 	frame:SetScript("OnDragStart", frame.StartMoving)
 	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 	Try(frame.SetTitle, frame, L.ADDON)
-	Try(frame.SetPortraitToAsset, frame, "Interface\\AddOns\\SetGo\\Media\\SetGo")
+	Try(frame.SetPortraitToAsset, frame, ns.ICON)
 	if type(frame.Inset) == "table" then
 		frame.Inset:Hide()
 	end
@@ -1958,7 +1553,6 @@ local function CreateWindow()
 	CreateBook()
 	CreateNav()
 	CreatePages()
-	CreateReset()
 	ns.CreateProfileForm()
 
 	-- keys or Edit Mode layouts changed elsewhere: the preset's differences
@@ -2051,7 +1645,7 @@ function ns.Resume()
 	keeping = false
 	if ns.OnForm() and ns.creating then
 		ns.ShowFormTab(ns.form.tab or "layout")
-	elseif state.group and state.group ~= "search" then
+	elseif state.group and state.group ~= "newpreset" then
 		ns.Select(state.group, state.index, true)
 	else
 		ns.GoHome(true)
@@ -2081,8 +1675,8 @@ StaticPopupDialogs.SETGO_UNSAVED = {
 	button2 = CANCEL or "Cancel",
 	button3 = L.EXIT_NO_SAVE,
 	selectCallbackByIndex = true,
-	-- Save and exit: the profile saved (not applied); changes waiting in
-	-- Settings applied (the interface reloads)
+	-- Save and exit: the profile saved (not applied); changes waiting
+	-- applied (the interface reloads)
 	OnAccept = function()
 		if ns.FormHasChanges() and not ns.FormSaveOnly() then
 			return

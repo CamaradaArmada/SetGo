@@ -108,6 +108,15 @@ local function FirstTimePopup()
 	C_Timer.After(2, TryShow)
 end
 
+-- the settings as they are now, to record what the player changes in
+-- Blizzard's Options window (once, when the game's settings are ready)
+local settingsWatched = false
+local function WatchSettings()
+	if not settingsWatched and ns.db then
+		settingsWatched = ns.Try(ns.WatchSettings) == true
+	end
+end
+
 local watching = false
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
@@ -124,6 +133,7 @@ events:SetScript("OnEvent", function(self, event, arg1)
 	elseif event == "PLAYER_LOGIN" then
 		ns.Try(ns.SetupModules)
 	elseif event == "SETTINGS_LOADED" then
+		WatchSettings()
 		FirstTimePopup()
 	elseif event == "PLAYER_ENTERING_WORLD" and not watching then
 		-- the keys as they are now, to tell a real change from Blizzard
@@ -137,6 +147,7 @@ events:SetScript("OnEvent", function(self, event, arg1)
 	if event == "PLAYER_ENTERING_WORLD" and arg1 then
 		-- fallback if the settings event never comes
 		C_Timer.After(5, function()
+			WatchSettings()
 			if ns.SettingsReady() then
 				FirstTimePopup()
 			end

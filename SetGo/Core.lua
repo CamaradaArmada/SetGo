@@ -115,6 +115,24 @@ local function MigrateV6(db)
 	end
 end
 
+-- 0.22: settings, keybinds and action bars each come from a shared set
+-- (Global) or the profile's own (Profile). What profiles had stays theirs:
+-- keybinds and bars their own, settings their own when they applied them.
+local function MigrateV7(db)
+	for _, p in pairs(db.profiles) do
+		if type(p) == "table" then
+			if type(p.scope) ~= "table" then
+				p.scope = {
+					settings = p.custom and "profile" or "global",
+					keys = "profile",
+					bars = "profile",
+				}
+			end
+			p.custom, p.applyKeys, p.applySkills = nil, nil, nil
+		end
+	end
+end
+
 function ns.InitDB()
 	if type(SetGoDB) ~= "table" then
 		SetGoDB = {}
@@ -136,7 +154,14 @@ function ns.InitDB()
 	if (tonumber(db.version) or 0) < 6 then
 		MigrateV6(db)
 	end
-	db.version = 6
+	if (tonumber(db.version) or 0) < 7 then
+		MigrateV7(db)
+	end
+	db.version = 7
+	-- the shared set (Global): filled from the game the first time it is used
+	if type(db.shared) ~= "table" then
+		db.shared = {}
+	end
 	if type(SetGoCharDB.skills) ~= "table" then
 		SetGoCharDB.skills = {}
 	end

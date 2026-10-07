@@ -8,6 +8,6 @@
 ## OptionalDeps: SetGo_Chat
 ## DefaultState: enabled
 ## SavedVariables: SetGoSpeakDB
-## IconTexture: Interface\Icons\INV_Letter_15
+## IconTexture: Interface\Icons\ui_chat
 
 Speak.lua

@@ -3,10 +3,10 @@
 ## Notes: Quick setup for the Blizzard UI: profiles with an Edit Mode layout, what it switches on, modules, keys, action bars and their own character settings.
 ## Notes-ptBR: Configuração rápida da interface da Blizzard: perfis com um layout do Edit Mode, o que ligam, módulos, teclas, barras de acção e definições próprias da personagem.
 ## Author: Armada
-## Version: 0.21.2
+## Version: 0.22.0
 ## SavedVariables: SetGoDB
 ## SavedVariablesPerCharacter: SetGoCharDB
-## IconTexture: Interface\AddOns\SetGo\Media\SetGo
+## IconTexture: Interface\Icons\inv_misc_gear_01
 ## AddonCompartmentFunc: SetGo_Open
 
 Libs\LibStub\LibStub.lua

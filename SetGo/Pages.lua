@@ -123,7 +123,7 @@ end
 -- SetGo!'s own settings
 --------------------------------------------------------------------------------
 
-ns.TABS = { "presets", "modules", "game", "settings" }
+ns.TABS = { "presets", "modules", "settings" }
 
 -- Global options are hidden until the player shows them: presets keep
 -- character options only. They still turn up in the search.
