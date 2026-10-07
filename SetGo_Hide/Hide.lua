@@ -307,6 +307,11 @@ end
 local started, editing = false, false
 local containers = {} -- [driver] = our parent frame
 local moved = {} -- [Blizzard frame] = its own parent
+
+-- a Blizzard frame Hide! has a rule for (Cooldowns.lua asks)
+function ns.HideManaged(f)
+	return moved[f] ~= nil
+end
 local events = CreateFrame("Frame")
 
 local function Container(driver)
@@ -484,6 +489,9 @@ function Apply()
 	end
 	Watch(UsesHealth())
 	WatchReveal(bars)
+	if ns.CooldownsRefresh then
+		ns.CooldownsRefresh(db and db.cooldowns == true)
+	end
 	return true
 end
 
@@ -508,9 +516,6 @@ local function Start()
 	end
 	Apply()
 	ns.hideStarted = true
-	if ns.ArtStart then
-		ns.ArtStart()
-	end
 end
 
 --------------------------------------------------------------------------------
@@ -666,6 +671,14 @@ local function SectionsBuilder(settings)
 					by = RowBuilder(e, pair.when, pair.mode)(body, by, width)
 				end
 			end
+			if grp.key == "bars" and settings._cooldowns then
+				local s = settings._cooldowns
+				by = W.Checkbox(body, by + 4, width, false, ns.CooldownL.TOGGLE, ns.CooldownL.TOGGLE_DESC, function()
+					return SetGo.Get(s)
+				end, function(value)
+					SetGo.Set(s, value)
+				end)
+			end
 			body:SetHeight(by)
 			sec.body = body
 
@@ -730,28 +743,24 @@ local function Items()
 		all[#all + 1] = when
 		all[#all + 1] = mode
 	end
+	-- cooldown icons over hidden action bars (Cooldowns.lua), in profiles
+	local CL = ns.CooldownL
+	local cooldowns = Pseudo("SETGO_HIDE_COOLDOWNS", CL.TOGGLE, CL.TOGGLE_DESC, false, function()
+		return db and db.cooldowns == true
+	end, function(value)
+		db.cooldowns = value and true or nil
+		if started then
+			ns.CooldownsRefresh(value)
+		end
+	end)
+	all[#all + 1] = cooldowns
+	settings._cooldowns = cooldowns
 	items = {
 		{ kind = "note", name = L.NOTE },
 		{ kind = "note", name = L.NOTE_BLIZZARD },
 		-- every frame's two settings, so profiles keep them
 		{ kind = "custom", name = L.TITLE, settings = all, build = SectionsBuilder(settings) },
 	}
-	-- the action bar art copy (Art.lua): its switch is a setting with no
-	-- "settings" list, so profiles leave it out
-	local AL = ns.ArtL
-	if AL then
-		local art = Pseudo("SETGO_HIDE_ART", AL.TOGGLE, AL.TOGGLE_DESC, false, function()
-			return ns.ArtOn()
-		end, function(value)
-			ns.ArtSetOn(value)
-		end)
-		items[#items + 1] = { kind = "header", name = AL.HEADER }
-		if ns.ArtExists() then
-			items[#items + 1] = { kind = "checkbox", setting = art, name = AL.TOGGLE, tooltip = AL.TOGGLE_DESC }
-		else
-			items[#items + 1] = { kind = "note", name = AL.MISSING }
-		end
-	end
 	return items
 end
 
@@ -765,6 +774,8 @@ events:SetScript("OnEvent", function(self, event, arg1)
 			SetGoHideDB = type(SetGoHideDB) == "table" and SetGoHideDB or {}
 			db = SetGoHideDB
 			ns.hideDB = db
+			-- the action bar art copy is gone (0.6.0)
+			db._art = nil
 		elseif revealing then
 			-- the spellbook can be an addon of Blizzard's that loads later
 			HookSpellbooks()

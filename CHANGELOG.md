@@ -1,5 +1,13 @@
 # Changelog
 
+## Hide! 0.6.0
+
+- New in Action bars: "Show abilities on cooldown". While Hide! hides an
+  action bar, its abilities on cooldown still show where their button is,
+  with the cooldown swipe and the charges left. The global cooldown doesn't
+  count.
+- The action bar art copy is gone.
+
 ## 0.22.0
 
 - Profiles have a Settings tab in place of Options: character settings,
