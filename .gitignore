@@ -9,3 +9,9 @@ desktop.ini
 # packages
 *.zip
 .release/
+
+# tests: the Lua build
+tests/lua-5.1/*.o
+tests/lua-5.1/*.a
+tests/lua-5.1/lua
+tests/lua-5.1/luac

@@ -13,3 +13,4 @@ ignore:
   - CHANGELOG.md
   - MODULES.md
   - .gitignore
+  - tests

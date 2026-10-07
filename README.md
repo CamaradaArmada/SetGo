@@ -35,6 +35,11 @@ Copy the folder `SetGo` and the `SetGo_*` modules you want into the
 game's `Interface\AddOns` folder. `SetGo` is required; the
 modules are optional.
 
+## Development
+
+`tests/` holds the tests (`tests/run.sh`); it is not part of the addon and
+never goes into the AddOns folder or a release.
+
 ## Languages
 
 English and Portuguese.
