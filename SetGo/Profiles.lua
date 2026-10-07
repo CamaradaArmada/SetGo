@@ -463,7 +463,12 @@ function ns.ProfileDiff(name)
 			short[#short + 1] = L.SHORT_KEYS:format(n)
 		end
 	end
-	if ns.ScopeOf(p, "bars") == "profile" and ns.SkillsDiff then
+	if ns.ScopeOf(p, "bars") == "profile" and ns.charDB.copiedSkills == p.id then
+		-- bars copied from another profile, waiting to go on
+		diff.total = diff.total + 1
+		lines[#lines + 1] = L.SHORT_BARS_COPIED
+		short[#short + 1] = L.SHORT_BARS_COPIED
+	elseif ns.ScopeOf(p, "bars") == "profile" and ns.SkillsDiff then
 		local n = ns.SkillsDiff(p)
 		if n > 0 then
 			diff.total = diff.total + n
@@ -513,6 +518,7 @@ function ns.ApplyProfile(name, force)
 	ns.optionsDraft = nil
 	ns.SetActiveProfile(name)
 	ns.EnsureShared()
+	ns.charDB.copiedSkills = nil
 	-- its action bars (when it keeps its own): put back now, then checked
 	-- again once the server has confirmed them (after the reload, if one
 	-- follows; see Skills.lua)
@@ -686,9 +692,22 @@ function ns.CreateProfile(opts)
 	end
 	if opts.skillsFrom and opts.skillsFrom ~= p.id then
 		-- this character's bars for it: another profile's, or (current)
-		-- what the bars hold when it is applied
+		-- what the bars hold when it is applied. They go on when it is
+		-- applied; until then nothing records over them.
 		local from = opts.skillsFrom ~= "current" and ns.charDB.skills[opts.skillsFrom]
 		ns.charDB.skills[p.id] = from and Copy(from) or nil
+		ns.charDB.copiedSkills = from and p.id or nil
+	end
+	-- copied into the shared set (Global): every profile on Global uses it
+	local shared = ns.db.shared
+	if type(opts.shared) == "table" then
+		if opts.shared.settings then
+			shared.settings = Copy(opts.shared.settings)
+		end
+		if opts.shared.keys then
+			shared.keys = Copy(opts.shared.keys)
+			shared.keysBy, shared.keysAt = ns.CharName(), time()
+		end
 	end
 	if opts.icon ~= nil then
 		p.icon = opts.icon
@@ -991,6 +1010,9 @@ function ns.DeleteProfileAll(name)
 	local p = PresetOf(name)
 	if p and p.id then
 		ns.charDB.skills[p.id] = nil
+		if ns.charDB.copiedSkills == p.id then
+			ns.charDB.copiedSkills = nil
+		end
 	end
 	ns.DeleteProfile(name)
 end

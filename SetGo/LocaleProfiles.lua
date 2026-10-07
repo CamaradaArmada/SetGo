@@ -467,3 +467,40 @@ if GetLocale() == "ptBR" then
 		L[key] = value
 	end
 end
+
+--------------------------------------------------------------------------------
+-- 0.23: page headers, Copy from on Global, the minimap button's click
+--------------------------------------------------------------------------------
+
+local EN23 = {
+	SETGO_PAGE_DESC = "SetGo!'s own settings: the tab it opens on, the minimap button, its sounds and its key.",
+	SCOPE_COPY_DEFAULT = "Copy from...",
+	SCOPE_COPY_GLOBAL_NOTE = "On Global it replaces the shared set: every profile using Global gets it.",
+	POPUP_COPY_GLOBAL = "This change will apply to all profiles using the Global option. Do you wish to continue?",
+	SCOPE_GLOBAL_PENDING = "Uses the shared set: the copy replaces it when you save.",
+	SHORT_BARS_COPIED = "Copied action bars",
+	SAVE_AND_EXIT = "Apply and Exit",
+	MENU_CONFIGURE = "Configure",
+	MINIMAP_TIP_MODULE = "Left click: %s\nShift+click: SetGo!\nRight click: menu",
+}
+
+local PT23 = {
+	SETGO_PAGE_DESC = "As definições do próprio SetGo!: a aba onde abre, o botão do minimapa, os sons e a tecla.",
+	SCOPE_COPY_DEFAULT = "Copiar de...",
+	SCOPE_COPY_GLOBAL_NOTE = "Em Global substitui o conjunto partilhado: todos os perfis que usam Global ficam com ele.",
+	POPUP_COPY_GLOBAL = "Esta alteração aplica-se a todos os perfis que usam a opção Global. Queres continuar?",
+	SCOPE_GLOBAL_PENDING = "Usa o conjunto partilhado: a cópia substitui-o quando guardares.",
+	SHORT_BARS_COPIED = "Barras de acção copiadas",
+	SAVE_AND_EXIT = "Aplicar e sair",
+	MENU_CONFIGURE = "Configurar",
+	MINIMAP_TIP_MODULE = "Clique esquerdo: %s\nShift+clique: SetGo!\nClique direito: menu",
+}
+
+for key, value in pairs(EN23) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT23) do
+		L[key] = value
+	end
+end

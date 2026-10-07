@@ -121,7 +121,9 @@ function ns.SaveSkills()
 	end
 	-- its bars are waiting to be put back (after a reload): what shows now
 	-- still belongs to the profile it left
-	if ns.charDB.pendingSkills == p.id or Now() < quietUntil then
+	-- or bars copied from another profile wait for Apply: what shows now
+	-- isn't them
+	if ns.charDB.pendingSkills == p.id or ns.charDB.copiedSkills == p.id or Now() < quietUntil then
 		return
 	end
 	local bars, any = Snapshot()

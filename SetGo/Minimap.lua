@@ -3,9 +3,28 @@ local L = ns.L
 
 --------------------------------------------------------------------------------
 -- Minimap button (LibDBIcon, so minimap button collectors pick it up) and the
--- menu it shares with the addon menu by the minimap: left click opens
--- SetGo!, right click lists where to go (and Quick!, when it is on).
+-- menu it shares with the addon menu by the minimap. Left click: a module's
+-- own window when one asks for it (Quick!, with minimapClick) and is on,
+-- else SetGo!; Shift+click: SetGo! always; right click: the menu.
 --------------------------------------------------------------------------------
+
+-- the module that takes the minimap button's click (on), if any
+local function ClickModule()
+	for _, def in ipairs(ns.modules or {}) do
+		if type(def.minimapClick) == "function" and ns.ModuleOn(def.key) then
+			return def
+		end
+	end
+end
+
+local function Click(button)
+	local def = ClickModule()
+	if def and not IsShiftKeyDown() then
+		ns.Try(def.minimapClick)
+	else
+		ns.Toggle()
+	end
+end
 
 function ns.ContextMenu(owner)
 	if not (MenuUtil and MenuUtil.CreateContextMenu) then
@@ -42,14 +61,11 @@ function ns.ContextMenu(owner)
 				end)
 			end
 		end
-		-- Quick! (the module, when on): the small menu by the minimap; the
-		-- book itself opens with a left click
-		if ns.ModuleOn("quick") and type(SetGo_ToggleQuick) == "function" then
-			root:CreateDivider()
-			root:CreateButton(L.MENU_QUICK, function()
-				SetGo_ToggleQuick()
-			end)
-		end
+		-- SetGo! itself
+		root:CreateDivider()
+		root:CreateButton(L.MENU_CONFIGURE, function()
+			ns.Open()
+		end)
 	end)
 end
 
@@ -58,7 +74,7 @@ function SetGo_Open(_, button)
 	if button == "RightButton" then
 		ns.ContextMenu(AddonCompartmentFrame or UIParent)
 	else
-		ns.Toggle()
+		Click(button)
 	end
 end
 
@@ -77,12 +93,17 @@ function ns.SetupMinimapButton()
 			if button == "RightButton" then
 				ns.ContextMenu(self)
 			else
-				ns.Toggle()
+				Click(button)
 			end
 		end,
 		OnTooltipShow = function(tooltip)
 			tooltip:AddLine(L.ADDON)
-			tooltip:AddLine(L.MINIMAP_TIP, 1, 1, 1)
+			local def = ClickModule()
+			if def then
+				tooltip:AddLine(L.MINIMAP_TIP_MODULE:format(def.title or def.key), 1, 1, 1)
+			else
+				tooltip:AddLine(L.MINIMAP_TIP, 1, 1, 1)
+			end
 		end,
 	})
 	icon:Register(ADDON, object, ns.db.minimap)

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.23.0
+
+- Module pages (and SetGo!'s) open with a header: round icon, name and
+  what it does.
+- Settings tab: Copy from is Blizzard's dropdown, on Global too (it asks
+  first: the shared set changes for every profile on Global). Global
+  action bars have none.
+- Action bars copied into the profile in use wait for Apply; moving a
+  button meanwhile doesn't overwrite them.
+- Closing with unsaved changes: Apply and Exit saves and applies.
+- Minimap button: click opens Quick! when it is on (Shift+click: SetGo!);
+  the menu's Configure opens SetGo!.
+- Quick! 1.1.0: Open SetGo! on top, Always Show Nameplates, Quiet! as a
+  checkbox.
+- Look!: new icon.
+
 ## Speak! 1.0.2
 
 - New defaults: Bordered style, Blizzard's font, background with the mouse

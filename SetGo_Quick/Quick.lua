@@ -2,7 +2,7 @@ local ADDON, ns = ...
 
 local L = {
 	TITLE = "Quick!",
-	HOW = "A small menu by the minimap for the settings you change in the moment. Open it with its key or from the SetGo! minimap button menu. What you change there applies at once and never goes into your SetGo! profiles: applying a profile puts its own values back. It closes in combat.",
+	HOW = "A small menu by the minimap for the settings you change in the moment. Open it with its key or a click on the SetGo! minimap button (Shift+click opens SetGo!). What you change there applies at once and never goes into your SetGo! profiles: applying a profile puts its own values back. It closes in combat.",
 	SEC_CONTROLS = "Controls",
 	KEY = "Quick! key",
 	KEY_DESC = "Opens and closes Quick!. Click, then press a key; right click clears it. It does nothing in combat.",
@@ -16,12 +16,16 @@ local L = {
 	MUSIC = "Music volume",
 	QUIET = "Quiet!",
 	QUIET_DESC = "Hides the world channels (General, Trade, Local Defense and the rest) from your chat windows. You stay in them. Click again and they come back to the windows they were in. Channels you made or joined yourself are left alone.",
+	QUIET_LABEL = "Quiet! (hide world channels)",
+	ALL_PLATES = "Always show nameplates",
+	ALL_PLATES_DESC = "Shows nameplates all the time. Off: they only show in combat.",
+	OPEN_SETGO = "Open SetGo!",
 	QUIET_ON = "Channels hidden",
 	QUIET_OFF = "Channels shown",
 	OFF_IN_SETGO = "Quick! is switched off. Switch it on in SetGo!, Modules.",
 }
 if GetLocale() == "ptBR" then
-	L.HOW = "Um menu pequeno junto do minimapa para as definições que mudas no momento. Abre-se com a tecla ou no menu do botão do SetGo! no minimapa. O que mudares lá aplica-se logo e nunca vai para os perfis do SetGo!: aplicar um perfil repõe os valores dele. Fecha em combate."
+	L.HOW = "Um menu pequeno junto do minimapa para as definições que mudas no momento. Abre-se com a tecla ou com um clique no botão do SetGo! no minimapa (Shift+clique abre o SetGo!). O que mudares lá aplica-se logo e nunca vai para os perfis do SetGo!: aplicar um perfil repõe os valores dele. Fecha em combate."
 	L.SEC_CONTROLS = "Controlos"
 	L.KEY = "Tecla do Quick!"
 	L.KEY_DESC = "Abre e fecha o Quick!. Clica e carrega numa tecla; clique direito para a limpar. Em combate não faz nada."
@@ -34,6 +38,10 @@ if GetLocale() == "ptBR" then
 	L.MASTER = "Volume geral"
 	L.MUSIC = "Volume da música"
 	L.QUIET_DESC = "Esconde os canais do mundo (Geral, Comércio, Defesa Local e os outros) das tuas janelas de chat. Continuas neles. Clica outra vez e voltam às janelas onde estavam. Os canais que criaste ou onde entraste por conta própria ficam como estão."
+	L.QUIET_LABEL = "Quiet! (esconder canais do mundo)"
+	L.ALL_PLATES = "Mostrar sempre as placas de nome"
+	L.ALL_PLATES_DESC = "Mostra as placas de nome a toda a hora. Desligado: só aparecem em combate."
+	L.OPEN_SETGO = "Abrir SetGo!"
 	L.QUIET_ON = "Canais escondidos"
 	L.QUIET_OFF = "Canais visíveis"
 	L.OFF_IN_SETGO = "O Quick! está desligado. Liga-o no SetGo!, em Módulos."
@@ -91,10 +99,11 @@ local function FriendCVar()
 	return "nameplateShowFriends"
 end
 local NPC_NAMES = "PROXY_NPC_NAMES"
+local ALL_CVAR = "nameplateShowAll"
 
 -- the settings a profile can keep: the ones Quick! holds
 local function Holdable(var)
-	return var == ENEMY_CVAR or var == FriendCVar() or var == NPC_NAMES
+	return var == ENEMY_CVAR or var == FriendCVar() or var == NPC_NAMES or var == ALL_CVAR
 end
 
 -- the value now, as text: the proxy setting's or the CVar's
@@ -508,35 +517,31 @@ local function Slider(y, label, var, fallback)
 	return y + 28
 end
 
+-- Quiet!: a checkbox, ticked while the world channels are hidden
 local function QuietRow(y)
-	y = y + 6
-	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-	b:SetSize(110, 24)
-	b:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD + 2, -y)
-	b:SetText(L.QUIET)
-	TipScripts(b, L.QUIET, L.QUIET_DESC)
-	local status = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	status:SetPoint("LEFT", b, "RIGHT", 10, 0)
-	status:SetJustifyH("LEFT")
-	b:SetScript("OnClick", function()
-		Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
-		if IsQuiet() then
-			QuietOff()
-		else
+	y = y + 4
+	return Checkbox(y, L.QUIET_LABEL, L.QUIET_DESC, IsQuiet, function(on)
+		if on then
 			QuietOn()
-		end
-		Refresh()
-	end)
-	refreshers[#refreshers + 1] = function()
-		local quiet = IsQuiet()
-		status:SetText(quiet and L.QUIET_ON or L.QUIET_OFF)
-		if quiet then
-			b:LockHighlight()
 		else
-			b:UnlockHighlight()
+			QuietOff()
 		end
-	end
-	return y + 24
+	end)
+end
+
+-- the way to SetGo! itself, on top
+local function SetGoRow(y)
+	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	b:SetSize(CW, 22)
+	b:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD + 2, -y)
+	b:SetText(L.OPEN_SETGO)
+	b:SetScript("OnClick", function()
+		frame:Hide()
+		if SetGo.Open then
+			SetGo.Open()
+		end
+	end)
+	return y + 22 + 8
 end
 
 -- By the minimap, on the side with room (Edit Mode can move it): open to
@@ -588,6 +593,7 @@ local function Build()
 	end
 
 	local y = TOP
+	y = SetGoRow(y)
 	y = Checkbox(y, L.ENEMY, L.ENEMY_DESC, function()
 		return GetBool(ENEMY_CVAR)
 	end, function(on)
@@ -598,6 +604,14 @@ local function Build()
 	end, function(on)
 		SetBool(FriendCVar(), on)
 	end)
+	-- Blizzard's Always Show Nameplates (off: only in combat)
+	if C_CVar.GetCVar(ALL_CVAR) ~= nil then
+		y = Checkbox(y, SetGo.G("UNIT_NAMEPLATES_AUTOMODE", L.ALL_PLATES), SetGo.G("OPTION_TOOLTIP_UNIT_NAMEPLATES_AUTOMODE", L.ALL_PLATES_DESC), function()
+			return GetBool(ALL_CVAR)
+		end, function(on)
+			SetBool(ALL_CVAR, on)
+		end)
+	end
 	-- only when this client has Blizzard's NPC names setting
 	if BlizzardSetting(NPC_NAMES) then
 		y = y + 4
@@ -695,6 +709,10 @@ local function Items()
 end
 
 SetGo.RegisterModule({ key = KEY, title = L.TITLE, items = Items,
+	-- the SetGo! minimap button's click opens Quick! while it is on
+	minimapClick = function()
+		SetGo_ToggleQuick()
+	end,
 	RestoreValue = RestoreValue, SetRestoreValue = SetRestoreValue })
 
 local events = CreateFrame("Frame")

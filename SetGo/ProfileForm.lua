@@ -201,7 +201,7 @@ local function Dirty()
 	if form.layout.new or form.layout.use ~= o.use or form.icon ~= o.icon then
 		return true
 	end
-	if form.customModules ~= o.customModules or form.skillsFrom then
+	if form.customModules ~= o.customModules or form.skillsFrom or (form.shared and next(form.shared)) then
 		return true
 	end
 	return not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules)
@@ -259,6 +259,16 @@ end
 -- its own: they start as the game has them now (or Copy from). Back to
 -- Global, its own are kept.
 function ns.SetFormScope(field, scope)
+	if form.scope[field] ~= scope then
+		-- a copy chosen for the other side goes
+		form.copied[field] = nil
+		if form.shared then
+			form.shared[field] = nil
+		end
+		if field == "bars" then
+			form.skillsFrom = nil
+		end
+	end
 	form.scope[field] = scope
 	if scope == "profile" then
 		if field == "settings" and not form.settings and ns.SettingsReady() then
@@ -271,8 +281,11 @@ function ns.SetFormScope(field, scope)
 end
 
 -- Copy from, on the Settings tab: the game as it is now (p nil) or another
--- profile (what it applies)
+-- profile (what it applies). Into the profile's own set, or (Global) into
+-- the shared one, which every profile on Global uses: kept when saved.
 function ns.FormCopyField(field, p, label)
+	local shared = form.scope[field] ~= "profile"
+	local data
 	if field == "settings" then
 		local from = p and ns.SettingsOf(p)
 		if p and not from then
@@ -282,17 +295,30 @@ function ns.FormCopyField(field, p, label)
 			ns.Print(L.MSG_NOT_READY)
 			return
 		end
-		form.settings = from and Copy(from) or ns.OptionSnapshot()
+		data = from and Copy(from) or ns.OptionSnapshot()
 	elseif field == "keys" then
 		local from = p and ns.KeysHolder(p).keys
 		if p and not from then
 			return
 		end
-		form.keys = from and Copy(from) or ns.CopyKeys(ns.CurrentKeybinds())
+		data = from and Copy(from) or ns.CopyKeys(ns.CurrentKeybinds())
 	elseif field == "bars" then
+		if shared then
+			-- Global bars are the player's own: nothing to copy into
+			return
+		end
 		form.skillsFrom = p and p.id or "current"
 	end
-	form.scope[field] = "profile"
+	if data then
+		if shared then
+			form.shared = form.shared or {}
+			form.shared[field] = data
+		elseif field == "settings" then
+			form.settings = data
+		else
+			form.keys = data
+		end
+	end
 	form.copied[field] = label
 	ns.Refresh()
 end
@@ -688,7 +714,7 @@ local function FormSave(name, apply)
 	local first = #ns.ProfileSlots() == 0
 	local opts = {
 		name = name, replace = form.edit, icon = form.icon, ui = Copy(form.ui), modules = form.modules,
-		scope = Copy(form.scope), settings = form.settings, skillsFrom = form.skillsFrom,
+		scope = Copy(form.scope), settings = form.settings, skillsFrom = form.skillsFrom, shared = form.shared,
 		customModules = form.customModules, moduleSettings = form.moduleSettings,
 		noApply = true,
 	}
@@ -747,7 +773,8 @@ function ns.FormHasChanges()
 	end
 	local o = form.orig or {}
 	return NameText() ~= "" or form.layout.new or form.layout.use ~= o.use or form.icon ~= nil
-		or form.customModules or form.skillsFrom or not SameValues(form.scope, o.scope)
+		or form.customModules or form.skillsFrom or (form.shared and next(form.shared) ~= nil)
+		or not SameValues(form.scope, o.scope)
 		or not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules))
 end
 
@@ -761,6 +788,20 @@ function ns.FormSaveOnly()
 		return false
 	end
 	FormSave(name, false)
+	return ns.ProfileOf(name) ~= nil
+end
+
+-- Apply and exit (closing the window): saved and put on this character.
+-- True when done, or nothing to save.
+function ns.FormSaveAndApply()
+	if not ns.FormHasChanges() then
+		return true
+	end
+	local name = CheckName()
+	if not name then
+		return false
+	end
+	FormSave(name, true)
 	return ns.ProfileOf(name) ~= nil
 end
 
@@ -1492,11 +1533,30 @@ local FIELDS = {
 }
 
 -- Copy from, for one part: as the game is now, or another profile (only
--- the ones that have something to give)
-local function FieldSources(field, root)
-	root:CreateButton(L.COPY_CURRENT, function()
-		ns.FormCopyField(field, nil, L.COPY_CURRENT)
+-- the ones that have something to give). On Global it asks first: the
+-- shared set changes for every profile that uses it.
+local function FieldCopy(field, p, label)
+	if form.scope[field] == "profile" then
+		ns.FormCopyField(field, p, label)
+		return
+	end
+	U.Confirm(L.POPUP_COPY_GLOBAL, function()
+		ns.FormCopyField(field, p, label)
 	end)
+end
+
+local function FieldSources(field, root)
+	local function Entry(label, p)
+		return root:CreateRadio(label, function()
+			return form.copied ~= nil and form.copied[field] == label
+		end, function()
+			-- after the menu closes (the popup on Global)
+			C_Timer.After(0, function()
+				FieldCopy(field, p, label)
+			end)
+		end)
+	end
+	Entry(L.COPY_CURRENT, nil)
 	local others = {}
 	for _, name in ipairs(ns.ProfileSlots()) do
 		if name ~= form.edit then
@@ -1508,9 +1568,7 @@ local function FieldSources(field, root)
 	end
 	for _, name in ipairs(others) do
 		local p = ns.ProfileOf(name)
-		local b = root:CreateButton(name, function()
-			ns.FormCopyField(field, p, name)
-		end)
+		local b = Entry(name, p)
 		local has
 		if field == "settings" then
 			has = ns.SettingsOf(p) ~= nil
@@ -1544,7 +1602,7 @@ local function CreateSettingsBody(width)
 		rule:SetColorTexture(r, g, bl, 0.35)
 		rule:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
 		rule:SetPoint("RIGHT", body, "LEFT", width, 0)
-		y = y + 4 + 16 + 3 + 8
+		y = y + 4 + 16 + 3 + 6
 		-- Global or Profile
 		row.global = Toggle(body, half, 26, L.SCOPE_GLOBAL)
 		row.global:SetPoint("TOPLEFT", 0, -y)
@@ -1563,31 +1621,22 @@ local function CreateSettingsBody(width)
 		row.note = W.Text(body, W.FONT_SMALL, width, "", 0.8)
 		row.note:SetPoint("TOPLEFT", 0, -y)
 		Try(row.note.SetMaxLines, row.note, 2)
-		-- Profile: Copy from, a line of ink that opens the menu
-		row.copy = CreateFrame("Button", nil, body)
-		row.copy:SetSize(220, 18)
-		row.copy:SetPoint("TOPLEFT", 0, -(y + 28))
-		row.copy.text = W.Text(row.copy, W.FONT_BODY, nil, L.NP_COPY_FROM, 0.85)
-		row.copy.text:SetPoint("LEFT")
-		row.copy.arrow = row.copy:CreateTexture(nil, "ARTWORK")
-		row.copy.arrow:SetSize(14, 14)
-		row.copy.arrow:SetPoint("LEFT", row.copy.text, "RIGHT", 4, -1)
-		row.copy.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
-		row.copy.arrow:SetVertexColor(r, g, bl)
-		local line = row.copy:CreateTexture(nil, "HIGHLIGHT")
-		line:SetHeight(1)
-		line:SetColorTexture(r, g, bl, 0.6)
-		line:SetPoint("BOTTOMLEFT", row.copy.text, "BOTTOMLEFT", 0, -2)
-		line:SetPoint("BOTTOMRIGHT", row.copy.text, "BOTTOMRIGHT", 0, -2)
-		row.copy:SetScript("OnClick", function(self)
-			if MenuUtil and MenuUtil.CreateContextMenu then
-				MenuUtil.CreateContextMenu(self, function(_, root)
-					FieldSources(f.key, root)
-				end)
-			end
+		-- Copy from: Blizzard's dropdown (not for Global bars)
+		row.copy = CreateFrame("DropdownButton", nil, body, "WowStyle1DropdownTemplate")
+		row.copy:SetPoint("TOPLEFT", 0, -(y + 26))
+		row.copy:SetWidth(220)
+		Try(row.copy.SetDefaultText, row.copy, L.SCOPE_COPY_DEFAULT)
+		row.copy:SetupMenu(function(_, root)
+			FieldSources(f.key, root)
 		end)
-		W.TipScripts(row.copy, L.NP_COPY_PROFILE, L["SCOPE_COPY_" .. f.key:upper() .. "_DESC"])
-		y = y + 28 + 18 + 6
+		W.TipScripts(row.copy, L.NP_COPY_PROFILE, function()
+			local tip = L["SCOPE_COPY_" .. f.key:upper() .. "_DESC"]
+			if form.scope[f.key] ~= "profile" then
+				tip = tip .. "\n\n" .. L.SCOPE_COPY_GLOBAL_NOTE
+			end
+			return tip
+		end, true)
+		y = y + 26 + 24 + 6
 		np.fields[f.key] = row
 	end
 end
@@ -1595,6 +1644,9 @@ end
 -- what a part holds now, under its buttons
 local function FieldNote(key, own)
 	if not own then
+		if form.shared and form.shared[key] then
+			return L.SCOPE_GLOBAL_PENDING
+		end
 		return L["SCOPE_GLOBAL_" .. key:upper() .. "_NOTE"]
 	end
 	if key == "keys" then
@@ -1622,10 +1674,8 @@ local function RefreshSettingsBody()
 		row.global:SetOn(not own)
 		row.own:SetOn(own)
 		row.note:SetText(FieldNote(f.key, own))
-		row.copy:SetShown(own)
-		local from = form.copied[f.key]
-		row.copy.text:SetText(from and L.SCOPE_COPIED:format(from) or L.NP_COPY_FROM)
-		row.copy:SetWidth((row.copy.text:GetStringWidth() or 120) + 22)
+		row.copy:SetShown(own or f.key ~= "bars")
+		Try(row.copy.GenerateMenu, row.copy)
 	end
 end
 

@@ -3,7 +3,7 @@
 ## Notes: A small menu by the minimap for the settings you change in the moment: nameplates, NPC names, volume and the world channels. A SetGo! module.
 ## Notes-ptBR: Um menu pequeno junto do minimapa para as definições que mudas no momento: placas de nome, nomes de NPCs, volume e os canais do mundo. Um módulo do SetGo!.
 ## Author: Armada
-## Version: 1.0.0
+## Version: 1.1.0
 ## Dependencies: SetGo
 ## DefaultState: enabled
 ## SavedVariables: SetGoQuickDB

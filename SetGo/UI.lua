@@ -282,7 +282,8 @@ local function RenderItems(pf, items, y, width)
 			y = y + 26 + 10
 		elseif kind == "note" then
 			local fs, h = W.Text(pf, W.FONT_SMALL, CW - 26, item.name, 0.8)
-			fs:SetPoint("TOPLEFT", pf, "TOPLEFT", 26, -(y - 6))
+			-- tucked under the row above; the first one on a page stays inside it
+			fs:SetPoint("TOPLEFT", pf, "TOPLEFT", 26, -math.max(y - 6, 0))
 			y = y + h + 6
 		elseif kind == "button" then
 			y = y + 4
@@ -807,7 +808,8 @@ local function CreateNav()
 			b.pic = RoundIcon(b, PIC)
 			b.pic:SetPoint("LEFT", 16, 0)
 			b.pic:SetTexture(ns.ModuleIcon(m.addon))
-			local textW = BW - PIC - 60
+			-- clear of the switch on the right
+			local textW = BW - 16 - PIC - 12 - 48
 			b.title = W.Text(b, W.FONT_HEADER, textW, L[m.title])
 			b.title:SetPoint("TOPLEFT", b.pic, "TOPRIGHT", 12, -6)
 			b.desc = W.Text(b, W.FONT_SMALL, textW, L[m.desc], 0.8)
@@ -897,6 +899,20 @@ local function CreatePages()
 	local width = PAGE_W - PAD * 2
 
 	rp.title = W.Text(rp, W.FONT_TITLE, width - 140, "")
+	-- a module's page (and SetGo!'s): its icon, round, its name and what it
+	-- does, like a profile's header
+	local HEAD_ICON = 64
+	rp.head = CreateFrame("Frame", nil, rp)
+	rp.head:SetSize(width, HEAD_ICON)
+	rp.head.icon = RoundIcon(rp.head, HEAD_ICON)
+	rp.head.icon:SetPoint("TOPLEFT", 0, 0)
+	rp.head.name = W.Text(rp.head, W.FONT_TITLE, width - HEAD_ICON - 14 - 34, "")
+	rp.head.name:SetPoint("TOPLEFT", HEAD_ICON + 14, -2)
+	Try(rp.head.name.SetWordWrap, rp.head.name, false)
+	rp.head.desc = W.Text(rp.head, W.FONT_SMALL, width - HEAD_ICON - 14, "", 0.85)
+	rp.head.desc:SetPoint("TOPLEFT", rp.head.name, "BOTTOMLEFT", 0, -6)
+	Try(rp.head.desc.SetMaxLines, rp.head.desc, 3)
+	rp.head:Hide()
 	Try(rp.title.SetWordWrap, rp.title, false)
 	-- over the title of the option pages: a list of the pages
 	rp.jump = CreateFrame("Button", nil, rp)
@@ -972,15 +988,27 @@ local function CreatePages()
 	rp.discard:SetPoint("BOTTOMRIGHT", rp, "BOTTOMRIGHT", -PAD, 17)
 	W.TipScripts(rp.discard, L.DISCARD, L.DISCARD_DESC)
 	-- mode: nil (a plain page) or "paged" (the page arrows)
-	function rp:Place(mode)
+	-- head: { icon, name, desc } shows the header in place of the title
+	function rp:Place(mode, head)
 		local left, top, right, bottom = PAD, PAD_TOP, PAD, 76
 		self.title:ClearAllPoints()
 		self.title:SetPoint("TOPLEFT", left, -top)
+		self.title:SetShown(not head)
+		self.head:ClearAllPoints()
+		self.head:SetPoint("TOPLEFT", left, -top)
+		self.head:SetShown(head and true or false)
+		local line = top + 30
+		if head then
+			self.head.icon:SetTexture(head.icon)
+			self.head.name:SetText(head.name or "")
+			self.head.desc:SetText(head.desc or "")
+			line = top + math.max(HEAD_ICON, 30 + (self.head.desc:GetStringHeight() or 0)) + 8
+		end
 		self.divider:ClearAllPoints()
-		self.divider:SetPoint("TOPLEFT", left - 6, -(top + 30))
-		self.divider:SetPoint("TOPRIGHT", -(right - 6), -(top + 30))
+		self.divider:SetPoint("TOPLEFT", left - 6, -line)
+		self.divider:SetPoint("TOPRIGHT", -(right - 6), -line)
 		scroll:ClearAllPoints()
-		scroll:SetPoint("TOPLEFT", left, -(top + 46))
+		scroll:SetPoint("TOPLEFT", left, -(line + 16))
 		-- in the box, the arrows go under the pages, on the right
 		scroll:SetPoint("BOTTOMRIGHT", -(right + 14), bottom)
 		self.defaults:ClearAllPoints()
@@ -1095,6 +1123,19 @@ local function PagesOf(group)
 		return { { key = "setgo", title = L.SETGO_TITLE, items = ns.SetGoItems(), own = true } }
 	end
 	return ns.BuildPath(group)
+end
+
+-- the header of a module's page, or SetGo!'s
+local function PageHead(page)
+	if page.own then
+		return { icon = ns.ICON, name = L.SETGO_TITLE, desc = L.SETGO_PAGE_DESC }
+	end
+	local key = type(page.key) == "string" and page.key:match("^module_(.+)$")
+	for _, m in ipairs(key and ns.KNOWN_MODULES or {}) do
+		if m.key == key then
+			return { icon = ns.ModuleIcon(m.addon), name = L[m.title], desc = L[m.desc] }
+		end
+	end
 end
 
 local GROUP_NAMES = {
@@ -1247,7 +1288,7 @@ function ns.ShowIndex(index, quiet)
 
 	local rp = rightPage.pages
 	local paged = PAGED[state.group]
-	rp:Place(paged and "paged" or nil)
+	rp:Place(paged and "paged" or nil, PageHead(page))
 	rp.title:SetText(page.title or "")
 	local arrows = paged and PageCount() > 1
 	rp.prev:SetShown(arrows)
@@ -1675,10 +1716,10 @@ StaticPopupDialogs.SETGO_UNSAVED = {
 	button2 = CANCEL or "Cancel",
 	button3 = L.EXIT_NO_SAVE,
 	selectCallbackByIndex = true,
-	-- Save and exit: the profile saved (not applied); changes waiting
-	-- applied (the interface reloads)
+	-- Apply and exit: the profile saved and applied (the interface reloads
+	-- when it needs to); changes waiting applied too
 	OnAccept = function()
-		if ns.FormHasChanges() and not ns.FormSaveOnly() then
+		if ns.FormHasChanges() and not ns.FormSaveAndApply() then
 			return
 		end
 		local staged = ns.CountStaged() > 0
