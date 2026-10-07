@@ -665,19 +665,20 @@ local function SectionsBuilder(settings)
 			body:SetWidth(width)
 			body.refreshers = page.refreshers
 			local by = 6
+			-- action bars: the cooldown icons switch first, then the bars
+			if grp.key == "bars" and settings._cooldowns then
+				local s = settings._cooldowns
+				by = W.Checkbox(body, by, width, false, ns.CooldownL.TOGGLE, ns.CooldownL.TOGGLE_DESC, function()
+					return SetGo.Get(s)
+				end, function(value)
+					SetGo.Set(s, value)
+				end) + 4
+			end
 			for _, e in ipairs(FRAMES) do
 				if e.group == grp.key then
 					local pair = settings[e.key]
 					by = RowBuilder(e, pair.when, pair.mode)(body, by, width)
 				end
-			end
-			if grp.key == "bars" and settings._cooldowns then
-				local s = settings._cooldowns
-				by = W.Checkbox(body, by + 4, width, false, ns.CooldownL.TOGGLE, ns.CooldownL.TOGGLE_DESC, function()
-					return SetGo.Get(s)
-				end, function(value)
-					SetGo.Set(s, value)
-				end)
 			end
 			body:SetHeight(by)
 			sec.body = body

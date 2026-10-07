@@ -1,5 +1,10 @@
 # Changelog
 
+## Hide! 0.6.1
+
+- Cooldown icons show the whole icon, borders included.
+- "Show abilities on cooldown" is now first in the Action bars section.
+
 ## Hide! 0.6.0
 
 - New in Action bars: "Show abilities on cooldown". While Hide! hides an
