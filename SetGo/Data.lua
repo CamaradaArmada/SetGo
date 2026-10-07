@@ -316,13 +316,14 @@ function ns.ModuleIcon(addon)
 	return 134400 -- the question mark
 end
 
--- the modules SetGo! knows about, in the order they are listed
+-- the modules SetGo! knows about, in the order they are listed; on: on
+-- until the player switches it off (else off until switched on)
 ns.KNOWN_MODULES = {
+	{ addon = "SetGo_Quick", key = "quick", title = "MOD_QUICK", desc = "MOD_QUICK_DESC", on = true },
 	{ addon = "SetGo_Fetch", key = "fetch", title = "MOD_FETCH", desc = "MOD_FETCH_DESC" },
 	{ addon = "SetGo_Look", key = "adventure", title = "MOD_LOOK", desc = "MOD_LOOK_DESC" }, -- key kept from SetGo_Adventure
 	{ addon = "SetGo_Speak", key = "chat", title = "MOD_SPEAK", desc = "MOD_SPEAK_DESC" }, -- key kept from SetGo_Chat
 	{ addon = "SetGo_Hide", key = "hide", title = "MOD_HIDE", desc = "MOD_HIDE_DESC" },
-	{ addon = "SetGo_Quick", key = "quick", title = "MOD_QUICK", desc = "MOD_QUICK_DESC" },
 }
 
 ns.modules = {}
@@ -358,6 +359,13 @@ function ns.ModuleOn(key)
 	local flags = Flags()
 	if type(flags) ~= "table" then
 		return true
+	end
+	if flags[key] == nil then
+		for _, m in ipairs(ns.KNOWN_MODULES) do
+			if m.key == key then
+				return m.on == true
+			end
+		end
 	end
 	return flags[key] == true
 end

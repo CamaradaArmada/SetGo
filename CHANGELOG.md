@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.23.1
+
+- Quick! first in the module list, and on until switched off.
+
 ## 0.23.0
 
 - Module pages (and SetGo!'s) open with a header: round icon, name and
