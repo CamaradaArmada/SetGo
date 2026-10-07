@@ -3,7 +3,7 @@
 ## Notes: A cleaner chat in the style of the new interface, in two looks: soft or bordered. A SetGo! module.
 ## Notes-ptBR: Um chat mais limpo, no estilo da nova interface, com dois estilos: esbatido ou com moldura. Um módulo do SetGo!.
 ## Author: Armada
-## Version: 1.0.1
+## Version: 1.0.2
 ## Dependencies: SetGo
 ## OptionalDeps: SetGo_Chat
 ## DefaultState: enabled

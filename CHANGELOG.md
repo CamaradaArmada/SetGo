@@ -1,5 +1,11 @@
 # Changelog
 
+## Speak! 1.0.2
+
+- New defaults: Bordered style, Blizzard's font, background with the mouse
+  away at 50%, selected tab 50%, other tabs 25%, tab text size 12, settings
+  button 50%. Settings already saved keep their values.
+
 ## Hide! 0.6.1
 
 - Cooldown icons show the whole icon, borders included.

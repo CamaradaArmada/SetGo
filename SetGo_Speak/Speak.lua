@@ -163,9 +163,9 @@ local function BlizzardTabSize()
 end
 
 local DEFAULTS = {
-	look = "soft", font = "FRIZ", spacing = 0, bgAlpha = 1,
-	tabSelected = 0.4, tabOther = 0.2, tabSize = BlizzardTabSize(), glow = true,
-	buttons = true, buttonAlpha = 0.4,
+	look = "bordered", font = "BLIZZARD", spacing = 0, bgAlpha = 0.5,
+	tabSelected = 0.5, tabOther = 0.25, tabSize = 12, glow = true,
+	buttons = true, buttonAlpha = 0.5,
 }
 
 local function Get(key)
