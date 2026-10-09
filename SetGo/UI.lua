@@ -1662,6 +1662,11 @@ end
 -- The book always opens on its first page (the tab SetGo! opens on; on
 -- Profiles, the profile in use). Already open: it stays where it is.
 function ns.Open()
+	-- no profile yet: the guide to the first one (until skipped)
+	if ns.ShowWizard and #ns.ProfileSlots() == 0 and not ns.db.wizardSkipped then
+		ns.ShowWizard()
+		return
+	end
 	if not frame then
 		CreateWindow()
 	end

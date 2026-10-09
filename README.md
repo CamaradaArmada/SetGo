@@ -5,16 +5,24 @@ Quick setup for the Blizzard UI, made for World of Warcraft Forever.
 SetGo! keeps your setup in **profiles** you can put on any character with
 two clicks:
 
-- an **Edit Mode layout**, the action bars it shows and the UI elements it
-  switches on (cooldown manager, resource display, damage meter, swing timer);
+- an **Edit Mode layout**, kept inside the profile (each character gets one
+  SetGo! layout of its own, so your account's layout slots are left alone),
+  the action bars it shows and the UI elements it switches on (cooldown
+  manager, resource display, damage meter, swing timer);
 - the **modules** it switches on, with their options;
-- your **character settings**, **keybinds** and **action bars**. Each one is
+- your **character settings**, **keybinds** and **bar slots**. Each one is
   either **Global** (one set shared by every profile that uses it; for the
   action bars, Blizzard's own behaviour) or the profile's own. Changes you
   make in the game are saved into whichever set the profile uses. Action
   bars are kept per character and specialization.
 
-Profiles can be exported as text and imported on another account.
+Profiles can be exported as text and imported on another account (layout,
+what it shows and modules; settings, keybinds and bar slots stay with you).
+A guide makes the first profile, from scratch or from one of the presets
+that come with SetGo!, and a short tour shows what each part does.
+
+The **Quick Menu** opens from the minimap button: nameplates, NPC names,
+volume and Quiet!, which hides the world channels from the chat.
 
 ## Modules
 
@@ -27,7 +35,6 @@ SetGo!, not in the game's addon list.
 | **Look!** | A key turns the mouse into camera control, with a dot in the middle of the screen and soft targeting, like an action game. |
 | **Speak!** | A cleaner chat in the style of the new interface: Blizzard fonts, fading tabs and one settings button. |
 | **Hide!** | Hides Blizzard frames like a macro: always, or only when (or except when) you are in combat, mounted, holding a key and more. |
-| **Quick!** | A small menu by the minimap for the settings you change in the moment: nameplates, NPC names, volume and the world channels. |
 
 ## Install
 

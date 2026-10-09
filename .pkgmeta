@@ -6,7 +6,6 @@ move-folders:
   SetGo/SetGo_Look: SetGo_Look
   SetGo/SetGo_Speak: SetGo_Speak
   SetGo/SetGo_Hide: SetGo_Hide
-  SetGo/SetGo_Quick: SetGo_Quick
 
 ignore:
   - README.md

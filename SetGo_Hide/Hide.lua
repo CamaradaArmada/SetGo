@@ -2,7 +2,8 @@ local ADDON, ns = ...
 
 local L = {
 	TITLE = "Hide!",
-	NOTE = "Each frame works like a macro. Pick one or more conditions (any of them is enough) and Show or Hide.\nShow: the frame is only seen while a condition is on. Hide: it is only seen while none is on.\nNone with Show leaves the frame to Blizzard. None with Hide always hides it.\nHealth below 100% is only checked out of combat: in combat it stays as it was when combat started.\nAction bars with a rule are always shown while the cursor holds something or the spellbook is open (out of combat).",
+	TOUR = "Missing some bars? Press Alt, Shift or Ctrl to show them, and customize the visibility of Blizzard frames with the Hide! module.",
+	NOTE = "Each frame works like a macro. Pick one or more conditions (any of them is enough) and Show or Hide.\nShow: the frame is only seen while a condition is on. Hide: it is only seen while none is on.\nNone with Show leaves the frame to Blizzard. None with Hide always hides it.\nAction bars with a rule are always shown while the cursor holds something or the spellbook is open (out of combat).",
 	NOTE_BLIZZARD = "Blizzard's own visibility still counts: a frame shows only when Blizzard and Hide! both allow it. For action bars, keep Blizzard's visibility on Always in Edit Mode. In Edit Mode every frame is shown so you can move it.",
 	SEC_UNITS = "Unit frames",
 	SEC_HUD = "Interface",
@@ -34,7 +35,6 @@ local L = {
 	C_pet = "Has a pet",
 	C_vehicle = "In a vehicle",
 	C_form = "In a form or stance",
-	C_hurt = "Health below 100% (out of combat)",
 
 	F_player = "Player",
 	F_pet = "Pet",
@@ -59,7 +59,8 @@ local L = {
 	F_stance = "Stance bar",
 }
 if GetLocale() == "ptBR" then
-	L.NOTE = "Cada frame funciona como uma macro. Escolhe uma ou mais condições (basta uma delas) e Mostrar ou Esconder.\nMostrar: a frame só se vê enquanto uma condição estiver activa. Esconder: só se vê enquanto nenhuma estiver activa.\nNenhuma com Mostrar deixa a frame com a Blizzard. Nenhuma com Esconder esconde-a sempre.\nVida abaixo de 100% só é vista fora de combate: em combate fica como estava quando o combate começou.\nAs barras de acção com regra aparecem sempre que o cursor segura alguma coisa ou o livro de feitiços está aberto (fora de combate)."
+	L.TOUR = "Faltam barras? Carrega em Alt, Shift ou Ctrl para as mostrar, e escolhe quando aparecem as frames da Blizzard com o módulo Hide!."
+	L.NOTE = "Cada frame funciona como uma macro. Escolhe uma ou mais condições (basta uma delas) e Mostrar ou Esconder.\nMostrar: a frame só se vê enquanto uma condição estiver activa. Esconder: só se vê enquanto nenhuma estiver activa.\nNenhuma com Mostrar deixa a frame com a Blizzard. Nenhuma com Esconder esconde-a sempre.\nAs barras de acção com regra aparecem sempre que o cursor segura alguma coisa ou o livro de feitiços está aberto (fora de combate)."
 	L.NOTE_BLIZZARD = "A visibilidade da própria Blizzard continua a contar: uma frame só aparece quando a Blizzard e o Hide! deixam. Nas barras de acção, deixa a visibilidade da Blizzard em Sempre no Edit Mode. No Edit Mode todas as frames aparecem, para as poderes mover."
 	L.SEC_UNITS = "Unit frames"
 	L.SEC_HUD = "Interface"
@@ -91,7 +92,6 @@ if GetLocale() == "ptBR" then
 	L.C_pet = "Tem pet"
 	L.C_vehicle = "Num veículo"
 	L.C_form = "Numa forma ou postura"
-	L.C_hurt = "Vida abaixo de 100% (fora de combate)"
 
 	L.F_player = "Jogador"
 	L.F_pet = "Pet"
@@ -152,12 +152,13 @@ local CONDS = {
 	{ key = "pet", macro = "pet" },
 	{ key = "vehicle", macro = "vehicleui" },
 	{ key = "form", macro = "form" },
-	-- not a macro conditional: read by us out of combat (see Health)
-	{ key = "hurt", health = true },
 }
 local NONE = 1
 -- the order of the list (the bits above never move, so saved rules stay)
-local ORDER = { 1, 2, 19, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
+local ORDER = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }
+-- the bits a rule can use: bit 19 was "health below 100%" (removed in
+-- 0.7.0), dropped from saved rules and profiles when they are read
+local KNOWN_BITS = bit.lshift(1, #CONDS) - 1
 
 -- names: every frame of the entry that exists; alt: used only when none of
 -- names exists (older names)
@@ -192,13 +193,13 @@ local GROUPS = {
 
 local db
 local DEFAULT_WHEN, DEFAULT_MODE = NONE, "show"
-local hurt = false -- the player's health below 100%, as last read out of combat
 local reveal = false -- the cursor holds something or the spellbook is open
 
 local function Rule(key)
 	local r = db and db[key]
 	local when = type(r) == "table" and tonumber(r.when) or DEFAULT_WHEN
 	local mode = type(r) == "table" and (r.mode == "hide" and "hide" or "show") or DEFAULT_MODE
+	when = bit.band(when, KNOWN_BITS)
 	if when == 0 then
 		when = NONE
 	end
@@ -238,46 +239,20 @@ local function Driver(key)
 	if bit.band(when, NONE) ~= 0 then
 		return mode == "hide" and "hide" or nil
 	end
-	local parts, health = {}, false
+	local parts = {}
 	for i, c in ipairs(CONDS) do
-		if bit.band(when, Bit(i)) ~= 0 then
-			if c.macro then
-				parts[#parts + 1] = "[" .. c.macro .. "]"
-			elseif c.health then
-				health = true
-			end
+		if c.macro and bit.band(when, Bit(i)) ~= 0 then
+			parts[#parts + 1] = "[" .. c.macro .. "]"
 		end
 	end
-	-- health below 100% is on: one condition is enough, so the rest don't count
-	if health and hurt then
-		return mode
-	end
 	if #parts == 0 then
-		-- no condition can be on
-		return health and (mode == "show" and "hide" or "show") or (mode == "hide" and "hide" or nil)
+		return mode == "hide" and "hide" or nil
 	end
 	local conds = table.concat(parts)
 	if mode == "show" then
 		return conds .. " show; hide"
 	end
 	return conds .. " hide; show"
-end
-
--- some rule uses health below 100%
-local HURT_BIT
-for i, c in ipairs(CONDS) do
-	if c.health then
-		HURT_BIT = Bit(i)
-	end
-end
-local function UsesHealth()
-	for _, e in ipairs(FRAMES) do
-		local when = Rule(e.key)
-		if bit.band(when, NONE) == 0 and bit.band(when, HURT_BIT) ~= 0 then
-			return true
-		end
-	end
-	return false
 end
 
 -- the Blizzard frames of an entry that exist
@@ -326,39 +301,6 @@ local function Container(driver)
 		containers[driver] = c
 	end
 	return c
-end
-
--- Health below 100%: only the player's health events, only out of combat,
--- and only while a rule uses it. A frame moves only when the health goes from
--- full to not full or back.
-local watching = false
-
-local function ReadHurt()
-	local h, m = UnitHealth("player"), UnitHealthMax("player")
-	-- in combat the values can be secret: never compared
-	if issecretvalue and (issecretvalue(h) or issecretvalue(m)) then
-		return hurt
-	end
-	return (tonumber(h) or 0) < (tonumber(m) or 0)
-end
-
-local function Watch(on)
-	if on == watching then
-		return
-	end
-	watching = on
-	if on then
-		events:RegisterEvent("PLAYER_REGEN_DISABLED")
-		events:RegisterEvent("PLAYER_REGEN_ENABLED")
-		if not InCombatLockdown() then
-			events:RegisterUnitEvent("UNIT_HEALTH", "player")
-			events:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
-		end
-	else
-		events:UnregisterEvent("PLAYER_REGEN_DISABLED")
-		events:UnregisterEvent("UNIT_HEALTH")
-		events:UnregisterEvent("UNIT_MAXHEALTH")
-	end
 end
 
 -- Reveal: the action bars with a rule are shown while the cursor holds
@@ -443,9 +385,6 @@ function Apply()
 		events:RegisterEvent("PLAYER_REGEN_ENABLED")
 		return false
 	end
-	if UsesHealth() then
-		hurt = ReadHurt()
-	end
 	local bars = UsesBars()
 	reveal = bars and ReadReveal() or false
 	local used = {}
@@ -487,7 +426,6 @@ function Apply()
 			c.driven = want
 		end
 	end
-	Watch(UsesHealth())
 	WatchReveal(bars)
 	if ns.CooldownsRefresh then
 		ns.CooldownsRefresh(db and db.cooldowns == true)
@@ -765,7 +703,9 @@ local function Items()
 	return items
 end
 
-SetGo.RegisterModule({ key = "hide", title = L.TITLE, items = Items })
+SetGo.RegisterModule({ key = "hide", title = L.TITLE, items = Items,
+	-- its tip in SetGo!'s tour: no frame of its own, in the middle of the screen
+	tour = { text = L.TOUR } })
 
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_LOGIN")
@@ -789,20 +729,7 @@ events:SetScript("OnEvent", function(self, event, arg1)
 	elseif event == CURSOR_EVENT then
 		RevealChanged()
 	elseif event == "PLAYER_REGEN_ENABLED" then
-		if watching then
-			self:RegisterUnitEvent("UNIT_HEALTH", "player")
-			self:RegisterUnitEvent("UNIT_MAXHEALTH", "player")
-		else
-			self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-		end
+		self:UnregisterEvent("PLAYER_REGEN_ENABLED")
 		Apply()
-	elseif event == "PLAYER_REGEN_DISABLED" then
-		-- in combat the rule stays as it is
-		self:UnregisterEvent("UNIT_HEALTH")
-		self:UnregisterEvent("UNIT_MAXHEALTH")
-	elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
-		if not InCombatLockdown() and ReadHurt() ~= hurt then
-			Apply()
-		end
 	end
 end)

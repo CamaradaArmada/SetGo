@@ -186,6 +186,33 @@ function ns.SetGoItems()
 		{ kind = "checkbox", setting = mute, settings = { mute }, name = L.SETGO_MUTE, tooltip = L.SETGO_MUTE_DESC },
 		{ kind = "keybind", name = L.SETGO_KEY, tooltip = L.SETGO_KEY_DESC, action = "SETGO_TOGGLE" },
 	}
+	-- the Quick Menu (Quick.lua): its key
+	local q = ns.QUICK_L
+	if q then
+		setgo[#setgo + 1] = { kind = "keybind", name = q.KEY, tooltip = q.KEY_DESC, action = "SETGO_QUICK" }
+	end
+	-- the tour (Tour.lua): Blizzard's help tips over SetGo! and its modules
+	setgo[#setgo + 1] = { kind = "button", name = L.TOUR_BUTTON, tooltip = L.TOUR_BUTTON_DESC, func = function()
+		if InCombatLockdown() then
+			ns.Print(L.MSG_COMBAT)
+			return
+		end
+		ns.HideKeep()
+		if not ns.StartTour() then
+			ns.Print(L.MSG_TOUR_NONE)
+		end
+	end }
+	-- the presets: each one made into a profile of its own and applied
+	local presets = ns.PresetList()
+	if #presets > 0 then
+		setgo[#setgo + 1] = { kind = "header", name = L.PRESETS }
+		setgo[#setgo + 1] = { kind = "note", name = L.PRESETS_PAGE_NOTE }
+		for _, entry in ipairs(presets) do
+			setgo[#setgo + 1] = { kind = "button", name = entry.name, tooltip = entry.desc or L.WIZ_PRESET_TIP, func = function()
+				ns.ApplyPreset(entry)
+			end }
+		end
+	end
 	return setgo
 end
 

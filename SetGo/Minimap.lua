@@ -3,24 +3,14 @@ local L = ns.L
 
 --------------------------------------------------------------------------------
 -- Minimap button (LibDBIcon, so minimap button collectors pick it up) and the
--- menu it shares with the addon menu by the minimap. Left click: a module's
--- own window when one asks for it (Quick!, with minimapClick) and is on,
--- else SetGo!; Shift+click: SetGo! always; right click: the menu.
+-- menu it shares with the addon menu by the minimap. Left click: the Quick
+-- Menu; Shift+click: SetGo!; right click: the menu.
 --------------------------------------------------------------------------------
 
--- the module that takes the minimap button's click (on), if any
-local function ClickModule()
-	for _, def in ipairs(ns.modules or {}) do
-		if type(def.minimapClick) == "function" and ns.ModuleOn(def.key) then
-			return def
-		end
-	end
-end
-
+-- Left click: the Quick Menu (Quick.lua); Shift+click: SetGo!
 local function Click(button)
-	local def = ClickModule()
-	if def and not IsShiftKeyDown() then
-		ns.Try(def.minimapClick)
+	if ns.ToggleQuick and not IsShiftKeyDown() then
+		ns.ToggleQuick()
 	else
 		ns.Toggle()
 	end
@@ -98,12 +88,7 @@ function ns.SetupMinimapButton()
 		end,
 		OnTooltipShow = function(tooltip)
 			tooltip:AddLine(L.ADDON)
-			local def = ClickModule()
-			if def then
-				tooltip:AddLine(L.MINIMAP_TIP_MODULE:format(def.title or def.key), 1, 1, 1)
-			else
-				tooltip:AddLine(L.MINIMAP_TIP, 1, 1, 1)
-			end
+			tooltip:AddLine(L.MINIMAP_TIP_MODULE:format(ns.QUICK_L and ns.QUICK_L.TITLE or "Quick Menu"), 1, 1, 1)
 		end,
 	})
 	icon:Register(ADDON, object, ns.db.minimap)

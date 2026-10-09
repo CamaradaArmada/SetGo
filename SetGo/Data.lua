@@ -269,7 +269,7 @@ end
 
 --------------------------------------------------------------------------------
 -- Modules: separate addons (SetGo_Fetch, SetGo_Look, SetGo_Speak,
--- SetGo_Hide, SetGo_Quick),
+-- SetGo_Hide),
 -- disabled until switched on in the Modules page. A loaded module adds its
 -- own page with SetGo.RegisterModule; its options apply at once.
 --------------------------------------------------------------------------------
@@ -319,7 +319,6 @@ end
 -- the modules SetGo! knows about, in the order they are listed; on: on
 -- until the player switches it off (else off until switched on)
 ns.KNOWN_MODULES = {
-	{ addon = "SetGo_Quick", key = "quick", title = "MOD_QUICK", desc = "MOD_QUICK_DESC", on = true },
 	{ addon = "SetGo_Fetch", key = "fetch", title = "MOD_FETCH", desc = "MOD_FETCH_DESC" },
 	{ addon = "SetGo_Look", key = "adventure", title = "MOD_LOOK", desc = "MOD_LOOK_DESC" }, -- key kept from SetGo_Adventure
 	{ addon = "SetGo_Speak", key = "chat", title = "MOD_SPEAK", desc = "MOD_SPEAK_DESC" }, -- key kept from SetGo_Chat
@@ -328,7 +327,8 @@ ns.KNOWN_MODULES = {
 
 ns.modules = {}
 
--- def = { key, title, items = function() return { ...items } end }
+-- def = { key, title, items = function() return { ...items } end,
+--   tour = { text, frame, point } or a list of them (Tour.lua) }
 function ns.RegisterModule(def)
 	ns.modules[#ns.modules + 1] = def
 end

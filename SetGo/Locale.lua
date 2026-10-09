@@ -61,7 +61,7 @@ local L = {
 	MOD_QUICK = "Quick!",
 	MOD_QUICK_DESC = "A small menu by the minimap for the settings you change in the moment: nameplates, NPC names, volume and Quiet!, which hides the world channels from the chat. Nothing changed there goes into your profiles.",
 	MODULE_NO_PROFILE = "This module has no profile options.",
-	NO_MODULES = "No modules installed. They come as separate folders (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide, SetGo_Quick) in the AddOns folder.",
+	NO_MODULES = "No modules installed. They come as separate folders (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) in the AddOns folder.",
 	POPUP_RELOAD_MODULES = "Reload the interface now to switch the module on or off?",
 
 	-- keybind profiles
@@ -357,7 +357,7 @@ if GetLocale() == "ptBR" then
 	L.MOD_QUICK = "Quick!"
 	L.MOD_QUICK_DESC = "Um menu pequeno junto do minimapa para as definições que mudas no momento: placas de nome, nomes dos NPCs, volume e o Quiet!, que esconde os canais do mundo do chat. Nada do que mudares lá vai para os perfis."
 	L.MODULE_NO_PROFILE = "Este módulo não tem opções de perfil."
-	L.NO_MODULES = "Não há módulos instalados. Vêm em pastas separadas (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide, SetGo_Quick) na pasta AddOns."
+	L.NO_MODULES = "Não há módulos instalados. Vêm em pastas separadas (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) na pasta AddOns."
 	L.POPUP_RELOAD_MODULES = "Recarregar a interface agora para ligar ou desligar o módulo?"
 
 	L.MSG_KEYS_SKIPPED = "%d teclas ignoradas: os addons delas não estão instalados."

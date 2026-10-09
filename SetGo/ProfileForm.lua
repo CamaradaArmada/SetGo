@@ -152,8 +152,10 @@ local function FormDefaults(edit)
 	form.edit = edit
 	form.tab = "layout"
 	form.visited = { layout = true }
-	local index = p and ns.LayoutIndex(p.layout) or ActiveGridLayout()
-	form.layout = { use = index }
+	-- a profile of the list keeps its own layout (its text) until another is
+	-- picked; a new one starts from the layout in use
+	local index = not p and ActiveGridLayout() or nil
+	form.layout = p and { keep = true } or { use = index }
 	-- what it switches on and its modules: the profile's, else the game's
 	form.ui = ns.UILive()
 	form.modules = ns.ModuleStates()
@@ -332,14 +334,26 @@ function ns.SetFormModules(on)
 	ns.Refresh()
 end
 
+local CopyPreset -- below
+
+-- a profile's name
+local function NameOf(p)
+	for name, q in pairs(ns.db.profiles) do
+		if q == p then
+			return name
+		end
+	end
+	return "?"
+end
+
 -- Copy from: what the tab shows, from the game as it is now (p nil) or from
 -- another profile
 local function CopyFrom(p, what)
 	if what == "layout" then
 		if p then
-			local index = ns.LayoutIndex(p.layout)
-			if index then
-				form.layout = { use = index }
+			local text = ns.ProfileLayoutText(p)
+			if text then
+				form.layout = { new = true, template = text, fromLabel = NameOf(p) }
 			end
 			for key, on in pairs(p.ui or {}) do
 				form.ui[key] = on
@@ -366,6 +380,35 @@ local function CopyFrom(p, what)
 end
 ns.FormCopyFrom = CopyFrom
 
+-- Copy from a preset (a new profile): its layout (a new one, made when
+-- saved) and what it switches on, or its modules and their options
+function CopyPreset(entry, what)
+	local prof = entry.prof
+	if what == "layout" then
+		form.layout = { new = true, template = prof.layout, imported = true, fromLabel = entry.name }
+		for key, on in pairs(prof.ui or {}) do
+			form.ui[key] = on
+		end
+		if not form.icon then
+			form.icon = prof.icon
+		end
+		ns.Refresh()
+	elseif what == "modules" then
+		if prof.customModules then
+			for key, on in pairs(prof.modules or {}) do
+				if form.modules[key] ~= nil then
+					form.modules[key] = on
+				end
+			end
+			form.moduleSettings = ns.ModuleSnapshot()
+			for var, v in pairs(prof.moduleSettings or {}) do
+				form.moduleSettings[var] = v
+			end
+		end
+		ns.SetFormModules(true)
+	end
+end
+
 --------------------------------------------------------------------------------
 -- Import: a SetGo! profile (its name, icon, layout and what it switches on
 -- fill the form) or Blizzard's layout text (the layout only). Either way a
@@ -388,9 +431,10 @@ local function Import(text)
 	ns.Refresh()
 end
 
--- Import profile (the cards): a SetGo! profile as text, into a new
--- profile's form, every tab filled; it is made when saved
-function ns.ImportProfile(text)
+-- Import profile: a SetGo! profile as text, every tab of the form filled;
+-- nothing is kept until saved. into: the profile open on the form, which
+-- it replaces (its name stays); else (the cards) a new profile.
+function ns.ImportProfile(text, into)
 	text = strtrim(text or "")
 	local profile = ns.ParseProfileText(text)
 	if not profile then
@@ -398,28 +442,24 @@ function ns.ImportProfile(text)
 		ns.Print(type(info) == "table" and L.MSG_USE_IMPORT_LAYOUT or L.MSG_BAD_PROFILE)
 		return
 	end
-	if ns.ProfilesFull() then
-		ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
-		return
+	local replacing = into ~= nil and ns.creating ~= nil and ns.creating.edit == into
+	if not replacing then
+		if ns.ProfilesFull() then
+			ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
+			return
+		end
+		ns.LeaveForm(function()
+			ns.OpenForm(nil)
+		end)
+		if ns.creating == nil or ns.creating.edit ~= nil then
+			return
+		end
 	end
-	ns.LeaveForm(function()
-		ns.OpenForm(nil)
-	end)
-	if ns.creating == nil or ns.creating.edit ~= nil then
-		return
-	end
-	if ns.AccountLayoutsFull() then
-		ns.Print(L.MSG_IMPORT_NO_LAYOUT)
-	else
-		form.layout = { new = true, template = profile.layout, imported = true, fromLabel = profile.name }
-	end
+	form.layout = { new = true, template = profile.layout, imported = true, fromLabel = profile.name }
 	for key, on in pairs(profile.ui) do
 		form.ui[key] = on
 	end
 	form.icon = profile.icon
-	if profile.custom then
-		form.scope.settings, form.settings = "profile", profile.settings
-	end
 	if profile.customModules then
 		form.customModules = true
 		for key, on in pairs(profile.modules or {}) do
@@ -432,7 +472,9 @@ function ns.ImportProfile(text)
 			form.moduleSettings[var] = v
 		end
 	end
-	head.name:SetText(ns.FreePresetName(profile.name))
+	if not replacing then
+		head.name:SetText(ns.FreePresetName(profile.name))
+	end
 	ns.Print(L.MSG_PROFILE_IMPORTED:format(profile.name))
 	ns.Refresh()
 end
@@ -444,10 +486,11 @@ StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	hasEditBox = true,
 	maxLetters = 0,
 	editBoxWidth = 320,
-	OnAccept = function(self)
+	OnAccept = function(self, data)
 		local text = U.EditBoxOf(self):GetText()
+		local into = data and data.into
 		C_Timer.After(0, function()
-			ns.ImportProfile(text)
+			ns.ImportProfile(text, into)
 		end)
 	end,
 	EditBoxOnEscapePressed = function(self)
@@ -458,9 +501,9 @@ StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	hideOnEscape = true,
 }
 
-function ns.AskImportProfile()
+function ns.AskImportProfile(into)
 	C_Timer.After(0, function()
-		U.Popup("SETGO_IMPORT_PROFILE", L.POPUP_IMPORT_PROFILE)
+		U.Popup("SETGO_IMPORT_PROFILE", L.POPUP_IMPORT_PROFILE, { into = into })
 	end)
 end
 
@@ -585,11 +628,10 @@ end
 local function CreatePicker()
 	local template = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("BasicFrameTemplateWithInset")
 		and "BasicFrameTemplateWithInset" or nil
-	picker = CreateFrame("Frame", "SetGoIconPicker", U.frame, template)
+	picker = CreateFrame("Frame", "SetGoIconPicker", U.frame or UIParent, template)
 	local w = PICK_COLS * (PICK_SIZE + PICK_GAP) + 50
 	local h = PICK_ROWS * (PICK_SIZE + PICK_GAP) + PICK_TOP + 20
 	picker:SetSize(w, h)
-	picker:SetPoint("TOPLEFT", U.rightPage, "TOPLEFT", 20, -60)
 	picker:SetFrameStrata("FULLSCREEN_DIALOG")
 	picker:EnableMouse(true)
 	picker:EnableMouseWheel(true)
@@ -658,10 +700,19 @@ local function CreatePicker()
 	picker:Hide()
 end
 
-function ns.PickIcon(onPick)
+-- owner: the window it belongs to (closes with it), anchor: where it shows;
+-- SetGo!'s right page unless given (the first profile's guide)
+function ns.PickIcon(onPick, owner, anchor)
 	if not picker then
 		CreatePicker()
 	end
+	owner, anchor = owner or U.frame, anchor or U.rightPage
+	if owner and picker:GetParent() ~= owner then
+		picker:SetParent(owner)
+		picker:SetFrameStrata("FULLSCREEN_DIALOG")
+	end
+	picker:ClearAllPoints()
+	picker:SetPoint("TOPLEFT", anchor or UIParent, "TOPLEFT", 20, -60)
 	picker.onPick = onPick
 	picker.offset = 0
 	picker:Show()
@@ -737,7 +788,7 @@ local function FormSave(name, apply)
 				opts.ui[e.key] = on and true or false
 			end
 		end
-	else
+	elseif form.layout.use then
 		opts.layout = { use = form.layout.use }
 	end
 	-- its own keys, when they changed on the form
@@ -871,6 +922,17 @@ local function CopySources(root)
 			b:SetEnabled(false)
 		end
 	end
+	-- a new profile: the presets too
+	local presets = not form.edit and ns.PresetList() or {}
+	if #presets > 0 then
+		root:CreateDivider()
+		root:CreateTitle(L.PRESETS)
+		for _, entry in ipairs(presets) do
+			root:CreateButton(entry.name, function()
+				CopyPreset(entry, what)
+			end)
+		end
+	end
 end
 
 local function CreateHead(rightPage, width)
@@ -946,12 +1008,39 @@ local function CreateHead(rightPage, width)
 	head.copy:SetSize(200, 20)
 	head.copy.text = W.Text(head.copy, W.FONT_BODY, nil, L.NP_COPY_FROM .. " " .. L.COPY_CURRENT, 0.85)
 	head.copy.text:SetPoint("LEFT")
+	head.copy.text:ClearAllPoints()
+	head.copy.text:SetPoint("LEFT", 6, 0)
+	-- a field of its own: the page a little darker under it
+	local field = head.copy:CreateTexture(nil, "BACKGROUND")
+	field:SetAllPoints()
+	field:SetColorTexture(r, g, bl, 0.1)
+	head.copy:HookScript("OnEnter", function()
+		field:SetColorTexture(r, g, bl, 0.18)
+	end)
+	head.copy:HookScript("OnLeave", function()
+		field:SetColorTexture(r, g, bl, 0.1)
+	end)
+	-- Blizzard's arrow (the first the client has), in ink
 	head.copy.arrow = head.copy:CreateTexture(nil, "ARTWORK")
-	head.copy.arrow:SetSize(14, 14)
-	head.copy.arrow:SetPoint("LEFT", head.copy.text, "RIGHT", 4, -1)
-	head.copy.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+	local arrowW = 12
+	if HasAtlas("friendslist-categorybutton-arrow-down") then
+		head.copy.arrow:SetAtlas("friendslist-categorybutton-arrow-down")
+		head.copy.arrow:SetSize(12, 7)
+	elseif HasAtlas("common-dropdown-c-button-hover-arrow") then
+		head.copy.arrow:SetAtlas("common-dropdown-c-button-hover-arrow")
+		head.copy.arrow:SetSize(12, 12)
+	else
+		head.copy.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+		head.copy.arrow:SetSize(14, 14)
+		arrowW = 14
+	end
+	head.copy.arrow:SetPoint("LEFT", head.copy.text, "RIGHT", 6, 0)
 	head.copy.arrow:SetVertexColor(r, g, bl)
-	head.copy:SetWidth((head.copy.text:GetStringWidth() or 120) + 22)
+	-- room for the text, the arrow and the margins (the text can change)
+	function head.copy:Fit()
+		self:SetWidth((tonumber(self.text:GetStringWidth()) or 120) + 6 + 6 + arrowW + 8)
+	end
+	head.copy:Fit()
 	local line = head.copy:CreateTexture(nil, "HIGHLIGHT")
 	line:SetHeight(1)
 	line:SetColorTexture(r, g, bl, 0.6)
@@ -966,6 +1055,26 @@ local function CreateHead(rightPage, width)
 	end)
 	W.TipScripts(head.copy, L.NP_COPY_PROFILE, function()
 		return L["NP_COPY_" .. (form.tab or "layout"):upper() .. "_DESC"]
+	end, true)
+
+	-- Import, on the right of the same line: a profile someone shared, made
+	-- as a new one (as Import profile on the cards' menu)
+	head.import = W.Button(head, 120, L.IMPORT_PROFILE, function()
+		local edit = form.edit
+		if edit then
+			-- into the profile open: always asked first
+			U.Confirm(L.POPUP_IMPORT_REPLACE:format(edit), function()
+				ns.AskImportProfile(edit)
+			end)
+		else
+			ns.AskImportProfile()
+		end
+	end, 22)
+	local fs = head.import.GetFontString and head.import:GetFontString()
+	head.import:SetWidth(math.max(100, (fs and tonumber(fs:GetStringWidth()) or 90) + 30))
+	head.import:SetPoint("TOPRIGHT", head, "TOPRIGHT", 0, -36)
+	W.TipScripts(head.import, L.IMPORT_PROFILE, function()
+		return form.edit and L.IMPORT_REPLACE_DESC or L.IMPORT_PROFILE_DESC
 	end)
 
 	-- the tabs, the width of the page, on a darker band
@@ -1021,6 +1130,15 @@ local function CreateFoot(rightPage, width)
 		ns.OpenForm(edit, tab)
 	end)
 	foot.undo:SetPoint("BOTTOMRIGHT", foot, "BOTTOMRIGHT", 0, 15)
+	-- a new profile: back to the tab before
+	foot.back = W.Button(foot, 90, L.WIZ_BACK, function()
+		local i = TabIndex(form.tab)
+		if i > 1 then
+			ns.ShowFormTab(FORM_TABS[i - 1])
+		end
+	end, 22)
+	foot.back:SetPoint("BOTTOMLEFT", foot, "BOTTOMLEFT", 0, 18)
+	foot.back:Hide()
 	W.TipScripts(foot.undo, L.NP_UNDO, L.NP_UNDO_DESC)
 	foot:Hide()
 end
@@ -1032,6 +1150,7 @@ function ns.RefreshFormButton()
 	end
 	local edit = form.edit
 	foot.main:SetEnabled(true)
+	foot.back:SetShown(not edit and TabIndex(form.tab) > 1)
 	if not edit then
 		local seen = 0
 		for _, tab in ipairs(FORM_TABS) do
@@ -1081,6 +1200,7 @@ function ns.RefreshFormHead(onForm)
 	head.icon.tex:SetTexture(form.icon or DEFAULT_ICON)
 	-- the Settings tab has a Copy from for each of its parts
 	head.copy:SetShown(form.tab ~= "settings")
+	head.import:SetEnabled(form.edit ~= nil or not ns.ProfilesFull())
 	for tab, t in pairs(head.tabs) do
 		t:SetOn(tab == form.tab)
 	end
@@ -1219,13 +1339,13 @@ local function CreateLayoutBody(width)
 	body:SetSize(width, BODY_H)
 	np.layoutBody = body
 
-	-- Blizzard's two, side by side
+	-- Blizzard's two, side by side (a profile of the list: its own layout
+	-- first on the row; Refresh places them)
+	np.own = Cell(body, width)
+	np.width = width
 	np.blizzard = {}
-	local half = (width - 6) / 2
 	for i = 1, 2 do
-		local c = Cell(body, half, BLIZZARD_TINT)
-		c:SetPoint("TOPLEFT", (i - 1) * (half + 6), 0)
-		np.blizzard[i] = c
+		np.blizzard[i] = Cell(body, (width - 6) / 2, BLIZZARD_TINT)
 	end
 	-- the account's five (+ New in the first free row)
 	local y = CELL_H + CELL_GAP
@@ -1314,6 +1434,29 @@ local function RefreshLayoutBody()
 	if form.layout.use and not ns.GetLayouts()[form.layout.use] then
 		form.layout = { use = blizzard[1] and blizzard[1].index or 1 }
 	end
+	-- the row: this profile's own layout (kept until another is picked),
+	-- then Blizzard's two
+	local p = form.edit and ns.ProfileOf(form.edit)
+	local own = p and ns.ProfileLayoutText(p) ~= nil
+	local n = own and 3 or 2
+	local w = (np.width - 6 * (n - 1)) / n
+	local cells = own and { np.own, np.blizzard[1], np.blizzard[2] } or np.blizzard
+	np.own:SetShown(own)
+	for i, cell in ipairs(cells) do
+		cell:ClearAllPoints()
+		cell:SetWidth(w)
+		cell.text:SetWidth(w - 20)
+		cell:SetPoint("TOPLEFT", (i - 1) * (w + 6), 0)
+	end
+	if own then
+		np.own.text:SetText(L.NP_OWN_LAYOUT)
+		np.own.tip, np.own.tipLine, np.own.tipWarn = ns.SlotName(form.edit), L.NP_OWN_LAYOUT_DESC, nil
+		Pick(np.own, form.layout.keep)
+		np.own:SetScript("OnClick", function()
+			form.layout = { keep = true }
+			ns.Refresh()
+		end)
+	end
 	for i, cell in ipairs(np.blizzard) do
 		local l = blizzard[i]
 		cell:SetShown(l ~= nil)
@@ -1327,7 +1470,9 @@ local function RefreshLayoutBody()
 			end)
 		end
 	end
-	local full, max = ns.AccountLayoutsFull()
+	-- the account's slots don't matter any more: a profile keeps its layout
+	-- as text (Layouts.lua)
+	local full, max = false, 0
 	for i, cell in ipairs(np.account) do
 		local l = account[i]
 		if l then
@@ -1412,6 +1557,7 @@ local function ModuleItems(key)
 	end
 	return out
 end
+ns.FormModuleItems = ModuleItems
 
 local function CreateModulesBody(width)
 	local body = CreateFrame("Frame", nil, np)
@@ -1423,7 +1569,11 @@ local function CreateModulesBody(width)
 	local listW = width - 22
 	local scroll = CreateFrame("ScrollFrame", nil, body, ScrollTemplate())
 	scroll:SetPoint("TOPLEFT", 0, -ROW_H)
-	scroll:SetSize(listW, BODY_H - ROW_H)
+	scroll:SetSize(listW, BODY_H - ROW_H - 18)
+	-- a choice marked * changed: it reloads the game when applied
+	np.moduleReload = W.Text(body, W.FONT_SMALL, width, L.RELOAD_LEGEND, 0.8)
+	np.moduleReload:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 0, 2)
+	np.moduleReload:Hide()
 	if scroll.ScrollBar and scroll.ScrollBar.SetHideIfUnscrollable then
 		scroll.ScrollBar:SetHideIfUnscrollable(true)
 	end
@@ -1442,7 +1592,8 @@ local function CreateModulesBody(width)
 			row.on = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
 			row.on:SetSize(24, 24)
 			row.on:SetPoint("LEFT", 6, 0)
-			row.title = W.Text(row, W.FONT_HEADER, listW - 80, L[m.title])
+			-- the asterisk: switching a module on or off reloads the game
+			row.title = W.Text(row, W.FONT_HEADER, listW - 80, L[m.title] .. " *")
 			row.title:SetPoint("LEFT", row.on, "RIGHT", 4, 0)
 			row.arrow = W.Text(row, W.FONT_HEADER, nil, "+", 0.7)
 			row.arrow:SetPoint("RIGHT", -12, 0)
@@ -1518,6 +1669,7 @@ local function RefreshModulesBody()
 		end
 	end
 	np.moduleList:SetHeight(math.max(y, 10))
+	np.moduleReload:SetShown(on and not SameFlags(form.modules, (form.orig or {}).modules) or false)
 end
 
 --------------------------------------------------------------------------------

@@ -118,4 +118,6 @@ local function DeleteLayout(name)
 	end
 end
 
-SetGo.RegisterModule({ key = "fetch", title = L.ADDON, items = Items, CopyLayout = CopyLayout, DeleteLayout = DeleteLayout })
+SetGo.RegisterModule({ key = "fetch", title = L.ADDON, items = Items, CopyLayout = CopyLayout, DeleteLayout = DeleteLayout,
+	-- its tip in SetGo!'s tour, at the bar
+	tour = { text = L.TOUR, frame = function() return _G.SetGoFetchBar end } })

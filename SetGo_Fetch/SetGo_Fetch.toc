@@ -3,7 +3,7 @@
 ## Notes: A bar of up to 12 buttons, each with a six slot flyout. It can sit right on top of the bag bar. A SetGo! module.
 ## Notes-ptBR: Barra com até 12 botões, cada um com um menu de seis espaços. Pode ficar mesmo por cima da barra dos sacos. Um módulo do SetGo!.
 ## Author: Armada
-## Version: 0.8.1
+## Version: 0.12.0
 ## Dependencies: SetGo
 ## DefaultState: enabled
 ## SavedVariables: SetGoFetchLayoutDB
@@ -18,5 +18,8 @@ Core.lua
 Button.lua
 Bar.lua
 Bags.lua
+Art.lua
+Snap.lua
 EditMode.lua
 Settings.lua
+Dump.lua

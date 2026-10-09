@@ -4,7 +4,7 @@ local mains = {}
 ns.mains = mains
 local bar
 
-local PAD = 4 -- inner padding of the flyout background
+local PAD = 0 -- inner padding of the flyout (none: the art frames the buttons, as on bar 1)
 local STRIP_SCALE = 0.9
 local STRIP_ALPHA = 0.85
 
@@ -100,7 +100,9 @@ end
 local function UpdateEmpty(main)
 	local layout = ns.Layout()
 	local entry = Entry(main.fpIndex)
-	local show = layout.showEmpty ~= false or ns.inEditMode or entry.action ~= nil
+	-- with the bar art on, empty slots show their background, as on
+	-- Blizzard's main bar
+	local show = layout.showEmpty ~= false or ns.inEditMode or entry.action ~= nil or ns.ArtOn(layout)
 		or HasFlyContent(main.fpIndex) or ns.CursorAction() ~= nil
 	main:SetAlpha(show and 1 or 0)
 end
@@ -212,36 +214,12 @@ end
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Flyout frame: the same frame art as Blizzard's main action bar, stretched
--- around the flyout icons, over a dark fill. Falls back to a plain dark
+-- Flyout frame: bar 1's art, always on (Art.lua). Falls back to a plain dark
 -- backdrop if the art is missing.
 --------------------------------------------------------------------------------
 
-local FRAME_ATLAS = "UI-HUD-ActionBar-Frame"
--- how far the frame reaches out past the icons on each side, in pixels
--- (Blizzard's own values for the main bar)
-local FRAME_OUTSET = { left = 8, top = 8, right = 8, bottom = 8 }
--- dark fill behind the icons: 0 is invisible, 1 is solid black
-local FILL_ALPHA = 0.6
-
 function ns.CreateFlyoutArt(fly)
-	local info = C_Texture and C_Texture.GetAtlasInfo and ns.Try(C_Texture.GetAtlasInfo, FRAME_ATLAS)
-	if type(info) ~= "table" then
-		return false
-	end
-	local fill = fly:CreateTexture(nil, "BACKGROUND", nil, -8)
-	fill:SetColorTexture(0, 0, 0, FILL_ALPHA)
-	fill:SetPoint("TOPLEFT", fly, "TOPLEFT", 0, 0)
-	fill:SetPoint("BOTTOMRIGHT", fly, "BOTTOMRIGHT", 0, 0)
-
-	local frame = fly:CreateTexture(nil, "BACKGROUND", nil, -3)
-	frame:SetAtlas(FRAME_ATLAS)
-	-- the flyout frame already has PAD pixels around the icons
-	local o = FRAME_OUTSET
-	frame:SetPoint("TOPLEFT", fly, "TOPLEFT", PAD - o.left, o.top - PAD)
-	frame:SetPoint("BOTTOMRIGHT", fly, "BOTTOMRIGHT", o.right - PAD, PAD - o.bottom)
-	fly.art = { fill = fill, frame = frame }
-	return true
+	return ns.FlyoutFrameArt(fly)
 end
 
 function ns.LayoutFlyout(main)
@@ -282,6 +260,7 @@ function ns.LayoutFlyout(main)
 	local gap = 12
 	fly:ClearAllPoints()
 	fly:SetPoint(d.point, main, d.rel, d.dx * gap, d.dy * gap)
+	ns.ApplyFlyoutArt(fly, ns.FlyDir(layout))
 end
 
 function ns.CloseFlyout(main)
@@ -554,6 +533,9 @@ local VISIBILITY = {
 }
 
 function ns.ApplyVisibility()
+	if ns.UpdateKeyToggle then
+		ns.UpdateKeyToggle()
+	end
 	if not bar or InCombatLockdown() then
 		return
 	end
@@ -586,6 +568,7 @@ function DoApplyLayout()
 	end
 	if slots then
 		ns.ApplyBagLayout(bar, mains, slots, pos)
+		ns.ApplyArt(bar, mains)
 		ns.ApplyVisibility()
 		ns.UpdateArrows()
 		ns.RequestUpdate()
@@ -634,6 +617,7 @@ function DoApplyLayout()
 		main:SetShown(enabled)
 		ns.ApplyAttributes(main)
 	end
+	ns.ApplyArt(bar, mains)
 	ns.ApplyVisibility()
 	ns.UpdateArrows()
 	ns.RequestUpdate()
@@ -932,7 +916,12 @@ function ns.BuildBar()
 		Hook(main)
 
 		local fly = CreateFrame("Frame", "SetGoFetchFlyout" .. i, bar, "BackdropTemplate")
+		-- above every bar, and kept there: a parent's strata change (the bar
+		-- anchoring to the bags) would otherwise carry it along
 		fly:SetFrameStrata("DIALOG")
+		if fly.SetFixedFrameStrata then
+			fly:SetFixedFrameStrata(true)
+		end
 		fly:EnableMouse(true)
 		fly:Hide()
 		if not ns.CreateFlyoutArt(fly) and fly.SetBackdrop then

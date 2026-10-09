@@ -53,6 +53,7 @@ local LAYOUT = {
 
 local L = {
 	TITLE = "Speak!",
+	TOUR = "Choose between two different themes for your chat and customize the transparency with the Speak! module.",
 	SEC_LOOK = "Look",
 	LOOK = "Style",
 	LOOK_DESC = "Soft: the damage meter's soft background. Bordered: the tooltip's border around the messages, each tab and the typing box.",
@@ -90,6 +91,7 @@ local L = {
 	OLD_CHAT = "SetGo! Speak!: the old SetGo_Chat is still installed. Its settings were copied. Delete the SetGo_Chat folder and reload; until then Speak! stays off.",
 }
 if GetLocale() == "ptBR" then
+	L.TOUR = "Escolhe entre dois temas para o teu chat e ajusta a transparência com o módulo Speak!."
 	L.SEC_LOOK = "Aspecto"
 	L.LOOK = "Estilo"
 	L.LOOK_DESC = "Esbatido: o fundo esbatido do damage meter. Com moldura: a moldura das tooltips à volta das mensagens, de cada separador e da caixa de escrita."
@@ -1280,7 +1282,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
 			end
 			oldChat = OldChatLoaded() and true or false
 			if not oldChat then
-				SetGo.RegisterModule({ key = KEY, title = L.TITLE, items = Items })
+				SetGo.RegisterModule({ key = KEY, title = L.TITLE, items = Items,
+					-- its tip in SetGo!'s tour
+					tour = { text = L.TOUR, frame = function() return ChatFrame1 end, point = "right" } })
 			end
 		elseif arg1 == "Blizzard_CombatLog" and started then
 			StyleCombatLog()

@@ -5,7 +5,9 @@ local Try = ns.Try
 --------------------------------------------------------------------------------
 -- Profiles (SetGoDB.profiles): a setup to put on any character, a starting
 -- point (nothing keeps it in step with the game on its own).
---   { id, icon, favorite, layout = { preset = n } or { name }, layoutMade,
+--   { id, icon, favorite, layoutText, layoutRev, layoutFromName (its Edit
+--     Mode layout as text, Layouts.lua; profiles from before: layout =
+--     { preset = n } or { name }, layoutMade),
 --     ui = { [element key] = true/false } (action bars 2 to 8 and the
 --       elements Edit Mode places but a setting turns on),
 --     scope = { settings, keys, bars = "global" or "profile" }: each from
@@ -413,18 +415,18 @@ function ns.ProfileDiff(name)
 		return diff
 	end
 	local lines, short = diff.lines, diff.short
-	if p.layout then
-		local index = ns.LayoutIndex(p.layout)
-		local _, active = ns.GetLayouts()
-		if not index then
+	-- its layout (Layouts.lua): this character's SetGo! layout holds it, and
+	-- is the one in use
+	if p.layoutText or p.layout then
+		if not ns.ProfileLayoutText(p) then
 			diff.layout = "missing"
 			lines[#lines + 1] = L.DIFF_LAYOUT_GONE
 			short[#short + 1] = L.SHORT_LAYOUT_GONE
-		elseif active and index ~= active then
+		elseif not ns.SlotCurrent(name, p) then
 			diff.layout = "other"
 			diff.total = diff.total + 1
-			lines[#lines + 1] = L.DIFF_LAYOUT_TO:format(ns.LayoutName(p.layout) or "?")
-			short[#short + 1] = L.SHORT_LAYOUT:format(ns.LayoutName(p.layout) or "?")
+			lines[#lines + 1] = L.DIFF_LAYOUT_TO:format(ns.SlotName(name))
+			short[#short + 1] = L.SHORT_LAYOUT:format(ns.SlotName(name))
 		end
 	end
 	for _, d in ipairs(ns.UIDiff(p.ui)) do
@@ -539,13 +541,10 @@ function ns.ApplyProfile(name, force)
 	end
 	-- global options changed on its pages wait in the staging; they go too
 	ns.ClearStaged("char")
-	if p.layout then
-		local index = ns.LayoutIndex(p.layout)
-		if index then
-			ns.SetLayout(index)
-		else
-			ns.Print(L.MSG_LAYOUT_MISSING:format(name))
-		end
+	-- its layout: written into this character's SetGo! layout below, last
+	local layoutText = ns.ProfileLayoutText(p)
+	if (p.layoutText or p.layout) and not layoutText then
+		ns.Print(L.MSG_LAYOUT_MISSING:format(name))
 	end
 	-- its settings, or the shared ones (the same: none kept yet, the
 	-- game's become them)
@@ -575,6 +574,15 @@ function ns.ApplyProfile(name, force)
 		return
 	end
 	changed = changed + ui
+	-- its layout, last, so nothing saves an older copy of the layouts over
+	-- it before the reload
+	if layoutText and not ns.SlotCurrent(name, p) then
+		if ns.WriteSlot(name, p) then
+			changed = changed + 1
+		else
+			failed = (failed or 0) + 1
+		end
+	end
 	-- no reload: the check once the server has confirmed the bars
 	if changed == 0 and not force and ns.ResumeSkills then
 		C_Timer.After(1.5, ns.ResumeSkills)
@@ -712,22 +720,20 @@ function ns.CreateProfile(opts)
 	if opts.icon ~= nil then
 		p.icon = opts.icon
 	end
+	-- its layout, kept inside the profile as text (Layouts.lua): copied from
+	-- a layout here, or a template, a preset, an import
 	local created
 	if layout.use then
-		p.layout = ns.LayoutRef(layout.use)
-	elseif layout.template then
-		-- a new account layout, named after the profile (copied from another
-		-- layout, a template or an import)
-		local index, made = ns.CreateLayout(layout.template, name, layout.imported, opts.noApply)
-		if not index then
+		local ref = ns.LayoutRef(layout.use)
+		local text = ref and ns.LayoutText(ref)
+		if not text then
+			ns.Print(L.MSG_LAYOUT_FAILED)
 			return false
 		end
+		ns.SetProfileLayout(p, text, ns.LayoutName(ref))
+	elseif layout.template then
 		created = true
-		if layout.from then
-			ns.CopyLayoutData(layout.from, made)
-		end
-		p.layout = { name = made }
-		p.layoutMade = true
+		ns.SetProfileLayout(p, layout.template, layout.from)
 		for var, on in pairs(layout.bars or {}) do
 			local e = ns.UI_VARS[var]
 			if e then
@@ -737,8 +743,7 @@ function ns.CreateProfile(opts)
 	end
 	Save(name, p)
 	ns.Print(L.MSG_SAVED:format(name))
-	-- a new layout: the interface reloads first, so every element shows in
-	-- Edit Mode; it opens after the reload (and after the first profile's)
+	-- a new layout: Edit Mode opens after the reload, to place everything
 	if created then
 		p.newLayout = true
 	end
@@ -848,8 +853,9 @@ end
 --------------------------------------------------------------------------------
 -- Export text: SGP1;N=<name>;I=<icon>;U=<element keys on>;S=<own settings>;
 -- M=<modules on>;O=<module options>;L=<layout text>. Its name, icon, layout,
--- what it switches on, and its settings and modules when it changes them
--- (keys and action bars stay with each player and character).
+-- what it switches on, and its modules when it changes them. Character
+-- settings, keys and bar slots stay with each player and character (an S=
+-- part from older versions is read past).
 --------------------------------------------------------------------------------
 
 local function Escape(s)
@@ -869,7 +875,7 @@ function ns.ExportProfile(name)
 	if not p then
 		return nil
 	end
-	local data = ns.LayoutText(p.layout)
+	local data = ns.ProfileLayoutText(p)
 	if not data then
 		ns.Print(L.MSG_LAYOUT_FAILED)
 		return nil
@@ -904,9 +910,6 @@ function ns.ExportProfile(name)
 		table.sort(list)
 		return table.concat(list, ",")
 	end
-	if ns.ScopeOf(p, "settings") == "profile" and p.settings then
-		parts[#parts + 1] = "S=" .. Values(p.settings)
-	end
 	if p.customModules then
 		local mods = {}
 		for key, on in pairs(p.modules or {}) do
@@ -920,8 +923,8 @@ function ns.ExportProfile(name)
 	return table.concat(parts, ";")
 end
 
--- { name, icon, ui, layout = Blizzard's layout text, custom, settings,
---   customModules, modules, moduleSettings } or nil
+-- { name, icon, ui, layout = Blizzard's layout text, customModules, modules,
+--   moduleSettings } or nil
 function ns.ParseProfileText(text)
 	if type(text) ~= "string" then
 		return nil
@@ -962,9 +965,7 @@ function ns.ParseProfileText(text)
 					end
 				end
 			end
-			if key == "S" then
-				out.settings, out.custom = t, true
-			else
+			if key == "O" then
 				out.moduleSettings = t
 			end
 		elseif key == "M" then
@@ -995,6 +996,7 @@ function ns.CopyProfile(name)
 	local copy = Copy(p)
 	copy.id = ns.NewId()
 	copy.layoutMade = nil
+	copy.layoutSeeded = nil
 	copy.created, copy.saved = nil, nil
 	local newName = ns.FreePresetName(L.COPY_NAME:format(name))
 	Save(newName, copy)
@@ -1059,11 +1061,8 @@ function ns.ProfileSummary(name)
 	if not p then
 		return lines
 	end
-	local layoutName = ns.LayoutName(p.layout)
-	if p.layout and not ns.LayoutIndex(p.layout) then
-		lines[#lines + 1] = L.PRESET_LAYOUT_GONE:format(p.layout.name or "?")
-	elseif layoutName then
-		lines[#lines + 1] = L.PRESET_LAYOUT:format(layoutName)
+	if ns.ProfileLayoutText(p) then
+		lines[#lines + 1] = L.PRESET_LAYOUT:format(ns.SlotName(name))
 	else
 		lines[#lines + 1] = L.PRESET_NO_LAYOUT
 	end
@@ -1129,4 +1128,83 @@ function ns.ExportTemplate(name)
 	end
 	ns.db.templateExports[Id(name)] = { name = name, data = data, bars = bars, created = time() }
 	ns.Print(L.MSG_TEMPLATE_SAVED:format(name))
+end
+
+--------------------------------------------------------------------------------
+-- Presets: profiles made by the author that come with SetGo! (PresetData.lua),
+-- offered by the first profile's guide, SetGo!'s own page and Copy from on a
+-- new profile. Each one makes a profile of its own when applied.
+--------------------------------------------------------------------------------
+
+-- the presets this version can read: { preset, name, icon, desc, prof }
+function ns.PresetList()
+	local list = {}
+	for _, preset in ipairs(ns.PRESETS or {}) do
+		local prof = type(preset) == "table" and ns.ParseProfileText(preset.code)
+		if prof then
+			list[#list + 1] = {
+				preset = preset, prof = prof,
+				name = preset.name and (L[preset.name] or preset.name) or prof.name,
+				icon = prof.icon,
+				desc = preset.desc and L[preset.desc] or nil,
+			}
+		end
+	end
+	return list
+end
+
+-- What CreateProfile needs to make a profile from a preset. baseUI: what
+-- shows now (the guide passes the screen as it was before its preview).
+function ns.PresetOpts(entry, baseUI)
+	local prof = entry.prof
+	local ui = Copy(baseUI or ns.UILive())
+	for key, on in pairs(prof.ui or {}) do
+		ui[key] = on
+	end
+	local modules = ns.ModuleStates()
+	local moduleSettings = ns.ModuleSnapshot()
+	if prof.customModules then
+		for key, on in pairs(prof.modules or {}) do
+			if modules[key] ~= nil then
+				modules[key] = on
+			end
+		end
+		for var, v in pairs(prof.moduleSettings or {}) do
+			moduleSettings[var] = v
+		end
+	end
+	local layout = { template = prof.layout, imported = true }
+	return {
+		name = ns.FreePresetName(entry.name),
+		icon = prof.icon,
+		ui = ui,
+		modules = modules,
+		customModules = true,
+		moduleSettings = moduleSettings,
+		scope = ns.SharedScope(),
+		layout = layout,
+	}
+end
+
+-- SetGo!'s page: a preset made into a profile and applied, after asking
+-- (the game reloads, then Edit Mode opens)
+function ns.ApplyPreset(entry)
+	if ns.ProfilesFull() then
+		ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
+		return
+	end
+	if not ns.SettingsReady() then
+		ns.Print(L.MSG_NOT_READY)
+		return
+	end
+	ns.ui.Confirm(L.WIZ_POPUP_PRESET:format(entry.name), function()
+		if InCombatLockdown() then
+			ns.Print(L.MSG_COMBAT)
+			return
+		end
+		ns.charDB.openEditMode = true
+		if not ns.CreateProfile(ns.PresetOpts(entry)) then
+			ns.charDB.openEditMode = nil
+		end
+	end)
 end

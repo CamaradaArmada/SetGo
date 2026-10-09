@@ -1,7 +1,7 @@
 local _, ns = ...
 local L = ns.L
 
--- The modules (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide, SetGo_Quick) talk to the
+-- The modules (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) talk to the
 -- core through this table: SetGo.RegisterModule, SetGo.Pseudo, SetGo.Print.
 SetGo = ns
 
@@ -334,8 +334,20 @@ local PROXY_CVARS = {
 	},
 }
 
-local function HeldValue(cvar)
+-- the modules, and the Quick Menu (Quick.lua), that may hold a value
+local function Holders()
+	local list = {}
+	if ns.quickHold then
+		list[1] = ns.quickHold
+	end
 	for _, def in ipairs(ns.modules or {}) do
+		list[#list + 1] = def
+	end
+	return list
+end
+
+local function HeldValue(cvar)
+	for _, def in ipairs(Holders()) do
 		if def.RestoreValue then
 			local v = Try(def.RestoreValue, cvar)
 			if v ~= nil then
@@ -369,7 +381,7 @@ local function TellModules(var, value)
 	elseif type(v) == "boolean" then
 		v = v and "1" or "0"
 	end
-	for _, def in ipairs(ns.modules or {}) do
+	for _, def in ipairs(Holders()) do
 		if def.SetRestoreValue then
 			Try(def.SetRestoreValue, cvar, v)
 		end
@@ -645,6 +657,7 @@ local function SaveWith(saved, pos, keep)
 	end
 	return index
 end
+ns.SaveLayoutsWith = SaveWith
 
 -- Makes an account layout from Blizzard's layout text, as Edit Mode's
 -- import does: after the other account layouts, named base (with a number

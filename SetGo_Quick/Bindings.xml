@@ -1,5 +1,0 @@
-<Bindings>
-	<Binding name="SETGO_QUICK" category="ADDONS">
-		SetGo_ToggleQuick()
-	</Binding>
-</Bindings>

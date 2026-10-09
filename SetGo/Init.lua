@@ -21,6 +21,11 @@ SlashCmdList.SETGO = function(msg)
 		ns.Report()
 	elseif msg == "hello" then
 		ns.ShowWelcome()
+	elseif msg == "tour" then
+		ns.StartTour()
+	elseif msg == "guide" then
+		-- the first profile's guide, even with profiles (to try it)
+		ns.ShowWizard()
 	else
 		ns.Toggle()
 	end
@@ -128,6 +133,7 @@ end
 events:SetScript("OnEvent", function(self, event, arg1)
 	if event == "ADDON_LOADED" and arg1 == ADDON then
 		ns.InitDB()
+		ns.Try(ns.RetireQuickModule)
 		ns.Try(RegisterOptionsEntry)
 		ns.Try(ns.SetupMinimapButton)
 	elseif event == "PLAYER_LOGIN" then

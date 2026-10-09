@@ -17,6 +17,7 @@ local DEFAULTS = {
 	visibility = "ALWAYS",
 	showEmpty = true,
 	bagAnchor = false,
+	barArt = false,
 }
 local FALLBACK = "__default"
 
@@ -138,6 +139,19 @@ local function BuildSettings()
 				C_Timer.After(0, function()
 					LEM:RefreshFrameSettings(ns.bar)
 				end)
+			end,
+		},
+		{
+			kind = LEM.SettingType.Checkbox,
+			name = L.BAR_ART,
+			default = DEFAULTS.barArt,
+			disabled = Anchored,
+			get = function(layoutName)
+				return ns.GetLayout(layoutName).barArt
+			end,
+			set = function(layoutName, value)
+				ns.GetLayout(layoutName).barArt = value and true or false
+				Changed(layoutName)
 			end,
 		},
 		Slider("numButtons", L.NUM_BUTTONS, 1, ns.MAX_BUTTONS, 1),
@@ -317,11 +331,20 @@ function ns.SetupEditMode()
 		-- anchored to the bag bar: a drag doesn't move it (it snaps back),
 		-- and the place saved for when it is undone stays as it was
 		if not t.bagAnchor then
+			-- dropped after a drag: snap (the bar isn't scaled, so the
+			-- offsets are UIParent units, like the snap)
+			if ns.snapDragging and ns.SnapDelta then
+				local dx, dy = ns.SnapDelta(bar)
+				x, y = x + dx, y + dy
+			end
 			t.point, t.x, t.y = point, x, y
 		end
 		Changed(layoutName)
 	end, { point = DEFAULTS.point, x = DEFAULTS.x, y = DEFAULTS.y }, L.ADDON)
 	LEM:AddFrameSettings(bar, BuildSettings())
+	if ns.SetupSnap and LEM.frameSelections then
+		ns.SetupSnap(bar, LEM.frameSelections[bar])
+	end
 
 	LEM:RegisterCallback("layout", function(layoutName)
 		ns.MigratePresetFix()

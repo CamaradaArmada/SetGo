@@ -1,12 +1,11 @@
 local ADDON, ns = ...
 
+-- the Quick Menu's own words
 local L = {
-	TITLE = "Quick!",
-	HOW = "A small menu by the minimap for the settings you change in the moment. Open it with its key or a click on the SetGo! minimap button (Shift+click opens SetGo!). What you change there applies at once and never goes into your SetGo! profiles: applying a profile puts its own values back. It closes in combat.",
-	SEC_CONTROLS = "Controls",
-	KEY = "Quick! key",
-	KEY_DESC = "Opens and closes Quick!. Click, then press a key; right click clears it. It does nothing in combat.",
-	BINDING = "Open or close Quick!",
+	TITLE = "Quick Menu",
+	KEY = "Quick Menu key",
+	KEY_DESC = "Opens and closes the Quick Menu (also a click on the minimap button). Click, then press a key; right click clears it. It does nothing in combat.",
+	BINDING = "Open or close the Quick Menu",
 	ENEMY = "Enemy nameplates",
 	ENEMY_DESC = "Shows nameplates over enemies.",
 	FRIEND = "Friendly player nameplates",
@@ -20,16 +19,12 @@ local L = {
 	ALL_PLATES = "Always show nameplates",
 	ALL_PLATES_DESC = "Shows nameplates all the time. Off: they only show in combat.",
 	OPEN_SETGO = "Open SetGo!",
-	QUIET_ON = "Channels hidden",
-	QUIET_OFF = "Channels shown",
-	OFF_IN_SETGO = "Quick! is switched off. Switch it on in SetGo!, Modules.",
 }
 if GetLocale() == "ptBR" then
-	L.HOW = "Um menu pequeno junto do minimapa para as definições que mudas no momento. Abre-se com a tecla ou com um clique no botão do SetGo! no minimapa (Shift+clique abre o SetGo!). O que mudares lá aplica-se logo e nunca vai para os perfis do SetGo!: aplicar um perfil repõe os valores dele. Fecha em combate."
-	L.SEC_CONTROLS = "Controlos"
-	L.KEY = "Tecla do Quick!"
-	L.KEY_DESC = "Abre e fecha o Quick!. Clica e carrega numa tecla; clique direito para a limpar. Em combate não faz nada."
-	L.BINDING = "Abrir ou fechar o Quick!"
+	L.TITLE = "Menu rápido"
+	L.KEY = "Tecla do Menu rápido"
+	L.KEY_DESC = "Abre e fecha o Menu rápido (também com um clique no botão do minimapa). Clica e carrega numa tecla; clique direito para a limpar. Em combate não faz nada."
+	L.BINDING = "Abrir ou fechar o Menu rápido"
 	L.ENEMY = "Placas de nome dos inimigos"
 	L.ENEMY_DESC = "Mostra as placas de nome por cima dos inimigos."
 	L.FRIEND = "Placas de nome dos jogadores aliados"
@@ -42,15 +37,12 @@ if GetLocale() == "ptBR" then
 	L.ALL_PLATES = "Mostrar sempre as placas de nome"
 	L.ALL_PLATES_DESC = "Mostra as placas de nome a toda a hora. Desligado: só aparecem em combate."
 	L.OPEN_SETGO = "Abrir SetGo!"
-	L.QUIET_ON = "Canais escondidos"
-	L.QUIET_OFF = "Canais visíveis"
-	L.OFF_IN_SETGO = "O Quick! está desligado. Liga-o no SetGo!, em Módulos."
 end
-BINDING_HEADER_SETGO = "SetGo!"
 BINDING_NAME_SETGO_QUICK = L.BINDING
+ns.QUICK_L = L
 
 --------------------------------------------------------------------------------
--- Quick!: a small window by the minimap with a few settings that apply at
+-- The Quick Menu (once the Quick! module, now part of SetGo!): a small window by the minimap with a few settings that apply at
 -- once (nameplates, NPC names, volume) and Quiet!, which hides the world
 -- channels from the chat windows. It closes in combat and doesn't come back
 -- by itself; its key does nothing in combat.
@@ -63,13 +55,11 @@ BINDING_NAME_SETGO_QUICK = L.BINDING
 -- SetGoQuickCharDB.holds for settings stored per character, and in
 -- SetGoQuickDB.holds for the rest. Quiet! remembers the channels it took out
 -- of each chat window in SetGoQuickCharDB.quiet.
--- Switched off in SetGo!: only the settings page is here (and anything left
--- hidden or held is undone at login).
+-- Always on. Its key is on SetGo!'s own page.
 --------------------------------------------------------------------------------
 
-local KEY = "quick"
-local ON = SetGo.ModuleOn(KEY)
-local Try, Same = SetGo.Try, SetGo.Same
+local SetGo = ns
+local Try, Same = ns.Try, ns.Same
 
 local db, charDB -- SetGoQuickDB (account), SetGoQuickCharDB (character)
 
@@ -191,9 +181,6 @@ end
 
 -- the core asks: the value profiles compare and save
 local function RestoreValue(var)
-	if not ON then
-		return nil
-	end
 	local _, _, hold = ValidHold(var)
 	return hold and hold.base or nil
 end
@@ -206,15 +193,6 @@ local function SetRestoreValue(var)
 		return true
 	end
 	return false
-end
-
-local function ClearHolds()
-	if db then
-		db.holds = nil
-	end
-	if charDB then
-		charDB.holds = nil
-	end
 end
 
 --------------------------------------------------------------------------------
@@ -675,12 +653,8 @@ local function Open()
 	frame:Show()
 end
 
--- the key (Bindings.xml) and the SetGo! minimap button menu
-function SetGo_ToggleQuick()
-	if not ON then
-		SetGo.Print(L.OFF_IN_SETGO)
-		return
-	end
+-- the key (Bindings.xml) and the minimap button's click
+function ns.ToggleQuick()
 	if InCombatLockdown() then
 		return
 	end
@@ -691,33 +665,30 @@ function SetGo_ToggleQuick()
 	end
 end
 
---------------------------------------------------------------------------------
--- Page in SetGo!: only the key. Quick! has no options for profiles.
---------------------------------------------------------------------------------
-
-local items
-local function Items()
-	if items then
-		return items
-	end
-	items = {
-		{ kind = "note", name = L.HOW, pageOnly = true },
-		{ kind = "header", name = L.SEC_CONTROLS, pageOnly = true },
-		{ kind = "keybind", action = "SETGO_QUICK", name = L.KEY, tooltip = L.KEY_DESC },
-	}
-	return items
+function SetGo_ToggleQuick()
+	ns.ToggleQuick()
 end
 
-SetGo.RegisterModule({ key = KEY, title = L.TITLE, items = Items,
-	-- the SetGo! minimap button's click opens Quick! while it is on
-	minimapClick = function()
-		SetGo_ToggleQuick()
-	end,
-	RestoreValue = RestoreValue, SetRestoreValue = SetRestoreValue })
+-- The Quick! module folder (SetGo_Quick) from before: switched off and left
+-- asleep, and the player told it can go
+function ns.RetireQuickModule()
+	if ns.db and type(ns.db.modules) == "table" then
+		ns.db.modules.quick = false
+	end
+	local exists = C_AddOns and C_AddOns.DoesAddOnExist and Try(C_AddOns.DoesAddOnExist, "SetGo_Quick")
+	if exists and C_AddOns.DisableAddOn then
+		Try(C_AddOns.DisableAddOn, "SetGo_Quick")
+		C_Timer.After(8, function()
+			ns.Print(ns.L.MSG_OLD_QUICK)
+		end)
+	end
+end
+
+-- the values it holds, for the core (Core.lua: HeldValue, TellModules)
+ns.quickHold = { RestoreValue = RestoreValue, SetRestoreValue = SetRestoreValue }
 
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
-events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_REGEN_DISABLED")
 events:SetScript("OnEvent", function(self, event, arg1)
 	if event == "ADDON_LOADED" then
@@ -725,16 +696,6 @@ events:SetScript("OnEvent", function(self, event, arg1)
 			SetGoQuickDB = type(SetGoQuickDB) == "table" and SetGoQuickDB or {}
 			SetGoQuickCharDB = type(SetGoQuickCharDB) == "table" and SetGoQuickCharDB or {}
 			db, charDB = SetGoQuickDB, SetGoQuickCharDB
-		end
-	elseif event == "PLAYER_ENTERING_WORLD" then
-		self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-		-- switched off: nothing stays held or hidden (the chat windows have
-		-- their channels a moment after login)
-		if not ON then
-			ClearHolds()
-			if IsQuiet() then
-				C_Timer.After(2, QuietOff)
-			end
 		end
 	elseif event == "PLAYER_REGEN_DISABLED" then
 		-- combat: it closes and stays closed

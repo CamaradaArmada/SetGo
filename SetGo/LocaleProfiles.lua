@@ -504,3 +504,227 @@ if GetLocale() == "ptBR" then
 		L[key] = value
 	end
 end
+
+--------------------------------------------------------------------------------
+-- 0.24: the first profile's guide, Import on the profile's header, the
+-- reload mark
+--------------------------------------------------------------------------------
+
+local EN24 = {
+	WIZ_CRUMB = "Your first profile",
+	WIZ_INTRO_TITLE = "Profiles",
+	WIZ_INTRO_SUB = "One setup for all your characters.",
+	WIZ_INTRO_BODY = "A profile keeps the game the way you like it. Make it once, then apply it on any character with one click.",
+	WIZ_KEEP_LAYOUT = "Your screen",
+	WIZ_KEEP_LAYOUT_DESC = "The Edit Mode layout, the action bars that show and Blizzard's extras, like the Damage Meter.",
+	WIZ_KEEP_MODULES = "Modules",
+	WIZ_KEEP_MODULES_DESC = "Which SetGo! modules are on, and their options.",
+	WIZ_KEEP_SETTINGS = "Settings",
+	WIZ_KEEP_SETTINGS_DESC = "The options you change in Blizzard's Options window. SetGo! records them on its own.",
+	WIZ_KEEP_KEYS = "Keybinds",
+	WIZ_KEEP_KEYS_DESC = "Recorded when you save them in Blizzard's keybinding menu.",
+	WIZ_KEEP_BARS = "Action bars",
+	WIZ_KEEP_BARS_DESC = "What sits on them, per character and specialization, if you choose so later.",
+	WIZ_INTRO_NOTE = "Three quick steps. Nothing is saved until the end.",
+	WIZ_CREATE = "Create profile",
+	WIZ_SKIP = "Skip",
+	WIZ_BACK = "Back",
+	WIZ_STEP = "Step %d of %d",
+	WIZ_NAME_HINT = "Name your profile",
+	WIZ_NAME_NOTE = "Click the icon to choose another. You can change both later.",
+	WIZ_START_BODY = "Next, you choose what shows on your screen and which modules to use.",
+	WIZ_PRESETS = "Or start from a preset",
+	WIZ_PRESETS_NOTE = "Ready made. It applies at once, with its own name and icon, and the game reloads.",
+	WIZ_PRESET_TIP = "Click to apply this preset. You are asked first.",
+	WIZ_SCREEN_TITLE = "Your screen",
+	WIZ_SCREEN_SUB = "Switch on what you want to see. It changes right away.",
+	WIZ_SCREEN_NOTE = "You place each one in Edit Mode, which opens after you save. If you leave without saving, your screen goes back to how it was.",
+	WIZ_MODULES_TITLE = "Modules",
+	WIZ_MODULES_SUB = "Extras that come with SetGo!. Click one to see its options.",
+	WIZ_MODULE_SWITCH = "On or off in this profile.",
+	WIZ_MODULE_OPEN = "Click to show or hide its options.",
+	WIZ_POPUP_SAVE = "Save \"%s\" and apply it?\n\nThe game reloads, then Edit Mode opens so you can place everything.",
+	WIZ_POPUP_PRESET = "Apply the preset \"%s\"?\n\nThe game reloads, then Edit Mode opens.",
+	WIZ_POPUP_LEAVE = "Leave without saving? Your screen goes back to how it was.",
+	WIZ_LEAVE = "Leave",
+	RELOAD_LEGEND = "* These changes require a reload.",
+	IMPORT_PROFILE_DESC = "Paste a profile someone shared with you. It opens as a new profile; nothing is kept until you save.",
+	IMPORT_REPLACE_DESC = "Paste a profile someone shared with you. It replaces what this profile has (its name stays); nothing is kept until you save.",
+	POPUP_IMPORT_REPLACE = "The imported profile replaces everything \"%s\" has: layout, what it switches on, modules and settings. Nothing is kept until you save. Continue?",
+	WIZ_POPUP_LEAVE_RELOAD = "Leave without saving? Your screen goes back to how it was and the game reloads.",
+}
+
+local PT24 = {
+	WIZ_CRUMB = "O teu primeiro perfil",
+	WIZ_INTRO_TITLE = "Perfis",
+	WIZ_INTRO_SUB = "Uma configuração para todas as tuas personagens.",
+	WIZ_INTRO_BODY = "Um perfil guarda o jogo como gostas de o ter. Fazes uma vez e aplicas em qualquer personagem com um clique.",
+	WIZ_KEEP_LAYOUT = "O teu ecrã",
+	WIZ_KEEP_LAYOUT_DESC = "O layout do Edit Mode, as barras de acção que aparecem e os extras da Blizzard, como o Damage Meter.",
+	WIZ_KEEP_MODULES = "Módulos",
+	WIZ_KEEP_MODULES_DESC = "Os módulos do SetGo! que estão ligados, e as opções de cada um.",
+	WIZ_KEEP_SETTINGS = "Definições",
+	WIZ_KEEP_SETTINGS_DESC = "As opções que mudas na janela de Opções da Blizzard. O SetGo! grava-as sozinho.",
+	WIZ_KEEP_KEYS = "Atalhos de teclado",
+	WIZ_KEEP_KEYS_DESC = "Gravados quando os guardas no menu de atalhos da Blizzard.",
+	WIZ_KEEP_BARS = "Barras de acção",
+	WIZ_KEEP_BARS_DESC = "O que está nelas, por personagem e especialização, se escolheres isso mais tarde.",
+	WIZ_INTRO_NOTE = "Três passos rápidos. Nada fica guardado até ao fim.",
+	WIZ_CREATE = "Criar perfil",
+	WIZ_SKIP = "Saltar",
+	WIZ_BACK = "Voltar",
+	WIZ_STEP = "Passo %d de %d",
+	WIZ_NAME_HINT = "Dá um nome ao perfil",
+	WIZ_NAME_NOTE = "Clica no ícone para escolher outro. Podes mudar os dois depois.",
+	WIZ_START_BODY = "A seguir, escolhes o que aparece no ecrã e que módulos queres usar.",
+	WIZ_PRESETS = "Ou começa por um preset",
+	WIZ_PRESETS_NOTE = "Já feito. Aplica-se logo, com o nome e o ícone dele, e o jogo recarrega.",
+	WIZ_PRESET_TIP = "Clica para aplicar este preset. Pergunta primeiro.",
+	WIZ_SCREEN_TITLE = "O teu ecrã",
+	WIZ_SCREEN_SUB = "Liga o que queres ver. Muda logo.",
+	WIZ_SCREEN_NOTE = "Arrumas cada um no Edit Mode, que abre depois de guardares. Se saíres sem guardar, o ecrã volta ao que estava.",
+	WIZ_MODULES_TITLE = "Módulos",
+	WIZ_MODULES_SUB = "Extras que vêm com o SetGo!. Clica num para veres as opções.",
+	WIZ_MODULE_SWITCH = "Ligado ou desligado neste perfil.",
+	WIZ_MODULE_OPEN = "Clica para mostrar ou esconder as opções.",
+	WIZ_POPUP_SAVE = "Guardar \"%s\" e aplicá-lo?\n\nO jogo recarrega e depois abre o Edit Mode, para arrumares tudo.",
+	WIZ_POPUP_PRESET = "Aplicar o preset \"%s\"?\n\nO jogo recarrega e depois abre o Edit Mode.",
+	WIZ_POPUP_LEAVE = "Sair sem guardar? O ecrã volta ao que estava.",
+	WIZ_LEAVE = "Sair",
+	RELOAD_LEGEND = "* Estas alterações obrigam a recarregar.",
+	IMPORT_PROFILE_DESC = "Cola um perfil que alguém partilhou contigo. Abre como um perfil novo; nada fica guardado até guardares.",
+	IMPORT_REPLACE_DESC = "Cola um perfil que alguém partilhou contigo. Substitui o que este perfil tem (o nome fica); nada fica guardado até guardares.",
+	POPUP_IMPORT_REPLACE = "O perfil importado substitui tudo o que \"%s\" tem: layout, o que liga, módulos e definições. Nada fica guardado até guardares. Continuar?",
+	WIZ_POPUP_LEAVE_RELOAD = "Sair sem guardar? O ecrã volta ao que estava e o jogo recarrega.",
+}
+
+for key, value in pairs(EN24) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT24) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- 0.25: the guide's texts, the presets, Bar Slots, the Quick Menu in the core
+--------------------------------------------------------------------------------
+
+local EN25 = {
+	WIZ_INTRO_TITLE = "Welcome to Azeroth!",
+	WIZ_INTRO_SUB = "Let's get your UI set up and ready to go, starting with your first profile.",
+	WIZ_INTRO_BODY = "Create UI profiles and switch between them with one click, or share them with other characters or accounts. Here's what each one saves:",
+	WIZ_KEEP_LAYOUT = "Edit Mode layout",
+	WIZ_KEEP_LAYOUT_DESC = "Your Blizzard layout, plus which action bars and Blizzard frames show. One for questing, another for raids.",
+	WIZ_KEEP_SETTINGS = "Character settings",
+	WIZ_KEEP_SETTINGS_DESC = "One set for all your profiles, or one of its own. New characters start ready, without going through the menus.",
+	WIZ_KEEP_KEYS = "Keybinds",
+	WIZ_KEEP_KEYS_DESC = "Healing and tanking rarely want the same keys. Give a profile its own, and they load when you switch.",
+	WIZ_KEEP_BARS = "Bar Slots",
+	WIZ_KEEP_BARS_DESC = "Choose to save the configuration of your spells, items or macros in your action bars per profile.",
+	WIZ_KEEP_MODULES = "Modules",
+	WIZ_KEEP_MODULES_DESC = "Switch on, switch off and set up SetGo! modules to improve the look and feel of Blizzard's UI.",
+	WIZ_PRESETS_TITLE = "SetGo! Presets",
+	WIZ_PRESETS_SUB = "Get set up quickly with one of our custom made presets. You can switch to another preset at any time, or click Custom to make your own.",
+	WIZ_CUSTOM = "Custom",
+	PRESETS = "Presets",
+	PRESETS_PAGE_NOTE = "Ready made profiles. Applying one makes a profile of its own from it; the game reloads, then Edit Mode opens.",
+	PRESET_FOREVER_DESC = "SetGo!'s take on the Forever interface: clean bars along the bottom and a bordered chat.",
+	PRESET_BFA_DESC = "The bottom bar of Battle for Azeroth, with the experience bar right under your action bars.",
+	PRESET_RETAIL_DESC = "Blizzard's modern layout, tidied up, with a bordered chat and the extras out of the way.",
+	SCOPE_BARS = "Bar Slots",
+	SHORT_BARS_COPIED = "Copied bar slots",
+	POPUP_EXPORT_PROFILE = "The profile \"%s\" as text: name, icon, layout, the action bars and Blizzard frames it shows, and its modules. Character settings, keybinds and bar slots stay with you. Copy it with Ctrl+C:",
+	IMPORT_REPLACE_DESC = "Paste a profile someone shared with you. It replaces this profile's layout, what it shows and its modules (its name stays); nothing is kept until you save.",
+	POPUP_IMPORT_REPLACE = "The imported profile replaces the layout, what it shows and the modules of \"%s\". Nothing is kept until you save. Continue?",
+	MSG_OLD_QUICK = "Quick! is now part of SetGo! (the Quick Menu). The SetGo_Quick folder in your AddOns is no longer used: you can delete it.",
+	TOUR_QUICK = "This is SetGo!. Click it for the Quick Menu: nameplates, NPC names, volume and Quiet!, which hides the world channels. Shift+click opens SetGo!; right click, its menu.",
+	TOUR_STEP = "%d of %d",
+	TOUR_BUTTON = "Show the tour",
+	TOUR_BUTTON_DESC = "Blizzard's help tips over SetGo! and the modules that are on, one at a time.",
+	MSG_TOUR_NONE = "The tour can't show here.",
+}
+
+local PT25 = {
+	WIZ_INTRO_TITLE = "Bem-vindo a Azeroth!",
+	WIZ_INTRO_SUB = "Vamos preparar a tua interface, a começar pelo teu primeiro perfil.",
+	WIZ_INTRO_BODY = "Cria perfis de interface e troca entre eles com um clique, ou partilha-os com outras personagens e contas. Isto é o que cada um guarda:",
+	WIZ_KEEP_LAYOUT = "Layout do Edit Mode",
+	WIZ_KEEP_LAYOUT_DESC = "O teu layout da Blizzard e as barras de acção e janelas da Blizzard que aparecem. Um para missões, outro para raids.",
+	WIZ_KEEP_SETTINGS = "Definições da personagem",
+	WIZ_KEEP_SETTINGS_DESC = "Um conjunto para todos os perfis, ou um próprio. As personagens novas começam prontas, sem passar pelos menus.",
+	WIZ_KEEP_KEYS = "Atalhos de teclado",
+	WIZ_KEEP_KEYS_DESC = "Curar e tanquear raramente pedem as mesmas teclas. Dá a um perfil os seus, e carregam quando trocas.",
+	WIZ_KEEP_BARS = "Conteúdo das barras",
+	WIZ_KEEP_BARS_DESC = "Escolhe guardar, por perfil, onde estão os teus feitiços, itens ou macros nas barras de acção.",
+	WIZ_KEEP_MODULES = "Módulos",
+	WIZ_KEEP_MODULES_DESC = "Liga, desliga e configura os módulos do SetGo! para melhorar o aspecto e o uso da interface da Blizzard.",
+	WIZ_PRESETS_TITLE = "Presets do SetGo!",
+	WIZ_PRESETS_SUB = "Fica pronto depressa com um dos nossos presets. Podes trocar para outro preset quando quiseres, ou clicar em Personalizar para criares o teu.",
+	WIZ_CUSTOM = "Personalizar",
+	PRESETS = "Presets",
+	PRESETS_PAGE_NOTE = "Perfis já feitos. Aplicar um cria um perfil próprio a partir dele; o jogo recarrega e depois abre o Edit Mode.",
+	PRESET_FOREVER_DESC = "A versão do SetGo! da interface do Forever: barras limpas em baixo e um chat com moldura.",
+	PRESET_BFA_DESC = "A barra de baixo do Battle for Azeroth, com a barra de experiência mesmo por baixo das barras de acção.",
+	PRESET_RETAIL_DESC = "O layout moderno da Blizzard, arrumado, com um chat com moldura e os extras fora do caminho.",
+	SCOPE_BARS = "Conteúdo das barras",
+	SHORT_BARS_COPIED = "Conteúdo das barras copiado",
+	POPUP_EXPORT_PROFILE = "O perfil \"%s\" em texto: nome, ícone, layout, as barras de acção e janelas da Blizzard que mostra, e os módulos. As definições da personagem, os atalhos e o conteúdo das barras ficam contigo. Copia com Ctrl+C:",
+	IMPORT_REPLACE_DESC = "Cola um perfil que alguém partilhou contigo. Substitui o layout, o que mostra e os módulos deste perfil (o nome fica); nada fica guardado até guardares.",
+	POPUP_IMPORT_REPLACE = "O perfil importado substitui o layout, o que mostra e os módulos de \"%s\". Nada fica guardado até guardares. Continuar?",
+	MSG_OLD_QUICK = "O Quick! faz agora parte do SetGo! (o Menu rápido). A pasta SetGo_Quick nos teus AddOns já não é usada: podes apagá-la.",
+	TOUR_QUICK = "Isto é o SetGo!. Clica para o Menu rápido: placas de nome, nomes dos NPCs, volume e o Quiet!, que esconde os canais do mundo. Shift+clique abre o SetGo!; clique direito, o menu.",
+	TOUR_STEP = "%d de %d",
+	TOUR_BUTTON = "Ver o tour",
+	TOUR_BUTTON_DESC = "As dicas da Blizzard sobre o SetGo! e os módulos que estão ligados, uma de cada vez.",
+	MSG_TOUR_NONE = "O tour não pode aparecer aqui.",
+}
+
+for key, value in pairs(EN25) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT25) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- 0.27: a profile keeps its layout; one SetGo! layout per character
+--------------------------------------------------------------------------------
+
+local EN27 = {
+	NP_OWN_LAYOUT = "This profile",
+	NP_OWN_LAYOUT_DESC = "The layout this profile keeps, with what you changed in Edit Mode. Pick another to start it again from that one.",
+	DIFF_LAYOUT_TO = "Edit Mode layout: %s",
+	PRESET_LAYOUT = "Edit Mode layout: %s",
+	MSG_LAYOUT_RECORDED = "Edit Mode layout saved in \"%s\".",
+	MSG_SLOT_FULL = "The layout wasn't put on: this character already has %d character layouts. Delete one in Edit Mode.",
+	MSG_LAYOUT_MISSING = "The Edit Mode layout of \"%s\" couldn't be read. The rest was applied; edit the profile to pick a layout.",
+	POPUP_LAYOUT_UPDATE = "The Edit Mode layout of \"%s\" was changed on another character. Update it here? The interface reloads.",
+	LAYOUT_UPDATE_BUTTON = "Update",
+	POPUP_NEW_LAYOUT_NOTE = "The interface reloads and Edit Mode opens after it, to place everything.",
+}
+
+local PT27 = {
+	NP_OWN_LAYOUT = "Este perfil",
+	NP_OWN_LAYOUT_DESC = "O layout que este perfil guarda, com o que mudaste no Edit Mode. Escolhe outro para recomeçar a partir dele.",
+	DIFF_LAYOUT_TO = "Layout do Edit Mode: %s",
+	PRESET_LAYOUT = "Layout do Edit Mode: %s",
+	MSG_LAYOUT_RECORDED = "Layout do Edit Mode guardado em \"%s\".",
+	MSG_SLOT_FULL = "O layout não foi aplicado: esta personagem já tem %d layouts de personagem. Apaga um no Edit Mode.",
+	MSG_LAYOUT_MISSING = "Não foi possível ler o layout do Edit Mode de \"%s\". O resto foi aplicado; edita o perfil para escolheres um layout.",
+	POPUP_LAYOUT_UPDATE = "O layout do Edit Mode de \"%s\" foi alterado noutra personagem. Actualizar aqui? A interface recarrega.",
+	LAYOUT_UPDATE_BUTTON = "Actualizar",
+	POPUP_NEW_LAYOUT_NOTE = "A interface recarrega e depois abre o Edit Mode, para arrumares tudo.",
+}
+
+for key, value in pairs(EN27) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT27) do
+		L[key] = value
+	end
+end

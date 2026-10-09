@@ -2,6 +2,7 @@ local _, ns = ...
 
 local L = {
 	ADDON = "Fetch!",
+	TOUR = "Quickly access more items and abilities with bindable flyout menus with the Fetch! module.",
 	BUTTON = "Fetch! %d",
 	NUM_BUTTONS = "Buttons",
 	ORIENTATION = "Orientation",
@@ -52,9 +53,12 @@ local L = {
 	HELP2 = "Drag spells, items or macros onto the buttons. Right click opens the flyout.",
 	BAG_ANCHOR = "Anchor to bag bar",
 	BAG_NONE = "Bag bar not found: the bar stays where it is.",
+	BAR_ART = "Bar art",
+	KEY_TIP = "Right click to toggle Fetch! on and off.",
 }
 
 if GetLocale() == "ptBR" then
+	L.TOUR = "Chega depressa a mais itens e habilidades com menus que abrem dos botões, com atalhos de teclado, no módulo Fetch!."
 	L.NUM_BUTTONS = "Botões"
 	L.ORIENTATION = "Orientação"
 	L.FLYOUT_DIR = "Direcção do menu"
@@ -99,6 +103,8 @@ if GetLocale() == "ptBR" then
 	L.HELP2 = "Arrasta feitiços, objectos ou macros para os botões. O clique direito abre o menu."
 	L.BAG_ANCHOR = "Ancorar à barra dos sacos"
 	L.BAG_NONE = "Barra dos sacos não encontrada: a barra fica onde está."
+	L.BAR_ART = "Arte da barra"
+	L.KEY_TIP = "Clique direito para mostrar ou esconder o Fetch!."
 end
 
 ns.L = L

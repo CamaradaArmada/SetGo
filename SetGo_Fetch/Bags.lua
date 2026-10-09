@@ -114,6 +114,15 @@ end
 -- secure frame anchored to Blizzard's buttons would make them protected, and
 -- Blizzard could no longer move them in combat. So the bar follows the bag
 -- bar through hooks instead (below).
+local STRATA_NAMES = {
+	"BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG",
+	"FULLSCREEN", "FULLSCREEN_DIALOG", "TOOLTIP",
+}
+local STRATA = {}
+for i, name in ipairs(STRATA_NAMES) do
+	STRATA[name] = i
+end
+
 local retries = 0
 function ns.ApplyBagLayout(bar, mains, slots, pos)
 	if not pos then
@@ -127,7 +136,6 @@ function ns.ApplyBagLayout(bar, mains, slots, pos)
 	retries = 0
 	local ui = UIParent:GetEffectiveScale()
 	local left, right, bottom, top = math.huge, -math.huge, math.huge, -math.huge
-	local level = 0
 	local boxes = {}
 	for i, slot in ipairs(slots) do
 		local p = pos[slot]
@@ -136,16 +144,27 @@ function ns.ApplyBagLayout(bar, mains, slots, pos)
 		boxes[i] = { x = p.x / ui, y = p.y / ui, size = 2 * half / ui }
 		left, right = math.min(left, (p.x - half) / ui), math.max(right, (p.x + half) / ui)
 		bottom, top = math.min(bottom, (p.y - half) / ui), math.max(top, (p.y + half) / ui)
-		level = math.max(level, slot:GetFrameLevel())
 	end
 
 	bar:SetScale(1)
 	bar:ClearAllPoints()
 	bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left, bottom)
 	bar:SetSize(math.max(1, right - left), math.max(1, top - bottom))
-	-- above the bag buttons, in their strata
-	bar:SetFrameStrata(slots[1]:GetFrameStrata())
+	-- one strata above the bag buttons, always: above the bags and, in Edit
+	-- Mode, above the bag bar's selection, so ours can still be picked.
+	-- Unanchored, the bar goes back to its own strata (ResetBagLevels).
+	local strata = STRATA_NAMES[(STRATA[slots[1]:GetFrameStrata()] or 3) + 1] or "HIGH"
+	local level = 10
+	bar:SetFrameStrata(strata)
 	bar:SetFrameLevel(level + 5)
+	ns.FixFlyStrata(mains)
+	-- our own selection (the library's), above our buttons
+	local LEM = ns.LibEditMode
+	local mine = LEM and LEM.frameSelections and LEM.frameSelections[bar]
+	if mine then
+		mine:SetFrameStrata(strata)
+		mine:SetFrameLevel(level + 20)
+	end
 
 	for i = 1, ns.MAX_BUTTONS do
 		local main = mains[i]
@@ -174,8 +193,15 @@ function ns.ResetBagLevels(bar, mains)
 	end
 	bar:SetFrameStrata(ns.baseStrata)
 	bar:SetFrameLevel(ns.baseLevel)
+	ns.FixFlyStrata(mains)
 	for i = 1, ns.MAX_BUTTONS do
 		mains[i]:SetFrameLevel(ns.baseLevel + 1)
+	end
+	local LEM = ns.LibEditMode
+	local mine = LEM and LEM.frameSelections and LEM.frameSelections[bar]
+	if mine then
+		mine:SetFrameStrata(ns.baseStrata)
+		mine:SetFrameLevel(ns.baseLevel + 20)
 	end
 end
 
@@ -269,5 +295,81 @@ function ns.HookBags()
 			ns.CloseAll()
 			ns.ApplyVisibility()
 		end)
+		ns.SetupKeyToggle(keyring)
 	end
+end
+
+--------------------------------------------------------------------------------
+-- The keyring's toggle sign: a refresh arrow drawn over the keyring while the
+-- bar is anchored, so the right click can be found. It takes no clicks (the
+-- keyring keeps them all: left opens it, right toggles the bar, through the
+-- hook above). Hidden while the bar is put away.
+-- Hovering the keyring adds a line to its tooltip after a short delay.
+--------------------------------------------------------------------------------
+
+-- the first that exists; checked, as every atlas
+local ARROW_ATLASES = { "common-icon-redo", "common-icon-undo", "transmog-icon-revert" }
+local ARROW_FILE = "Interface\\Buttons\\UI-RefreshButton"
+local TIP_DELAY = 0.6
+
+local sign
+function ns.SetupKeyToggle(keyring)
+	if sign then
+		return
+	end
+	sign = CreateFrame("Frame", nil, UIParent)
+	sign:EnableMouse(false)
+	sign:SetAllPoints(keyring)
+	sign:SetFrameStrata("HIGH")
+	sign:Hide()
+	local icon = sign:CreateTexture(nil, "OVERLAY")
+	local w, h = keyring:GetSize()
+	local size = math.max(10, math.min(w or 0, h or 0) * 0.6)
+	icon:SetSize(size, size)
+	icon:SetPoint("CENTER")
+	local found
+	for _, atlas in ipairs(ARROW_ATLASES) do
+		local info = C_Texture and C_Texture.GetAtlasInfo and ns.Try(C_Texture.GetAtlasInfo, atlas)
+		if type(info) == "table" then
+			icon:SetAtlas(atlas)
+			found = "atlas " .. atlas
+			break
+		end
+	end
+	if not found and icon:SetTexture(ARROW_FILE) ~= false then
+		found = "file " .. ARROW_FILE
+	end
+	ns.keySignSource = found or "none"
+	sign.icon = icon
+
+	-- the tooltip line, after a delay, added to the keyring's own tooltip
+	local gen = 0
+	keyring:HookScript("OnEnter", function(self)
+		gen = gen + 1
+		local mine = gen
+		C_Timer.After(TIP_DELAY, function()
+			if mine ~= gen or not ns.Anchored() or not self:IsMouseOver() then
+				return
+			end
+			if GameTooltip:GetOwner() ~= self then
+				GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+			end
+			GameTooltip:AddLine(L.KEY_TIP, 0.25, 0.78, 0.92, true)
+			GameTooltip:Show()
+		end)
+	end)
+	keyring:HookScript("OnLeave", function()
+		gen = gen + 1
+	end)
+	ns.UpdateKeyToggle()
+end
+
+function ns.UpdateKeyToggle()
+	if not sign then
+		return
+	end
+	-- only while the bar is shown: put away, the keyring is just the keyring
+	-- (its tooltip still tells about the right click)
+	local away = ns.bagPeek or ns.bagOnCursor
+	sign:SetShown(ns.Anchored() and not away)
 end

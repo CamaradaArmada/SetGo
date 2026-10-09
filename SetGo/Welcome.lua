@@ -101,6 +101,11 @@ end
 -- SetGo! on a new profile (the guide when there is none)
 local function NewProfile()
 	popup:Hide()
+	-- the first one: the guide
+	if #ns.ProfileSlots() == 0 and ns.ShowWizard then
+		ns.ShowWizard()
+		return
+	end
 	ns.Open(true)
 	ns.LeaveForm(function()
 		ns.OpenForm(nil)
@@ -175,6 +180,11 @@ local function Refresh()
 end
 
 function ns.ShowWelcome()
+	-- no profile yet: the guide to the first one
+	if #ns.ProfileSlots() == 0 and ns.ShowWizard and not ns.db.wizardSkipped then
+		ns.ShowWizard()
+		return
+	end
 	if not popup then
 		Create()
 	end

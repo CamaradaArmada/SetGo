@@ -276,6 +276,8 @@ SlashCmdList.SETGOFETCH = function(msg)
 		if EditModeManagerFrame then
 			ShowUIPanel(EditModeManagerFrame)
 		end
+	elseif cmd == "dump" then
+		ns.Dump()
 	elseif cmd == "debug" then
 		local layout = ns.Layout and ns.Layout()
 		local behavior = ns.Behavior()
@@ -299,6 +301,8 @@ SlashCmdList.SETGOFETCH = function(msg)
 		local _, keyring = ns.FindKeyring()
 		print("bagAnchor=" .. tostring(layout and layout.bagAnchor) .. " bags=" .. (#names > 0 and table.concat(names, ", ") or "none")
 			.. " keyring=" .. tostring(keyring) .. " hidden=" .. tostring(ns.bagPeek == true))
+		print("keyring sign=" .. tostring(ns.keySignSource))
+		print("showEmpty=" .. tostring(layout and layout.showEmpty) .. " barArt=" .. tostring(layout and layout.barArt))
 		print("last error=" .. tostring(ns.lastError))
 	else
 		print("|cffedd57fFetch!|r " .. L.HELP1)
