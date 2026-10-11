@@ -7,19 +7,7 @@ SLASH_SETGO2 = "/sgo"
 SlashCmdList.SETGO = function(msg)
 	local raw = strtrim(msg or "")
 	msg = raw:lower()
-	if msg:match("^template") then
-		-- for the author: /setgo template <name>, from the active layout
-		local name = raw:match("^%S+%s+(.+)$")
-		if name and strtrim(name) ~= "" then
-			ns.ExportTemplate(strtrim(name))
-		else
-			ns.Print(L.TEMPLATE_USAGE)
-		end
-	elseif msg:match("^find") then
-		ns.Find(raw:match("^%S+%s+(.+)$"))
-	elseif msg == "report" then
-		ns.Report()
-	elseif msg == "hello" then
+	if msg == "hello" then
 		ns.ShowWelcome()
 	elseif msg == "tour" then
 		ns.StartTour()

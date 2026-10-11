@@ -15,3 +15,6 @@ tests/lua-5.1/*.o
 tests/lua-5.1/*.a
 tests/lua-5.1/lua
 tests/lua-5.1/luac
+
+# the author's tools, only on the author's PC
+SetGo_Dev/

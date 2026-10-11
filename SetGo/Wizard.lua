@@ -874,10 +874,6 @@ combatWatch:SetScript("OnEvent", function(_, event)
 	end
 end)
 
-function ns.WizardShown()
-	return frame ~= nil and frame:IsShown()
-end
-
 -- The guide, from its first step (already open: it stays where it is)
 function ns.ShowWizard()
 	if InCombatLockdown() then

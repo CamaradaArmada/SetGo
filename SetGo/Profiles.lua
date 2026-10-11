@@ -481,7 +481,6 @@ function ns.ProfileDiff(name)
 	end
 	return diff
 end
-ns.PresetDiff = ns.ProfileDiff
 
 -- This character now uses another profile: the action bars of the one it
 -- leaves are kept first.
@@ -598,7 +597,6 @@ function ns.ApplyProfile(name, force)
 	end
 	ns.FinishApply(changed, failed, force)
 end
-ns.ApplyUserPreset = ns.ApplyProfile
 
 -- A new profile record from the game as it is now
 local function NewProfile()
@@ -612,27 +610,6 @@ local function NewProfile()
 	ns.EnsureShared()
 	return p
 end
-
--- Stores a profile without applying anything (the form, or a layout made
--- for it): a new one starts from the game as it is now and becomes this
--- character's. edit: the profile being edited (its name may change).
-function ns.StoreProfile(name, edit, fields)
-	local p = PresetOf(edit) or PresetOf(name)
-	local new = p == nil
-	p = p or NewProfile()
-	if edit and edit ~= name and PresetOf(edit) then
-		ns.RenameProfile(edit, name)
-	end
-	for k, v in pairs(fields or {}) do
-		p[k] = v
-	end
-	Save(name, p)
-	if new then
-		ns.SetActiveProfile(name)
-	end
-	return p
-end
-ns.StorePreset = ns.StoreProfile
 
 --------------------------------------------------------------------------------
 -- A new profile, or the one being edited (opts.replace: its old name). opts:
@@ -1053,15 +1030,6 @@ function ns.DeleteProfileAll(name)
 	ns.DeleteProfile(name)
 end
 
--- copies a layout's module data (the Fetch! bar) to another layout
-function ns.CopyLayoutData(fromName, toName)
-	for _, def in ipairs(ns.modules) do
-		if def.CopyLayout and fromName and toName then
-			Try(def.CopyLayout, fromName, toName)
-		end
-	end
-end
-
 -- The layout that goes with a profile when it is deleted: only one SetGo!
 -- made for it, still there, that no other profile uses. nil otherwise.
 function ns.PresetLayoutToDelete(name)
@@ -1088,38 +1056,12 @@ function ns.FreePresetName(base)
 	return name
 end
 
--- For the profile's page: what it holds, in lines
-function ns.ProfileSummary(name)
-	local p = PresetOf(name)
-	local lines = {}
-	if not p then
-		return lines
-	end
-	if ns.ProfileLayoutText(p) then
-		lines[#lines + 1] = L.PRESET_LAYOUT:format(ns.SlotName(name))
-	else
-		lines[#lines + 1] = L.PRESET_NO_LAYOUT
-	end
-	local on = {}
-	for _, e in ipairs(ns.UIElements()) do
-		if type(p.ui) == "table" and p.ui[e.key] then
-			on[#on + 1] = e.bar and tostring(e.n) or ns.UILabel(e)
-		end
-	end
-	lines[#lines + 1] = L.PROFILE_UI:format(#on > 0 and table.concat(on, ", ") or L.NONE)
-	return lines
-end
-
-local function Id(name)
-	return (name:lower():gsub("[^%w]+", "_"))
-end
-
 --------------------------------------------------------------------------------
 -- Layout templates: the author's starting points for a new profile
 -- (PresetData.lua): an Edit Mode layout and which action bars show.
 --   { name, data = Blizzard's layout text, bars = { [variable] = true/false } }
--- Made with /setgo template <name> from the active layout and bars; tests
--- are kept in SetGoDB.templateExports until they go into PresetData.lua.
+-- The author's tests are kept in SetGoDB.templateExports until they go into
+-- PresetData.lua.
 --------------------------------------------------------------------------------
 
 ns.LAYOUT_TEMPLATES = ns.LAYOUT_TEMPLATES or {}
@@ -1143,25 +1085,6 @@ function ns.LayoutTemplates()
 		list[#list + 1] = t
 	end
 	return list
-end
-
-function ns.ExportTemplate(name)
-	local _, active = ns.GetLayouts()
-	local data = ns.LayoutText(ns.LayoutRef(active))
-	if not data then
-		ns.Print(L.MSG_LAYOUT_FAILED)
-		return
-	end
-	-- which of action bars 2 to 8 show
-	local bars = {}
-	local live = ns.UILive()
-	for _, e in ipairs(ns.UIElements()) do
-		if e.bar then
-			bars[e.var] = live[e.key]
-		end
-	end
-	ns.db.templateExports[Id(name)] = { name = name, data = data, bars = bars, created = time() }
-	ns.Print(L.MSG_TEMPLATE_SAVED:format(name))
 end
 
 --------------------------------------------------------------------------------

@@ -448,7 +448,6 @@ local function CopyFrom(p, what)
 		ns.SetFormModules(true)
 	end
 end
-ns.FormCopyFrom = CopyFrom
 
 --------------------------------------------------------------------------------
 -- Import: a SetGo! profile (its name, icon, layout and what it switches on
@@ -868,19 +867,6 @@ function ns.FormHasChanges()
 		or form.customModules or form.skillsFrom or (form.shared and next(form.shared) ~= nil)
 		or not SameValues(form.scope, o.scope)
 		or not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules))
-end
-
--- Save (closing the window): true when saved, or nothing to save
-function ns.FormSaveOnly()
-	if not ns.FormHasChanges() then
-		return true
-	end
-	local name = CheckName()
-	if not name then
-		return false
-	end
-	FormSave(name, false)
-	return ns.ProfileOf(name) ~= nil
 end
 
 -- Apply and exit (closing the window): saved and put on this character.

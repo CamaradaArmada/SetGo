@@ -152,7 +152,7 @@ local function Shown(init)
 	return true
 end
 
--- controls SetGo! can draw; the rest are listed by /setgo report
+-- controls SetGo! can draw; the rest go in ns.skipped
 local function KindOf(init, data)
 	local template = TemplateOf(init)
 	if template:find("SectionHeader") then
@@ -403,7 +403,6 @@ end
 
 -- a module was switched on or off: the interface must reload to follow
 function ns.OnModuleToggled()
-	ns.moduleReloadPending = true
 	if ns.AskReload then
 		ns.AskReload()
 	end
@@ -550,76 +549,6 @@ function ns.PathSettings(path)
 	return list
 end
 
--- items of the pages shown right now (for resets)
-function ns.PathItems(path)
-	local items = {}
-	for _, page in ipairs(ns.BuildPath(path)) do
-		for _, item in ipairs(page.items) do
-			items[#items + 1] = item
-		end
-	end
-	return items
-end
-
--- /setgo find <text>: every option in Blizzard's menus whose name or
--- variable contains the text, with where it lives and what SetGo! makes of
--- it (the kind it would draw, shown or hidden, account or character).
-function ns.Find(text)
-	text = (text or ""):lower()
-	if text == "" then
-		return
-	end
-	local cats = SettingsPanel and Try(SettingsPanel.GetAllCategories, SettingsPanel)
-	if type(cats) ~= "table" then
-		ns.Print(L.MSG_NOT_READY)
-		return
-	end
-	local found, seen = 0, {}
-	local function Visit(cat, path)
-		if seen[cat] then
-			return
-		end
-		seen[cat] = true
-		local name = Try(cat.GetName, cat) or "?"
-		path = path and (path .. " > " .. name) or name
-		local layout = Try(SettingsPanel.GetLayout, SettingsPanel, cat)
-		local list = layout and layout.GetInitializers and Try(layout.GetInitializers, layout)
-		for _, init in ipairs(type(list) == "table" and list or {}) do
-			local data = type(init.data) == "table" and init.data or {}
-			local setting = data.setting or data.cbSetting
-			local var = setting and Try(setting.GetVariable, setting)
-			local label = data.name or data.cbLabel or (setting and Try(setting.GetName, setting)) or ""
-			local hay = (tostring(label) .. " " .. tostring(var or "")):lower()
-			if hay:find(text, 1, true) then
-				found = found + 1
-				local kind = KindOf(init, data)
-				print(("|cff69ccf0%s|r: %s [%s] template=%s kind=%s shown=%s scope=%s"):format(
-					path, tostring(label), tostring(var), TemplateOf(init), tostring(kind),
-					tostring(Shown(init)), setting and ns.Scope(setting) or "-"))
-			end
-		end
-		for _, sub in ipairs(Try(cat.GetSubcategories, cat) or {}) do
-			Visit(sub, path)
-		end
-	end
-	for _, cat in ipairs(cats) do
-		Visit(cat)
-	end
-	ns.Print(L.MSG_FOUND:format(found, text))
-end
-
--- /setgo report: what each page holds, for tuning
-function ns.Report()
-	for _, path in ipairs({ "char", "account", "modules" }) do
-		ns.BuildPath(path)
-		for _, page in ipairs(built[path]) do
-			ns.Print(("%s / %s: %d"):format(path, page.title, page.count))
-		end
-	end
-	local n = 0
-	for _, text in pairs(ns.skipped) do
-		n = n + 1
-		print("  skipped: " .. text)
-	end
-	ns.Print(("%d controls skipped"):format(n))
-end
+-- For the author's tools (SetGo_Dev, kept off the published addon): how
+-- SetGo! reads Blizzard's options
+ns.dev = { KindOf = KindOf, TemplateOf = TemplateOf, Shown = Shown }

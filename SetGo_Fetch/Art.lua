@@ -2,13 +2,13 @@ local _, ns = ...
 
 --------------------------------------------------------------------------------
 -- Bar art (an Edit Mode option, per layout), drawn as Blizzard's action bar
--- 1 is (MainActionBar, Forever 1.60.1, read with /fetch dump):
+-- 1 is (MainActionBar, Forever 1.60.1, read from the game):
 --   the frame around the bar, the slot art in each button, and the divider
 --   between buttons while the padding is at its minimum (within each row
 --   or column). Flyouts always have the frame, slot art and dividers.
 --   No end caps: Forever has those as an option of bar 1.
 --   The values are fixed below, not read from bar 1 at load; when Blizzard
---   changes the assets, /fetch dump shows the new ones to copy here.
+--   changes the assets, the new ones are read again and copied here.
 --   Only the look is shared with bar 1: padding, size, rows and the art
 --   toggle stay Fetch!'s own.
 --   Anchored to the bag bar there is no art, only the slot background, so

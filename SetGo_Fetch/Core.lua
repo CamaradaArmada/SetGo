@@ -265,6 +265,9 @@ end
 -- Slash command
 --------------------------------------------------------------------------------
 
+-- for the author's tools (SetGo_Dev, kept off the published addon)
+SetGoFetchNS = ns
+
 SLASH_SETGOFETCH1 = "/fetch"
 SlashCmdList.SETGOFETCH = function(msg)
 	local cmd = (msg or ""):lower():match("^%s*(%S*)")
@@ -276,34 +279,6 @@ SlashCmdList.SETGOFETCH = function(msg)
 		if EditModeManagerFrame then
 			ShowUIPanel(EditModeManagerFrame)
 		end
-	elseif cmd == "dump" then
-		ns.Dump()
-	elseif cmd == "debug" then
-		local layout = ns.Layout and ns.Layout()
-		local behavior = ns.Behavior()
-		print("|cffedd57fFetch! debug|r layout=" .. tostring(ns.ActiveLayoutName and ns.ActiveLayoutName())
-			.. " stored=" .. tostring(ns.activeLayout))
-		if layout then
-			print(("buttons=%s orientation=%s dir=%s spacing=%s scale=%s hover=%s"):format(
-				tostring(layout.numButtons), tostring(layout.orientation), tostring(layout.flyDir),
-				tostring(layout.spacing), tostring(layout.scale), tostring(behavior.hover)))
-		end
-		local b = _G.SetGoFetchButton1
-		if b then
-			print("button1 type=" .. tostring(b:GetAttribute("*type1")) .. " secureclick="
-				.. tostring(b:GetScript("OnClick") == SecureActionButton_OnClick))
-		end
-		local slots = ns.BagSlots and ns.BagSlots()
-		local names = {}
-		for _, slot in ipairs(slots or {}) do
-			names[#names + 1] = slot:GetName() or "?"
-		end
-		local _, keyring = ns.FindKeyring()
-		print("bagAnchor=" .. tostring(layout and layout.bagAnchor) .. " bags=" .. (#names > 0 and table.concat(names, ", ") or "none")
-			.. " keyring=" .. tostring(keyring) .. " hidden=" .. tostring(ns.bagPeek == true))
-		print("keyring sign=" .. tostring(ns.keySignSource))
-		print("showEmpty=" .. tostring(layout and layout.showEmpty) .. " barArt=" .. tostring(layout and layout.barArt))
-		print("last error=" .. tostring(ns.lastError))
 	else
 		print("|cffedd57fFetch!|r " .. L.HELP1)
 		print("|cffedd57fFetch!|r " .. L.HELP2)

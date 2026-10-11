@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.29.1, Fetch! 0.12.2, Hide! 0.7.2
+
+Cleanup only: nothing changes in the game.
+
+- Code nothing calls any more, gone: the old Quick settings page, account
+  layouts made by SetGo!, and functions and aliases left from earlier
+  versions.
+- Strings nothing shows, gone (EN and PT), and older copies of strings a
+  later version replaced.
+- The author's tools are no longer in the addon: /setgo template, /setgo
+  find, /setgo report, /fetch dump and /fetch debug.
+
 ## 0.29.0
 
 - A new profile starts on a presets menu: Blizzard's two layouts, side by

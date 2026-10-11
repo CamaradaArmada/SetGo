@@ -1065,45 +1065,6 @@ local function NotInCombat()
 	return true
 end
 
-function ns.OpenQuickKeybind()
-	if not NotInCombat() or not QuickKeybindFrame then
-		return
-	end
-	ReturnAfter(QuickKeybindFrame)
-	QuickKeybindFrame:Show()
-end
-
-function ns.OpenEditMode()
-	if not NotInCombat() or not EditModeManagerFrame then
-		return
-	end
-	ReturnAfter(EditModeManagerFrame)
-	ShowUIPanel(EditModeManagerFrame)
-end
-
-function ns.OpenKeybindings()
-	if not NotInCombat() or not (Settings and Settings.OpenToCategory and Settings.KEYBINDINGS_CATEGORY_ID) then
-		return
-	end
-	ReturnAfter(SettingsPanel)
-	Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID)
-end
-
-function ns.OpenCooldownManager()
-	if not NotInCombat() then
-		return
-	end
-	if not CooldownViewerSettings and C_AddOns and C_AddOns.LoadAddOn then
-		Try(C_AddOns.LoadAddOn, "Blizzard_CooldownViewer")
-	end
-	if not (CooldownViewerSettings and CooldownViewerSettings.TogglePanel) then
-		ns.Print(L.MSG_NO_CDM)
-		return
-	end
-	ReturnAfter(CooldownViewerSettings)
-	CooldownViewerSettings:TogglePanel()
-end
-
 -- the nameplates menu (a "blizzard" row)
 function ns.OpenBlizzardAndReturn(cat)
 	if not NotInCombat() then
@@ -1529,7 +1490,6 @@ function ns.SaveToActiveProfile()
 	ns.Print(L.MSG_SAVED_MODULES:format(name))
 	ns.Refresh()
 end
-ns.MainButton = ns.ApplyAndSave
 
 -- a module was switched on or off
 function ns.AskReload()

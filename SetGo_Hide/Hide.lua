@@ -453,7 +453,6 @@ local function Start()
 		end, owner)
 	end
 	Apply()
-	ns.hideStarted = true
 end
 
 --------------------------------------------------------------------------------
@@ -714,7 +713,6 @@ events:SetScript("OnEvent", function(self, event, arg1)
 		if arg1 == ADDON then
 			SetGoHideDB = type(SetGoHideDB) == "table" and SetGoHideDB or {}
 			db = SetGoHideDB
-			ns.hideDB = db
 			-- the action bar art copy is gone (0.6.0)
 			db._art = nil
 		elseif revealing then

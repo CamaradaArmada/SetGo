@@ -38,8 +38,6 @@ local L = {
 	SHIFT = "Shift",
 	CTRL = "Ctrl",
 	ALT = "Alt",
-	SOUNDS = "Sounds",
-	SOUNDS_DESC = "Bag sounds when a flyout opens or closes by click or key. Mouseover stays silent.",
 	HOLD_MODE = "Hold to open",
 	HOLD_DESC = "Holding a button's keybind opens its flyout; keys 1 to 6 then pick a slot. A tap still uses the button, on key release.",
 	OFF = "Off",
@@ -88,8 +86,6 @@ if GetLocale() == "ptBR" then
 	L.SHOW_EMPTY = "Mostrar sempre os botões"
 	L.MODIFIER = "Modificador"
 	L.NONE = "Nenhuma"
-	L.SOUNDS = "Sons"
-	L.SOUNDS_DESC = "Sons dos sacos quando o menu abre ou fecha por clique ou tecla. Ao passar o rato fica em silêncio."
 	L.HOLD_MODE = "Manter para abrir"
 	L.HOLD_DESC = "Manter carregada a tecla de um botão abre o menu; as teclas 1 a 6 escolhem o espaço. Um toque continua a usar o botão, ao largar a tecla."
 	L.OFF = "Desligado"
