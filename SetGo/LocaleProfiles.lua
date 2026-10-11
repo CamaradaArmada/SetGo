@@ -628,8 +628,6 @@ local EN25 = {
 	WIZ_PRESETS_TITLE = "SetGo! Presets",
 	WIZ_PRESETS_SUB = "Get set up quickly with one of our custom made presets. You can switch to another preset at any time, or click Custom to make your own.",
 	WIZ_CUSTOM = "Custom",
-	PRESETS = "Presets",
-	PRESETS_PAGE_NOTE = "Ready made profiles. Applying one makes a profile of its own from it; the game reloads, then Edit Mode opens.",
 	PRESET_FOREVER_DESC = "SetGo!'s take on the Forever interface: clean bars along the bottom and a bordered chat.",
 	PRESET_BFA_DESC = "The bottom bar of Battle for Azeroth, with the experience bar right under your action bars.",
 	PRESET_RETAIL_DESC = "Blizzard's modern layout, tidied up, with a bordered chat and the extras out of the way.",
@@ -663,8 +661,6 @@ local PT25 = {
 	WIZ_PRESETS_TITLE = "Presets do SetGo!",
 	WIZ_PRESETS_SUB = "Fica pronto depressa com um dos nossos presets. Podes trocar para outro preset quando quiseres, ou clicar em Personalizar para criares o teu.",
 	WIZ_CUSTOM = "Personalizar",
-	PRESETS = "Presets",
-	PRESETS_PAGE_NOTE = "Perfis já feitos. Aplicar um cria um perfil próprio a partir dele; o jogo recarrega e depois abre o Edit Mode.",
 	PRESET_FOREVER_DESC = "A versão do SetGo! da interface do Forever: barras limpas em baixo e um chat com moldura.",
 	PRESET_BFA_DESC = "A barra de baixo do Battle for Azeroth, com a barra de experiência mesmo por baixo das barras de acção.",
 	PRESET_RETAIL_DESC = "O layout moderno da Blizzard, arrumado, com um chat com moldura e os extras fora do caminho.",
@@ -695,8 +691,6 @@ end
 --------------------------------------------------------------------------------
 
 local EN27 = {
-	NP_OWN_LAYOUT = "This profile",
-	NP_OWN_LAYOUT_DESC = "The layout this profile keeps, with what you changed in Edit Mode. Pick another to start it again from that one.",
 	DIFF_LAYOUT_TO = "Edit Mode layout: %s",
 	PRESET_LAYOUT = "Edit Mode layout: %s",
 	MSG_LAYOUT_RECORDED = "Edit Mode layout saved in \"%s\".",
@@ -705,11 +699,12 @@ local EN27 = {
 	POPUP_LAYOUT_UPDATE = "The Edit Mode layout of \"%s\" was changed on another character. Update it here? The interface reloads.",
 	LAYOUT_UPDATE_BUTTON = "Update",
 	POPUP_NEW_LAYOUT_NOTE = "The interface reloads and Edit Mode opens after it, to place everything.",
+	WIZ_POPUP_SAVE = "Save \"%s\" and apply it?\n\nThe interface reloads.",
+	WIZ_POPUP_PRESET = "Apply the preset \"%s\"?\n\nThe interface reloads.",
+	WIZ_SCREEN_NOTE = "To move them, open Edit Mode once the profile is applied: what you change there is saved in it. If you leave without saving, your screen goes back to how it was.",
 }
 
 local PT27 = {
-	NP_OWN_LAYOUT = "Este perfil",
-	NP_OWN_LAYOUT_DESC = "O layout que este perfil guarda, com o que mudaste no Edit Mode. Escolhe outro para recomeçar a partir dele.",
 	DIFF_LAYOUT_TO = "Layout do Edit Mode: %s",
 	PRESET_LAYOUT = "Layout do Edit Mode: %s",
 	MSG_LAYOUT_RECORDED = "Layout do Edit Mode guardado em \"%s\".",
@@ -718,6 +713,9 @@ local PT27 = {
 	POPUP_LAYOUT_UPDATE = "O layout do Edit Mode de \"%s\" foi alterado noutra personagem. Actualizar aqui? A interface recarrega.",
 	LAYOUT_UPDATE_BUTTON = "Actualizar",
 	POPUP_NEW_LAYOUT_NOTE = "A interface recarrega e depois abre o Edit Mode, para arrumares tudo.",
+	WIZ_POPUP_SAVE = "Guardar \"%s\" e aplicá-lo?\n\nA interface recarrega.",
+	WIZ_POPUP_PRESET = "Aplicar o preset \"%s\"?\n\nA interface recarrega.",
+	WIZ_SCREEN_NOTE = "Para os mudares de sítio, abre o Edit Mode depois de o perfil estar aplicado: o que mudares lá fica guardado nele. Se saíres sem guardar, o ecrã volta ao que estava.",
 }
 
 for key, value in pairs(EN27) do
@@ -725,6 +723,31 @@ for key, value in pairs(EN27) do
 end
 if GetLocale() == "ptBR" then
 	for key, value in pairs(PT27) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- 0.29: the presets menu (a new profile and the guide)
+--------------------------------------------------------------------------------
+
+local EN29 = {
+	PRESETS_BLIZZARD = "Blizzard layouts",
+	PRESETS_SETGO = "SetGo! presets",
+	PRESET_BLIZZARD_TIP = "Blizzard's own layout. Your settings, keybinds and bar slots stay Global, and the modules are switched off. You are asked first.",
+}
+
+local PT29 = {
+	PRESETS_BLIZZARD = "Layouts da Blizzard",
+	PRESETS_SETGO = "Presets do SetGo!",
+	PRESET_BLIZZARD_TIP = "O layout de origem da Blizzard. As definições, os atalhos e o conteúdo das barras ficam em Global, e os módulos desligados. Pergunta primeiro.",
+}
+
+for key, value in pairs(EN29) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT29) do
 		L[key] = value
 	end
 end

@@ -202,17 +202,6 @@ function ns.SetGoItems()
 			ns.Print(L.MSG_TOUR_NONE)
 		end
 	end }
-	-- the presets: each one made into a profile of its own and applied
-	local presets = ns.PresetList()
-	if #presets > 0 then
-		setgo[#setgo + 1] = { kind = "header", name = L.PRESETS }
-		setgo[#setgo + 1] = { kind = "note", name = L.PRESETS_PAGE_NOTE }
-		for _, entry in ipairs(presets) do
-			setgo[#setgo + 1] = { kind = "button", name = entry.name, tooltip = entry.desc or L.WIZ_PRESET_TIP, func = function()
-				ns.ApplyPreset(entry)
-			end }
-		end
-	end
 	return setgo
 end
 

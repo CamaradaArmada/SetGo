@@ -256,6 +256,10 @@ check(ns.ProfileDiff("Old").skills == 0, "Global bars: not counted")
 -- a new profile: everything Global; Profile copies from the game or another
 ns.SlotClick("options", nil)
 check(ns.form.scope.settings == "global" and ns.form.scope.keys == "global" and ns.form.scope.bars == "global", "new: all Global")
+-- 0.29: a new profile starts on the presets menu; Custom opens the tabs
+check(ns.form.choosing and not ns.FormDirty(), "new: the presets menu, nothing filled in")
+ns.FormButton()
+check(not ns.form.choosing and ns.form.tab == "layout", "Custom: the Layout tab")
 ns.FormButton()
 check(ns.form.tab == "modules", "Next: modules")
 ns.FormButton()
@@ -567,4 +571,36 @@ StaticPopupDialogs.SETGO_LAYOUT_UPDATE.OnCancel(nil, LastPopup().data)
 local n = #POPUPS
 ns.CheckNewerLayout()
 check(#POPUPS == n, "declined: not asked again for that version")
+
+-- 0.28: what modules keep with the layout (the Fetch! bar) goes in the profile
+local FBAR = {}
+ns.RegisterModule({ key = "fetch", title = "Fetch", items = function() return {} end,
+	GetLayoutData = function(name) local t = FBAR[name] if not t then return nil end local o = {} for k, v in pairs(t) do o[k] = v end return o end,
+	SetLayoutData = function(name, data) FBAR[name] = data end })
+for i, l in ipairs(LAYOUTS.layouts) do
+	if l.layoutName == "SetGo!: First" then LAYOUTS.activeLayout = 2 + i end
+end
+FBAR["SetGo!: First"] = { x = 7, barArt = true }
+rev = first.layoutRev
+ns.CaptureSlot()
+check(first.layoutData and first.layoutData.fetch.x == 7 and first.layoutRev == rev + 1, "Edit Mode: the bar saved in the profile")
+ns.CaptureSlot()
+check(first.layoutRev == rev + 1, "nothing changed: not saved again")
+local code = ns.ExportProfile("First")
+check(code:find(";F=", 1, true), "export: the bar goes")
+local parsed = ns.ParseProfileText(code)
+check(parsed.layoutData.fetch.x == 7 and parsed.layoutData.fetch.barArt == true, "import: the bar read")
+for k in pairs(SetGoDB.profiles) do if k ~= "First" then SetGoDB.profiles[k] = nil end end
+parsed.layoutData.fetch.x = 42
+ns.CreateProfile(ns.PresetOpts({ prof = parsed, name = "Bar test" }))
+check(FBAR["SetGo!: Bar test"] and FBAR["SetGo!: Bar test"].x == 42, "a preset: its bar goes into the SetGo! layout")
+check(SetGoDB.profiles["Bar test"].layoutData.fetch.x == 42, "and stays in the profile")
+
+-- 0.29: Blizzard's two layouts as presets: the layout only, modules off,
+-- everything Global
+local bp = ns.BlizzardPresets()
+check(#bp == 2 and bp[1].blizzard ~= nil, "Blizzard's two layouts in the presets menu")
+local bo = ns.PresetOpts(bp[1])
+check(bo and bo.layout.template and bo.customModules and bo.modules.fetch == false, "a Blizzard preset: its layout, the modules off")
+check(bo.scope.settings == "global" and bo.scope.keys == "global" and bo.scope.bars == "global", "a Blizzard preset: all Global")
 print("ALL PASSED")

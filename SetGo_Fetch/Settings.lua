@@ -118,6 +118,60 @@ local function DeleteLayout(name)
 	end
 end
 
+-- The bar of a layout, for SetGo! to keep inside a profile with the Edit
+-- Mode layout (profiles, export, presets). Flat, simple values only. The
+-- field names are stored in profiles and presets: don't rename them.
+-- The buttons' contents (SetGoFetchDB) stay out: they are per character.
+
+local function Simple(v)
+	local t = type(v)
+	return t == "boolean" or t == "number" or t == "string"
+end
+
+-- a copy of the bar saved for layout name, or nil; never creates one
+local function GetLayoutData(name)
+	local layouts = ns.layoutDB and ns.layoutDB.layouts
+	local t = layouts and name and layouts[name]
+	if type(t) ~= "table" then
+		return nil
+	end
+	local out = {}
+	for k, v in pairs(t) do
+		if type(k) == "string" and Simple(v) then
+			out[k] = v
+		end
+	end
+	return out
+end
+
+-- saves a copy of data as layout name's bar, in place of what was there;
+-- only the fields Fetch! knows. Redraws when name is the active layout and
+-- the bar exists (module on); with the module off it only saves.
+local function SetLayoutData(name, data)
+	local layouts = ns.layoutDB and ns.layoutDB.layouts
+	if not layouts or type(name) ~= "string" or type(data) ~= "table" then
+		return
+	end
+	local known = ns.LAYOUT_DEFAULTS or {}
+	local t = {}
+	for k, v in pairs(data) do
+		if (known[k] ~= nil or k == "blizzScale") and Simple(v) then
+			t[k] = v
+		end
+	end
+	-- the values are already in today's units: the pre-0.6.3 conversion
+	-- (ns.GetLayout) must not run on them
+	if next(t) ~= nil then
+		t.blizzScale = true
+	end
+	layouts[name] = t
+	if ns.bar and ns.ApplyLayout and SetGo.ModuleOn and SetGo.ModuleOn("fetch")
+		and ns.ActiveLayoutName and ns.ActiveLayoutName() == name then
+		ns.ApplyLayout()
+	end
+end
+
 SetGo.RegisterModule({ key = "fetch", title = L.ADDON, items = Items, CopyLayout = CopyLayout, DeleteLayout = DeleteLayout,
+	GetLayoutData = GetLayoutData, SetLayoutData = SetLayoutData,
 	-- its tip in SetGo!'s tour, at the bar
 	tour = { text = L.TOUR, frame = function() return _G.SetGoFetchBar end } })

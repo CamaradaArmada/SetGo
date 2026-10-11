@@ -8,8 +8,8 @@ local Try = ns.Try
 -- that, a new profile is made on the book's form, with every option.
 --   1 Welcome: what a profile keeps. Create profile, or Skip (SetGo!
 --     itself, and the guide doesn't come back on its own).
---   2 Presets: the ones that come with SetGo! (one is applied at once, after
---     asking: the game reloads), or Custom. Skipped while there are none.
+--   2 Presets: Blizzard's two layouts and the ones that come with SetGo!
+--     (one is applied at once, after asking: the game reloads), or Custom.
 --   3 Name, icon and the screen: action bars and Blizzard's elements,
 --     switched on and off at once to be seen. Leaving without saving puts
 --     them back (and reloads, when action bars were touched).
@@ -181,14 +181,11 @@ local function Create(opts)
 		return
 	end
 	ns.moduleDraft = nil
-	-- Edit Mode after the reload, to place everything
-	ns.charDB.openEditMode = true
 	wf.saved = true
 	-- the tour, once Edit Mode closes after the reload (Tour.lua)
 	ns.charDB.tourPending = true
 	if not ns.CreateProfile(opts) then
 		wf.saved = nil
-		ns.charDB.openEditMode = nil
 		ns.charDB.tourPending = nil
 		return
 	end
@@ -229,7 +226,12 @@ local function ApplyPreset(entry)
 		return
 	end
 	Popup(L.WIZ_POPUP_PRESET:format(entry.name), function()
-		Create(ns.PresetOpts(entry, wf.origUI))
+		local opts = ns.PresetOpts(entry, wf.origUI)
+		if not opts then
+			ns.Print(L.MSG_LAYOUT_FAILED)
+			return
+		end
+		Create(opts)
 	end)
 end
 
@@ -327,30 +329,9 @@ end
 
 local function BuildPresets(p)
 	local _, y = Head(p, ns.ICON, L.WIZ_PRESETS_TITLE, L.WIZ_PRESETS_SUB)
-	page.presetCards = {}
-	local CARD_H, SIZE = 56, 42
-	for i, entry in ipairs(ns.PresetList()) do
-		local c = CreateFrame("Button", nil, p)
-		c:SetSize(CW, CARD_H)
-		c:SetPoint("TOPLEFT", 0, -(y + (i - 1) * (CARD_H + 6)))
-		ns.ui.Card(c)
-		c:Look(0.07, 0.35, false)
-		local pic = ns.RoundIcon(c, SIZE)
-		pic:SetPoint("LEFT", 7, 0)
-		pic:SetTexture(entry.icon or DEFAULT_ICON)
-		local t = W.Text(c, W.FONT_HEADER, CW - SIZE - 26, entry.name)
-		t:SetPoint("TOPLEFT", pic, "TOPRIGHT", 10, 0)
-		Try(t.SetWordWrap, t, false)
-		local d = W.Text(c, W.FONT_SMALL, CW - SIZE - 26, entry.desc or "", 0.8)
-		d:SetPoint("TOPLEFT", t, "BOTTOMLEFT", 0, -3)
-		Try(d.SetMaxLines, d, 2)
-		c.entry = entry
-		c:SetScript("OnClick", function()
-			ApplyPreset(entry)
-		end)
-		W.TipScripts(c, entry.name, L.WIZ_PRESET_TIP)
-		page.presetCards[i] = c
-	end
+	-- Blizzard's layouts and SetGo!'s presets (ProfileForm.lua)
+	local _, cards = ns.BuildPresetMenu(p, CW, y, ApplyPreset)
+	page.presetCards = cards
 end
 
 local function HasPresets()

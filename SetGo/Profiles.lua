@@ -7,7 +7,8 @@ local Try = ns.Try
 -- point (nothing keeps it in step with the game on its own).
 --   { id, icon, favorite, layoutText, layoutRev, layoutFromName (its Edit
 --     Mode layout as text, Layouts.lua; profiles from before: layout =
---     { preset = n } or { name }, layoutMade),
+--     { preset = n } or { name }, layoutMade), layoutData (what modules
+--     keep with the layout: the Fetch! bar),
 --     ui = { [element key] = true/false } (action bars 2 to 8 and the
 --       elements Edit Mode places but a setting turns on),
 --     scope = { settings, keys, bars = "global" or "profile" }: each from
@@ -730,10 +731,17 @@ function ns.CreateProfile(opts)
 			ns.Print(L.MSG_LAYOUT_FAILED)
 			return false
 		end
-		ns.SetProfileLayout(p, text, ns.LayoutName(ref))
+		local from = ns.LayoutName(ref)
+		ns.SetProfileLayout(p, text, from, from and ns.ModuleLayoutData(from) or false)
 	elseif layout.template then
 		created = true
-		ns.SetProfileLayout(p, layout.template, layout.from)
+		-- what the modules keep with it: the import's or preset's, else the
+		-- layout's it was copied from
+		local data = layout.data
+		if data == nil then
+			data = layout.from and ns.ModuleLayoutData(layout.from) or false
+		end
+		ns.SetProfileLayout(p, layout.template, layout.from, data)
 		for var, on in pairs(layout.bars or {}) do
 			local e = ns.UI_VARS[var]
 			if e then
@@ -743,8 +751,9 @@ function ns.CreateProfile(opts)
 	end
 	Save(name, p)
 	ns.Print(L.MSG_SAVED:format(name))
-	-- a new layout: Edit Mode opens after the reload, to place everything
-	if created then
+	-- a new layout the player chose to make: Edit Mode opens after the
+	-- reload, to place it
+	if created and layout.editMode then
 		p.newLayout = true
 	end
 	if opts.noApply then
@@ -919,12 +928,28 @@ function ns.ExportProfile(name)
 		parts[#parts + 1] = "M=" .. table.concat(mods, ",")
 		parts[#parts + 1] = "O=" .. Values(p.moduleSettings)
 	end
+	-- what the modules keep with the layout (the Fetch! bar), as
+	-- module.field
+	local layoutData = ns.ProfileLayoutData(p)
+	if type(layoutData) == "table" and next(layoutData) then
+		local flat = {}
+		for key, t in pairs(layoutData) do
+			if type(t) == "table" then
+				for field, v in pairs(t) do
+					flat[key .. "." .. field] = v
+				end
+			end
+		end
+		if next(flat) then
+			parts[#parts + 1] = "F=" .. Values(flat)
+		end
+	end
 	parts[#parts + 1] = "L=" .. Escape(data)
 	return table.concat(parts, ";")
 end
 
--- { name, icon, ui, layout = Blizzard's layout text, customModules, modules,
---   moduleSettings } or nil
+-- { name, icon, ui, layout = Blizzard's layout text, layoutData,
+--   customModules, modules, moduleSettings } or nil
 function ns.ParseProfileText(text)
 	if type(text) ~= "string" then
 		return nil
@@ -950,7 +975,7 @@ function ns.ParseProfileText(text)
 			end
 		elseif key == "L" then
 			out.layout = Unescape(value)
-		elseif key == "S" or key == "O" then
+		elseif key == "S" or key == "O" or key == "F" then
 			local t = {}
 			for item in value:gmatch("[^,]+") do
 				local var, kind, v = item:match("^([^:]+):(%a)(.*)$")
@@ -967,6 +992,15 @@ function ns.ParseProfileText(text)
 			end
 			if key == "O" then
 				out.moduleSettings = t
+			elseif key == "F" then
+				out.layoutData = {}
+				for var, v in pairs(t) do
+					local mod, field = var:match("^([^%.]+)%.(.+)$")
+					if mod then
+						out.layoutData[mod] = out.layoutData[mod] or {}
+						out.layoutData[mod][field] = v
+					end
+				end
 			end
 		elseif key == "M" then
 			out.modules, out.customModules = {}, true
@@ -1153,9 +1187,46 @@ function ns.PresetList()
 	return list
 end
 
--- What CreateProfile needs to make a profile from a preset. baseUI: what
--- shows now (the guide passes the screen as it was before its preview).
+-- Blizzard's own layouts (the two the Layout tab shows), as presets: the
+-- layout only, the modules off, everything else Global
+function ns.BlizzardPresets()
+	local list = {}
+	for _, l in ipairs((ns.GetLayouts())) do
+		if l.preset and #list < 2 then
+			list[#list + 1] = { blizzard = l, name = l.name }
+		end
+	end
+	return list
+end
+
+local function BlizzardOpts(entry, baseUI)
+	local l = entry.blizzard
+	local text = ns.LayoutText({ preset = l.index })
+	if not text then
+		return nil
+	end
+	local modules = {}
+	for key in pairs(ns.ModuleStates()) do
+		modules[key] = false
+	end
+	return {
+		name = ns.FreePresetName(entry.name),
+		ui = Copy(baseUI or ns.UILive()),
+		modules = modules,
+		customModules = true,
+		moduleSettings = ns.ModuleSnapshot(),
+		scope = ns.SharedScope(),
+		layout = { template = text, from = l.name },
+	}
+end
+
+-- What CreateProfile needs to make a profile from a preset (ours or
+-- Blizzard's). baseUI: what shows now (the guide passes the screen as it
+-- was before its preview).
 function ns.PresetOpts(entry, baseUI)
+	if entry.blizzard then
+		return BlizzardOpts(entry, baseUI)
+	end
 	local prof = entry.prof
 	local ui = Copy(baseUI or ns.UILive())
 	for key, on in pairs(prof.ui or {}) do
@@ -1173,7 +1244,7 @@ function ns.PresetOpts(entry, baseUI)
 			moduleSettings[var] = v
 		end
 	end
-	local layout = { template = prof.layout, imported = true }
+	local layout = { template = prof.layout, imported = true, data = prof.layoutData or false }
 	return {
 		name = ns.FreePresetName(entry.name),
 		icon = prof.icon,
@@ -1186,9 +1257,10 @@ function ns.PresetOpts(entry, baseUI)
 	}
 end
 
--- SetGo!'s page: a preset made into a profile and applied, after asking
--- (the game reloads, then Edit Mode opens)
-function ns.ApplyPreset(entry)
+-- A new profile's preset menu: a preset made into a profile and applied,
+-- after asking (the interface reloads). before, after: run once accepted,
+-- around making it (the form closes; the profile shows).
+function ns.ApplyPreset(entry, before, after)
 	if ns.ProfilesFull() then
 		ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
 		return
@@ -1202,9 +1274,17 @@ function ns.ApplyPreset(entry)
 			ns.Print(L.MSG_COMBAT)
 			return
 		end
-		ns.charDB.openEditMode = true
-		if not ns.CreateProfile(ns.PresetOpts(entry)) then
-			ns.charDB.openEditMode = nil
+		local opts = ns.PresetOpts(entry)
+		if not opts then
+			ns.Print(L.MSG_LAYOUT_FAILED)
+			return
+		end
+		if before then
+			before()
+		end
+		ns.CreateProfile(opts)
+		if after then
+			after()
 		end
 	end)
 end

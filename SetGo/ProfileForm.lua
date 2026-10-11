@@ -120,6 +120,75 @@ local function GridLayouts()
 	return blizzard, account, active
 end
 
+--------------------------------------------------------------------------------
+-- The presets menu: a new profile starts here (the form, and the guide's
+-- second step). Blizzard's two layouts, side by side, then SetGo!'s presets,
+-- one card each; Custom (the caller's button) goes on to the profile itself.
+-- onPick(entry): entry from ns.BlizzardPresets() or ns.PresetList().
+-- Returns the height used.
+--------------------------------------------------------------------------------
+
+function ns.BuildPresetMenu(parent, width, y, onPick)
+	local function Label(at, text)
+		local fs = W.Text(parent, W.FONT_SMALL, width, text, 0.8)
+		fs:SetPoint("TOPLEFT", 0, -at)
+		return at + 16
+	end
+	local cards = {}
+	local blizzard = ns.BlizzardPresets()
+	if #blizzard > 0 then
+		y = Label(y, L.PRESETS_BLIZZARD)
+		local n = #blizzard
+		local w = (width - 6 * (n - 1)) / n
+		for i, entry in ipairs(blizzard) do
+			local c = CreateFrame("Button", nil, parent)
+			c:SetSize(w, 34)
+			c:SetPoint("TOPLEFT", (i - 1) * (w + 6), -y)
+			U.Card(c, BLIZZARD_TINT)
+			c:Look(0.07, 0.35, false)
+			local t = W.Text(c, W.FONT_BODY, w - 20, entry.name)
+			t:SetPoint("LEFT", 10, 0)
+			Try(t.SetWordWrap, t, false)
+			c.entry = entry
+			c:SetScript("OnClick", function()
+				onPick(entry)
+			end)
+			W.TipScripts(c, entry.name, L.PRESET_BLIZZARD_TIP)
+			cards[#cards + 1] = c
+		end
+		y = y + 34 + 12
+	end
+	local ours = ns.PresetList()
+	if #ours > 0 then
+		y = Label(y, L.PRESETS_SETGO)
+		local CARD_H, SIZE = 56, 42
+		for _, entry in ipairs(ours) do
+			local c = CreateFrame("Button", nil, parent)
+			c:SetSize(width, CARD_H)
+			c:SetPoint("TOPLEFT", 0, -y)
+			U.Card(c)
+			c:Look(0.07, 0.35, false)
+			local pic = ns.RoundIcon(c, SIZE)
+			pic:SetPoint("LEFT", 7, 0)
+			pic:SetTexture(entry.icon or DEFAULT_ICON)
+			local t = W.Text(c, W.FONT_HEADER, width - SIZE - 26, entry.name)
+			t:SetPoint("TOPLEFT", pic, "TOPRIGHT", 10, 0)
+			Try(t.SetWordWrap, t, false)
+			local d = W.Text(c, W.FONT_SMALL, width - SIZE - 26, entry.desc or "", 0.8)
+			d:SetPoint("TOPLEFT", t, "BOTTOMLEFT", 0, -3)
+			Try(d.SetMaxLines, d, 2)
+			c.entry = entry
+			c:SetScript("OnClick", function()
+				onPick(entry)
+			end)
+			W.TipScripts(c, entry.name, L.WIZ_PRESET_TIP)
+			cards[#cards + 1] = c
+			y = y + CARD_H + 6
+		end
+	end
+	return y, cards
+end
+
 -- the layout in use, if the grid shows it; else Blizzard's first
 local function ActiveGridLayout()
 	local blizzard, account, active = GridLayouts()
@@ -152,6 +221,8 @@ local function FormDefaults(edit)
 	form.edit = edit
 	form.tab = "layout"
 	form.visited = { layout = true }
+	-- a new profile starts on the presets menu (Custom: the tabs)
+	form.choosing = not edit
 	-- a profile of the list keeps its own layout (its text) until another is
 	-- picked; a new one starts from the layout in use
 	local index = not p and ActiveGridLayout() or nil
@@ -194,7 +265,8 @@ end
 -- something on the form differs from the profile (a new one always does)
 local function Dirty()
 	if not form.edit then
-		return true
+		-- the presets menu: nothing filled in yet
+		return not form.choosing
 	end
 	local o = form.orig or {}
 	if NameText() ~= form.edit then
@@ -334,8 +406,6 @@ function ns.SetFormModules(on)
 	ns.Refresh()
 end
 
-local CopyPreset -- below
-
 -- a profile's name
 local function NameOf(p)
 	for name, q in pairs(ns.db.profiles) do
@@ -353,7 +423,7 @@ local function CopyFrom(p, what)
 		if p then
 			local text = ns.ProfileLayoutText(p)
 			if text then
-				form.layout = { new = true, template = text, fromLabel = NameOf(p) }
+				form.layout = { new = true, template = text, fromLabel = NameOf(p), data = ns.ProfileLayoutData(p) or false }
 			end
 			for key, on in pairs(p.ui or {}) do
 				form.ui[key] = on
@@ -380,35 +450,6 @@ local function CopyFrom(p, what)
 end
 ns.FormCopyFrom = CopyFrom
 
--- Copy from a preset (a new profile): its layout (a new one, made when
--- saved) and what it switches on, or its modules and their options
-function CopyPreset(entry, what)
-	local prof = entry.prof
-	if what == "layout" then
-		form.layout = { new = true, template = prof.layout, imported = true, fromLabel = entry.name }
-		for key, on in pairs(prof.ui or {}) do
-			form.ui[key] = on
-		end
-		if not form.icon then
-			form.icon = prof.icon
-		end
-		ns.Refresh()
-	elseif what == "modules" then
-		if prof.customModules then
-			for key, on in pairs(prof.modules or {}) do
-				if form.modules[key] ~= nil then
-					form.modules[key] = on
-				end
-			end
-			form.moduleSettings = ns.ModuleSnapshot()
-			for var, v in pairs(prof.moduleSettings or {}) do
-				form.moduleSettings[var] = v
-			end
-		end
-		ns.SetFormModules(true)
-	end
-end
-
 --------------------------------------------------------------------------------
 -- Import: a SetGo! profile (its name, icon, layout and what it switches on
 -- fill the form) or Blizzard's layout text (the layout only). Either way a
@@ -427,7 +468,7 @@ local function Import(text)
 		ns.Print(L.MSG_BAD_LAYOUT)
 		return
 	end
-	form.layout = { new = true, template = text, imported = true, fromLabel = L.IMPORTED }
+	form.layout = { new = true, fresh = true, template = text, imported = true, fromLabel = L.IMPORTED }
 	ns.Refresh()
 end
 
@@ -455,7 +496,8 @@ function ns.ImportProfile(text, into)
 			return
 		end
 	end
-	form.layout = { new = true, template = profile.layout, imported = true, fromLabel = profile.name }
+	form.choosing = nil
+	form.layout = { new = true, template = profile.layout, imported = true, fromLabel = profile.name, data = profile.layoutData or false }
 	for key, on in pairs(profile.ui) do
 		form.ui[key] = on
 	end
@@ -780,7 +822,10 @@ local function FormSave(name, apply)
 			ns.Print(L.MSG_LAYOUT_FAILED)
 			return
 		end
-		opts.layout = { template = data, from = fromName, imported = form.layout.imported }
+		-- Edit Mode opens after the reload only for a layout the player chose
+		-- to make (+ New), to place it
+		opts.layout = { template = data, from = fromName, imported = form.layout.imported, editMode = form.layout.fresh,
+			data = form.layout.data }
 		-- a SetGo! template also says which bars show
 		for var, on in pairs(form.layout.bars or {}) do
 			local e = ns.UI_VARS[var]
@@ -797,10 +842,6 @@ local function FormSave(name, apply)
 	end
 	-- a new layout made now is made active when applied right after
 	opts.noApply = not apply
-	if apply and first then
-		-- the first profile: Edit Mode after its reload
-		ns.charDB.openEditMode = true
-	end
 	ns.optionsDraft, ns.moduleDraft = nil, nil
 	local tab = form.tab
 	if not ns.CreateProfile(opts) then
@@ -858,6 +899,12 @@ end
 
 -- the form's button
 function ns.FormButton()
+	if not form.edit and form.choosing then
+		-- Custom: the profile's own tabs
+		form.choosing = nil
+		ns.ShowFormTab("layout")
+		return
+	end
 	if not form.edit then
 		if not AllVisited() then
 			-- Next: the next tab not seen yet
@@ -873,7 +920,7 @@ function ns.FormButton()
 			return
 		end
 		local text = L.POPUP_NP_SAVE_APPLY:format(name)
-		if form.layout.new then
+		if form.layout.fresh then
 			text = text .. "\n\n" .. L.POPUP_NEW_LAYOUT_NOTE
 		end
 		U.Confirm(text, function()
@@ -920,17 +967,6 @@ local function CopySources(root)
 		local empty = (what == "modules" and not (p and (p.customModules or p.moduleSettings)))
 		if empty and b and b.SetEnabled then
 			b:SetEnabled(false)
-		end
-	end
-	-- a new profile: the presets too
-	local presets = not form.edit and ns.PresetList() or {}
-	if #presets > 0 then
-		root:CreateDivider()
-		root:CreateTitle(L.PRESETS)
-		for _, entry in ipairs(presets) do
-			root:CreateButton(entry.name, function()
-				CopyPreset(entry, what)
-			end)
 		end
 	end
 end
@@ -1135,6 +1171,10 @@ local function CreateFoot(rightPage, width)
 		local i = TabIndex(form.tab)
 		if i > 1 then
 			ns.ShowFormTab(FORM_TABS[i - 1])
+		elseif not form.edit then
+			-- the first tab: back to the presets menu
+			form.choosing = true
+			ns.Refresh()
 		end
 	end, 22)
 	foot.back:SetPoint("BOTTOMLEFT", foot, "BOTTOMLEFT", 0, 18)
@@ -1150,7 +1190,13 @@ function ns.RefreshFormButton()
 	end
 	local edit = form.edit
 	foot.main:SetEnabled(true)
-	foot.back:SetShown(not edit and TabIndex(form.tab) > 1)
+	foot.back:SetShown(not edit and not form.choosing)
+	foot.undo:SetShown(not form.choosing)
+	if not edit and form.choosing then
+		foot.main:SetText(L.WIZ_CUSTOM)
+		foot.pending:SetText("")
+		return
+	end
 	if not edit then
 		local seen = 0
 		for _, tab in ipairs(FORM_TABS) do
@@ -1192,7 +1238,7 @@ function ns.RefreshFormHead(onForm)
 		return
 	end
 	onForm = onForm and ns.creating ~= nil
-	head:SetShown(onForm)
+	head:SetShown(onForm and not form.choosing)
 	foot:SetShown(onForm)
 	if not onForm then
 		return
@@ -1300,7 +1346,7 @@ local function NewLayoutMenu(owner)
 				local lay = form.layout or {}
 				return lay.new and not lay.template and lay.fromLabel == label
 			end, function()
-				form.layout = { new = true, from = from, fromLabel = label }
+				form.layout = { new = true, fresh = true, from = from, fromLabel = label }
 				ns.Refresh()
 			end)
 		end
@@ -1318,7 +1364,7 @@ local function NewLayoutMenu(owner)
 				root:CreateRadio(L.NP_TEMPLATE_ENTRY:format(t.name), function()
 					return (form.layout or {}).template == t.data
 				end, function()
-					form.layout = { new = true, template = t.data, bars = t.bars, fromLabel = t.name }
+					form.layout = { new = true, fresh = true, template = t.data, bars = t.bars, fromLabel = t.name }
 					ns.Refresh()
 				end)
 			end
@@ -1333,15 +1379,35 @@ local function NewLayoutMenu(owner)
 end
 ns.NewLayoutMenu = NewLayoutMenu
 
+-- A new profile's first page: the presets menu (a preset is applied at
+-- once, after asking; Custom, the bottom button, opens the tabs)
+local function CreateChoiceBody(width)
+	local body = CreateFrame("Frame", nil, np)
+	body:SetPoint("TOPLEFT", U.PAD, -U.PAD_TOP)
+	body:SetSize(width, 564 - U.PAD_TOP - FOOT_H)
+	np.choiceBody = body
+	local title = W.Text(body, W.FONT_HEADER, width, L.WIZ_PRESETS_TITLE)
+	title:SetPoint("TOPLEFT", 0, 0)
+	local sub, h = W.Text(body, W.FONT_SMALL, width, L.WIZ_PRESETS_SUB, 0.85)
+	sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+	local y = 22 + (tonumber(h) or 28) + 14
+	ns.BuildPresetMenu(body, width, y, function(entry)
+		ns.ApplyPreset(entry, function()
+			ns.LeaveForm()
+		end, function()
+			ns.SelectTab("presets")
+		end)
+	end)
+	body:Hide()
+end
+
 local function CreateLayoutBody(width)
 	local body = CreateFrame("Frame", nil, np)
 	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
 	body:SetSize(width, BODY_H)
 	np.layoutBody = body
 
-	-- Blizzard's two, side by side (a profile of the list: its own layout
-	-- first on the row; Refresh places them)
-	np.own = Cell(body, width)
+	-- Blizzard's two, side by side (Refresh places them)
 	np.width = width
 	np.blizzard = {}
 	for i = 1, 2 do
@@ -1434,28 +1500,14 @@ local function RefreshLayoutBody()
 	if form.layout.use and not ns.GetLayouts()[form.layout.use] then
 		form.layout = { use = blizzard[1] and blizzard[1].index or 1 }
 	end
-	-- the row: this profile's own layout (kept until another is picked),
-	-- then Blizzard's two
-	local p = form.edit and ns.ProfileOf(form.edit)
-	local own = p and ns.ProfileLayoutText(p) ~= nil
-	local n = own and 3 or 2
-	local w = (np.width - 6 * (n - 1)) / n
-	local cells = own and { np.own, np.blizzard[1], np.blizzard[2] } or np.blizzard
-	np.own:SetShown(own)
-	for i, cell in ipairs(cells) do
+	-- the row: Blizzard's two (a profile of the list keeps its own layout,
+	-- nothing picked, until another is picked)
+	local w = (np.width - 6) / 2
+	for i, cell in ipairs(np.blizzard) do
 		cell:ClearAllPoints()
 		cell:SetWidth(w)
 		cell.text:SetWidth(w - 20)
 		cell:SetPoint("TOPLEFT", (i - 1) * (w + 6), 0)
-	end
-	if own then
-		np.own.text:SetText(L.NP_OWN_LAYOUT)
-		np.own.tip, np.own.tipLine, np.own.tipWarn = ns.SlotName(form.edit), L.NP_OWN_LAYOUT_DESC, nil
-		Pick(np.own, form.layout.keep)
-		np.own:SetScript("OnClick", function()
-			form.layout = { keep = true }
-			ns.Refresh()
-		end)
 	end
 	for i, cell in ipairs(np.blizzard) do
 		local l = blizzard[i]
@@ -1504,7 +1556,7 @@ local function RefreshLayoutBody()
 						return
 					end
 					if not form.layout.new then
-						form.layout = { new = true, from = "current", fromLabel = L.CURRENT_LAYOUT }
+						form.layout = { new = true, fresh = true, from = "current", fromLabel = L.CURRENT_LAYOUT }
 						ns.Refresh()
 					end
 				end)
@@ -1837,11 +1889,14 @@ function ns.RefreshNewPreset()
 	if not (np and ns.creating and form.layout) then
 		return
 	end
-	local tab = form.tab
+	local tab = not form.choosing and form.tab or nil
+	np.choiceBody:SetShown(form.choosing and true or false)
 	np.layoutBody:SetShown(tab == "layout")
 	np.modulesBody:SetShown(tab == "modules")
 	np.settingsBody:SetShown(tab == "settings")
-	if tab == "modules" then
+	if form.choosing then
+		return
+	elseif tab == "modules" then
 		RefreshModulesBody()
 	elseif tab == "settings" then
 		RefreshSettingsBody()
@@ -1857,6 +1912,7 @@ function ns.CreateProfileForm()
 	np = CreateFrame("Frame", nil, rightPage)
 	np:SetAllPoints()
 	rightPage.newpreset = np
+	CreateChoiceBody(width)
 	CreateLayoutBody(width)
 	CreateModulesBody(width)
 	CreateSettingsBody(width)

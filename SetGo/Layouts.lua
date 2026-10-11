@@ -15,6 +15,11 @@ local Try = ns.Try
 -- putting the newer version on (at login).
 -- Profiles from before point at a layout (p.layout); its text is read the
 -- first time it is needed.
+-- What modules keep per layout (the Fetch! bar) goes with it, in the
+-- profile: p.layoutData = { [module key] = { field = simple value } }. A
+-- module gives GetLayoutData(name) and SetLayoutData(name, data) when it
+-- registers. Profiles from before take it from their layout the first time
+-- it is written here.
 --------------------------------------------------------------------------------
 
 local PREFIX = "SetGo!: "
@@ -48,19 +53,99 @@ function ns.ProfileLayoutText(p)
 	return p.layoutText
 end
 
--- Sets the profile's layout text; the version goes up when it changed
-function ns.SetProfileLayout(p, text, fromName)
+local function CopyData(t)
+	if type(t) ~= "table" then
+		return nil
+	end
+	local out = {}
+	for k, v in pairs(t) do
+		out[k] = type(v) == "table" and CopyData(v) or v
+	end
+	return out
+end
+
+local function Empty(t)
+	return type(t) ~= "table" or next(t) == nil
+end
+
+-- the same module data (nothing and an empty table are the same)
+local function SameData(a, b)
+	if Empty(a) and Empty(b) then
+		return true
+	end
+	if type(a) ~= "table" or type(b) ~= "table" then
+		return a == b
+	end
+	for k, v in pairs(a) do
+		if type(v) == "table" then
+			if not SameData(v, b[k]) then
+				return false
+			end
+		elseif b[k] ~= v then
+			return false
+		end
+	end
+	for k in pairs(b) do
+		if a[k] == nil and not Empty(b[k]) then
+			return false
+		end
+	end
+	return true
+end
+
+-- what the modules keep for a layout here: { [module key] = data } or nil
+local function ModuleData(layoutName)
+	local out
+	for _, def in ipairs(ns.modules or {}) do
+		if def.GetLayoutData and def.key then
+			local d = Try(def.GetLayoutData, layoutName)
+			if not Empty(d) then
+				out = out or {}
+				out[def.key] = d
+			end
+		end
+	end
+	return out
+end
+ns.ModuleLayoutData = ModuleData
+
+-- Sets the profile's layout text and (when given; false: none) what the
+-- modules keep with it; the version goes up when either changed
+function ns.SetProfileLayout(p, text, fromName, data)
 	if type(text) ~= "string" or text == "" then
 		return
 	end
-	if p.layoutText ~= text then
-		p.layoutText = text
+	local changed = p.layoutText ~= text
+	p.layoutText = text
+	if data ~= nil then
+		data = data or nil
+		if not SameData(data, p.layoutData) then
+			changed = true
+		end
+		p.layoutData = not Empty(data) and CopyData(data) or nil
+	end
+	if changed then
 		p.layoutRev = (p.layoutRev or 0) + 1
 	end
 	if fromName then
 		p.layoutFromName = fromName
 	end
 	p.layout = nil
+end
+
+-- what the modules keep with the profile's layout; a profile from before
+-- that is in use here takes it from this character's SetGo! layout
+function ns.ProfileLayoutData(p)
+	if type(p) ~= "table" then
+		return nil
+	end
+	if p.layoutData == nil then
+		local applied = ns.charDB and ns.charDB.slotApplied
+		if applied and applied.id == p.id and ns.charDB.slotName then
+			p.layoutData = ModuleData(ns.charDB.slotName)
+		end
+	end
+	return p.layoutData
 end
 
 -- this character's SetGo! layout: its position in the saved layouts
@@ -122,6 +207,7 @@ function ns.WriteSlot(name, p)
 	local newName = ns.SlotName(name)
 	local oldName = ns.charDB.slotName
 	local pos = FindSlot(saved)
+	local made = pos == nil
 	data.layoutName = newName
 	data.layoutType = CharType()
 	if pos then
@@ -142,20 +228,42 @@ function ns.WriteSlot(name, p)
 		pos = last + 1
 		table.insert(saved, pos, data)
 	end
-	if not ns.SaveLayoutsWith(saved, pos) then
+	local index = ns.SaveLayoutsWith(saved, pos)
+	if not index then
 		ns.Print(L.MSG_LAYOUT_FAILED)
 		return false
 	end
+	-- as Edit Mode does: a new layout is announced, then made the one in use
+	-- (saving alone doesn't switch to it)
+	if made then
+		Try(C_EditMode.OnLayoutAdded, index, true, false)
+	end
+	Try(C_EditMode.SetActiveLayout, index)
 	local applied = ns.charDB.slotApplied
 	ns.charDB.slotName = newName
 	ns.charDB.slotApplied = { id = p.id, rev = p.layoutRev or 1 }
 	ns.charDB.layoutDeclined = nil
-	-- module data kept by layout name (the Fetch! bar): a renamed profile
-	-- takes its own along; a new one starts from the layout it was made from
-	if oldName and oldName ~= newName and applied and applied.id == p.id then
-		ns.CopyLayoutData(oldName, newName)
-	elseif not p.layoutSeeded and p.layoutFromName then
-		ns.CopyLayoutData(p.layoutFromName, newName)
+	-- module data kept by layout name (the Fetch! bar): the profile's own
+	-- goes in. A module it has none for (a profile from before): a renamed
+	-- profile takes its own along, a new one starts from the layout it was
+	-- made from; what that gives is kept in the profile from now on.
+	local data = type(p.layoutData) == "table" and p.layoutData or {}
+	for _, def in ipairs(ns.modules or {}) do
+		local key = def.key
+		if key and not Empty(data[key]) and def.SetLayoutData then
+			Try(def.SetLayoutData, newName, CopyData(data[key]))
+		elseif key and def.CopyLayout then
+			if oldName and oldName ~= newName and applied and applied.id == p.id then
+				Try(def.CopyLayout, oldName, newName)
+			elseif not p.layoutSeeded and p.layoutFromName then
+				Try(def.CopyLayout, p.layoutFromName, newName)
+			end
+			local d = def.GetLayoutData and Try(def.GetLayoutData, newName)
+			if not Empty(d) then
+				p.layoutData = p.layoutData or {}
+				p.layoutData[key] = d
+			end
+		end
 	end
 	p.layoutSeeded = true
 	return true
@@ -179,8 +287,18 @@ local function Capture()
 		return
 	end
 	local text = Try(C_EditMode.ConvertLayoutInfoToString, info.layouts[pos])
-	if type(text) == "string" and text ~= "" and text ~= p.layoutText then
-		ns.SetProfileLayout(p, text)
+	-- the modules here give theirs; a module not installed here keeps what
+	-- the profile has
+	local data = CopyData(p.layoutData) or {}
+	local name = info.layouts[pos].layoutName
+	for _, def in ipairs(ns.modules or {}) do
+		if def.key and def.GetLayoutData then
+			local d = Try(def.GetLayoutData, name)
+			data[def.key] = not Empty(d) and d or nil
+		end
+	end
+	if type(text) == "string" and text ~= "" and (text ~= p.layoutText or not SameData(data, p.layoutData)) then
+		ns.SetProfileLayout(p, text, nil, data)
 		ns.charDB.slotApplied.rev = p.layoutRev
 		ns.Print(L.MSG_LAYOUT_RECORDED:format(name))
 		if ns.Refresh then

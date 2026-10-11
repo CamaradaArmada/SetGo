@@ -15,7 +15,8 @@ local L = {
 	MUSIC = "Music volume",
 	QUIET = "Quiet!",
 	QUIET_DESC = "Hides the world channels (General, Trade, Local Defense and the rest) from your chat windows. You stay in them. Click again and they come back to the windows they were in. Channels you made or joined yourself are left alone.",
-	QUIET_LABEL = "Quiet! (hide world channels)",
+	SILHOUETTE = "Show silhouette when obscured",
+	SILHOUETTE_DESC = "Shows your character's outline when something stands between it and the camera.",
 	ALL_PLATES = "Always show nameplates",
 	ALL_PLATES_DESC = "Shows nameplates all the time. Off: they only show in combat.",
 	OPEN_SETGO = "Open SetGo!",
@@ -33,7 +34,8 @@ if GetLocale() == "ptBR" then
 	L.MASTER = "Volume geral"
 	L.MUSIC = "Volume da música"
 	L.QUIET_DESC = "Esconde os canais do mundo (Geral, Comércio, Defesa Local e os outros) das tuas janelas de chat. Continuas neles. Clica outra vez e voltam às janelas onde estavam. Os canais que criaste ou onde entraste por conta própria ficam como estão."
-	L.QUIET_LABEL = "Quiet! (esconder canais do mundo)"
+	L.SILHOUETTE = "Mostrar silhueta quando escondido"
+	L.SILHOUETTE_DESC = "Mostra o contorno da tua personagem quando alguma coisa fica entre ela e a câmara."
 	L.ALL_PLATES = "Mostrar sempre as placas de nome"
 	L.ALL_PLATES_DESC = "Mostra as placas de nome a toda a hora. Desligado: só aparecem em combate."
 	L.OPEN_SETGO = "Abrir SetGo!"
@@ -90,10 +92,11 @@ local function FriendCVar()
 end
 local NPC_NAMES = "PROXY_NPC_NAMES"
 local ALL_CVAR = "nameplateShowAll"
+local SILHOUETTE_CVAR = "occludedSilhouettePlayer"
 
 -- the settings a profile can keep: the ones Quick! holds
 local function Holdable(var)
-	return var == ENEMY_CVAR or var == FriendCVar() or var == NPC_NAMES or var == ALL_CVAR
+	return var == ENEMY_CVAR or var == FriendCVar() or var == NPC_NAMES or var == ALL_CVAR or var == SILHOUETTE_CVAR
 end
 
 -- the value now, as text: the proxy setting's or the CVar's
@@ -498,7 +501,7 @@ end
 -- Quiet!: a checkbox, ticked while the world channels are hidden
 local function QuietRow(y)
 	y = y + 4
-	return Checkbox(y, L.QUIET_LABEL, L.QUIET_DESC, IsQuiet, function(on)
+	return Checkbox(y, L.QUIET, L.QUIET_DESC, IsQuiet, function(on)
 		if on then
 			QuietOn()
 		else
@@ -596,6 +599,14 @@ local function Build()
 		y = Dropdown(y, SetGo.G("SHOW_NPC_NAMES", L.NPC_NAMES), SetGo.G("OPTION_TOOLTIP_NPC_NAMES_DROPDOWN"), NpcOptions, GetNpcNames, function(value)
 			SetNpcNames(value)
 			Refresh()
+		end)
+	end
+	-- Blizzard's Show Silhouette when Obscured, when this client has it
+	if C_CVar.GetCVar(SILHOUETTE_CVAR) ~= nil then
+		y = Checkbox(y, SetGo.G("SHOW_SILHOUETTE_OPTION", L.SILHOUETTE), SetGo.G("OPTION_TOOLTIP_SHOW_SILHOUETTE", L.SILHOUETTE_DESC), function()
+			return GetBool(SILHOUETTE_CVAR)
+		end, function(on)
+			SetBool(SILHOUETTE_CVAR, on)
 		end)
 	end
 	y = y + 4

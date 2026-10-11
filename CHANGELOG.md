@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.29.0
+
+- A new profile starts on a presets menu: Blizzard's two layouts, side by
+  side, then SetGo!'s presets. Picking one applies it at once, after asking
+  (the interface reloads). Custom opens the profile's tabs; Back on the
+  first tab returns to the menu. The guide's Presets step uses the same
+  menu.
+- A Blizzard layout as a preset: its layout only, the modules off, and
+  settings, keybinds and bar slots on Global.
+- The presets are gone from SetGo!'s page and from Copy from.
+- Layout tab: no "This profile" cell. A profile keeps its own layout, with
+  nothing picked, until another is picked.
+- Edit Mode opens after the reload only for a layout made with + New, never
+  for a preset or an import.
+- The guide's texts no longer say Edit Mode opens after saving: they say
+  to open it once the profile is applied.
+- Quick Menu: Show silhouette when obscured (when the client has it); Quiet!
+  with its short name.
+
+## 0.28.0, Fetch! 0.12.1
+
+- The Fetch! bar (place, size, buttons, art) goes with the profile's
+  layout: saved in the profile when Edit Mode closes, put on when the
+  profile is applied, and carried by Copy from, export, import and the
+  presets (a new F part in the code; older versions read past it).
+- Modules can keep data per layout with GetLayoutData(name) and
+  SetLayoutData(name, data) in SetGo.RegisterModule.
+- Profiles from before take their bar from their layout the first time it
+  is written.
+- The three presets exported again, with their bar (Battle for Azeroth UI,
+  "for" in lower case).
+
+## 0.27.1
+
+- The SetGo! layout is made the one in use (as Edit Mode does: announced,
+  then switched to), not Blizzard's.
+- Edit Mode opens after the reload only for a layout made with + New. The
+  guide and the presets don't open it.
+
 ## 0.27.0
 
 - A profile keeps its Edit Mode layout inside it, as text. Each character

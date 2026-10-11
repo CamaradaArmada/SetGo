@@ -19,6 +19,8 @@ local DEFAULTS = {
 	bagAnchor = false,
 	barArt = false,
 }
+-- the fields a layout's bar may have (SetLayoutData keeps only these)
+ns.LAYOUT_DEFAULTS = DEFAULTS
 local FALLBACK = "__default"
 
 -- Ask the library which layout is active every time, instead of trusting a
