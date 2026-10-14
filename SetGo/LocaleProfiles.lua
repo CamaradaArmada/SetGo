@@ -618,3 +618,77 @@ if GetLocale() == "ptBR" then
 		L[key] = value
 	end
 end
+
+--------------------------------------------------------------------------------
+-- 0.30: export with settings and keybinds; other addons' profiles (Ace3)
+--------------------------------------------------------------------------------
+
+local EN30 = {
+	MSG_IMPORT_SKIPPED = "%d character settings in this code don't exist in this version of the game and were left out.",
+	FORM_TAB_ADDONS = "Addons",
+	ACE_KEEP = "Don't change",
+	ACE_TIP = "The profile this addon switches to when this profile is applied. Don't change: it keeps the one it has.",
+	SHORT_ACE = "%d addon profiles",
+	MSG_ACE_MISSING = "%s has no profile called \"%s\" on this character: left as it is.",
+}
+
+local PT30 = {
+	MSG_IMPORT_SKIPPED = "%d definições da personagem deste código não existem nesta versão do jogo e ficaram de fora.",
+	FORM_TAB_ADDONS = "Addons",
+	ACE_KEEP = "Não mudar",
+	ACE_TIP = "O perfil para onde este addon muda quando este perfil é aplicado. Não mudar: fica com o que tem.",
+	SHORT_ACE = "%d perfis de addons",
+	MSG_ACE_MISSING = "%s não tem nenhum perfil chamado \"%s\" nesta personagem: ficou como estava.",
+}
+
+for key, value in pairs(EN30) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT30) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- 0.32: which addons are on, per profile
+--------------------------------------------------------------------------------
+
+local EN32 = {
+	FORM_CUSTOM_ADDONS = "Change addons *",
+	FORM_CUSTOM_ADDONS_DESC = "Ticked, this profile switches the addons below on or off on this character. Addons installed later are left as they are. Unticked, it leaves them alone (the Ace3 profiles still apply).",
+	ADDON_SWITCH_DESC = "On or off with this profile, on this character.",
+	ADDON_DEPS = "Dependencies: ",
+	ADDONS_NONE = "No other addons installed.",
+	SHORT_ADDONS = "%d addons on or off",
+	ADDON_VERSION = "Version %s",
+	ADDON_AUTHOR = "by %s",
+	ADDON_OUTDATED = "Out of date",
+	ADDON_CHILDREN = "%d addons that go with it. Its box switches them too.",
+	ADDON_PROFILE = "Profile: %s",
+	ADDON_MORE = "%s %d addons",
+}
+
+local PT32 = {
+	FORM_CUSTOM_ADDONS = "Alterar addons *",
+	FORM_CUSTOM_ADDONS_DESC = "Marcado, este perfil liga ou desliga os addons abaixo nesta personagem. Os addons instalados depois ficam como estão. Desmarcado, não lhes toca (os perfis Ace3 continuam a ser aplicados).",
+	ADDON_SWITCH_DESC = "Ligado ou desligado com este perfil, nesta personagem.",
+	ADDON_DEPS = "Dependências: ",
+	ADDONS_NONE = "Não há outros addons instalados.",
+	SHORT_ADDONS = "%d addons ligados ou desligados",
+	ADDON_VERSION = "Versão %s",
+	ADDON_AUTHOR = "por %s",
+	ADDON_OUTDATED = "Desactualizado",
+	ADDON_CHILDREN = "%d addons que vão com este. A caixa deste também os liga e desliga.",
+	ADDON_PROFILE = "Perfil: %s",
+	ADDON_MORE = "%s %d addons",
+}
+
+for key, value in pairs(EN32) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT32) do
+		L[key] = value
+	end
+end

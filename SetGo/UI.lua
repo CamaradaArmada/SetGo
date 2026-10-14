@@ -1436,8 +1436,24 @@ function ns.SlotMenu(b)
 					end)
 				end
 			end)
-			root:CreateButton(L.EXPORT, function()
-				ns.ExportProfileText(name)
+			-- Export: what goes too, off until ticked (each time)
+			local export = root:CreateButton(L.EXPORT)
+			local with = { keys = false, settings = false }
+			local function Box(label, key)
+				local box = export:CreateCheckbox(label, function()
+					return with[key]
+				end, function()
+					with[key] = not with[key]
+				end)
+				if box and box.SetResponse and MenuResponse then
+					box:SetResponse(MenuResponse.Refresh)
+				end
+			end
+			Box(L.SCOPE_SETTINGS, "settings")
+			Box(ns.G("KEY_BINDINGS", L.SCOPE_KEYS), "keys")
+			export:CreateDivider()
+			export:CreateButton(L.EXPORT, function()
+				ns.ExportProfileText(name, with)
 			end)
 			root:CreateButton(L.DELETE, function()
 				Delete(name)

@@ -21,6 +21,9 @@ local Try = ns.Try
 --       applied only when customModules, kept when not),
 --     keys = { [key] = command }, keysBy, keysAt (who saved them, when; its
 --       own, used when its scope is profile),
+--     aceProfiles = { [addon] = profile name } (Ace3 addons, Addons.lua),
+--     customAddons = true/false, addonStates = { [addon folder] = true/false }
+--       (which addons are on here; applied only when customAddons),
 --     created, saved, class }
 -- What the player changes goes into the set the profile in use takes it
 -- from: the keys when saved in Blizzard's key bindings menu (Keybinds.lua),
@@ -457,6 +460,22 @@ function ns.ProfileDiff(name)
 			short[#short + 1] = L.SHORT_MODULE_OPTIONS:format(n)
 		end
 	end
+	do
+		local n = #ns.AddonsDiff(p)
+		if n > 0 then
+			diff.total = diff.total + n
+			lines[#lines + 1] = L.SHORT_ADDONS:format(n)
+			short[#short + 1] = L.SHORT_ADDONS:format(n)
+		end
+	end
+	do
+		local n = #ns.AceDiff(p)
+		if n > 0 then
+			diff.total = diff.total + n
+			lines[#lines + 1] = L.SHORT_ACE:format(n)
+			short[#short + 1] = L.SHORT_ACE:format(n)
+		end
+	end
 	local keys = ns.KeysHolder(p).keys
 	if keys then
 		local n = ns.KeysDiff(keys)
@@ -568,6 +587,16 @@ function ns.ApplyProfile(name, force)
 			Try(d.setting.SetValue, d.setting, d.value)
 		end
 	end
+	-- other addons, on or off (they follow on the reload), and their
+	-- profiles (Ace3): at once, and again after the reload for the ones
+	-- switched on now
+	if p.customAddons then
+		modules = modules + ns.ApplyAddonStates(p)
+	end
+	ns.ApplyAceProfiles(p)
+	if p.aceProfiles and next(p.aceProfiles) then
+		ns.charDB.acePending = p.id
+	end
 	local ui = ns.WriteUI(p.ui) + modules
 	local changed, failed = ns.ApplyStaged()
 	if not changed then
@@ -665,6 +694,15 @@ function ns.CreateProfile(opts)
 	end
 	if opts.moduleSettings then
 		p.moduleSettings = Copy(opts.moduleSettings)
+	end
+	if opts.aceProfiles then
+		p.aceProfiles = next(opts.aceProfiles) and Copy(opts.aceProfiles) or nil
+	end
+	if opts.customAddons ~= nil then
+		p.customAddons = opts.customAddons and true or false
+	end
+	if opts.addonStates then
+		p.addonStates = Copy(opts.addonStates)
 	end
 	if opts.scope then
 		p.scope = Copy(opts.scope)
@@ -856,7 +894,10 @@ local function Unescape(s)
 	end))
 end
 
-function ns.ExportProfile(name)
+-- opts: { keys = true, settings = true }: its keybinds and character
+-- settings go too (off unless asked; presets never read them)
+function ns.ExportProfile(name, opts)
+	opts = opts or {}
 	local p = PresetOf(name)
 	if not p then
 		return nil
@@ -905,6 +946,28 @@ function ns.ExportProfile(name)
 		parts[#parts + 1] = "M=" .. table.concat(mods, ",")
 		parts[#parts + 1] = "O=" .. Values(p.moduleSettings)
 	end
+	-- its character settings and keybinds, when asked: the set it applies;
+	-- none kept yet (Global, nothing saved): the game's, when it is the
+	-- profile in use
+	local active = ns.ActivePreset and ns.ActivePreset() == name
+	if opts.settings then
+		local settings = ns.SettingsOf(p)
+		if not settings and active and ns.SettingsReady() then
+			settings = ns.OptionSnapshot()
+		end
+		if settings and next(settings) then
+			parts[#parts + 1] = "S=" .. Values(settings)
+		end
+	end
+	if opts.keys then
+		local keys = ns.KeysHolder(p).keys
+		if not keys and active then
+			keys = ns.CopyKeys(ns.CurrentKeybinds())
+		end
+		if keys and next(keys) then
+			parts[#parts + 1] = "K=" .. Values(keys)
+		end
+	end
 	-- what the modules keep with the layout (the Fetch! bar), as
 	-- module.field
 	local layoutData = ns.ProfileLayoutData(p)
@@ -925,6 +988,37 @@ function ns.ExportProfile(name)
 	return table.concat(parts, ";")
 end
 
+-- The code shared: SGP1 compressed with Blizzard's own functions (Deflate,
+-- then Base64, as the Cooldown Manager's codes), as "SGP2:" .. the result.
+-- A client without them gets SGP1 as it is. Both are read.
+local function Coder()
+	local E = C_EncodingUtil
+	if E and E.CompressString and E.DecompressString and E.EncodeBase64 and E.DecodeBase64 then
+		return E, Enum and Enum.CompressionMethod and Enum.CompressionMethod.Deflate
+	end
+end
+
+function ns.PackProfileText(text)
+	local E, method = Coder()
+	if not (E and type(text) == "string") then
+		return text
+	end
+	local packed = Try(E.CompressString, text, method)
+	local encoded = packed and Try(E.EncodeBase64, packed)
+	return type(encoded) == "string" and encoded ~= "" and ("SGP2:" .. encoded) or text
+end
+
+local function Unpack(text)
+	local body = text:match("^SGP2:(.+)$")
+	if not body then
+		return text
+	end
+	local E, method = Coder()
+	local decoded = E and Try(E.DecodeBase64, (body:gsub("%s+", "")))
+	local plain = decoded and Try(E.DecompressString, decoded, method)
+	return type(plain) == "string" and plain or nil
+end
+
 -- { name, icon, ui, layout = Blizzard's layout text, layoutData,
 --   customModules, modules, moduleSettings } or nil
 function ns.ParseProfileText(text)
@@ -932,6 +1026,10 @@ function ns.ParseProfileText(text)
 		return nil
 	end
 	text = text:gsub("^%s+", ""):gsub("%s+$", "")
+	text = Unpack(text)
+	if not text then
+		return nil
+	end
 	if text:sub(1, 5) ~= "SGP1;" then
 		return nil
 	end
@@ -952,7 +1050,7 @@ function ns.ParseProfileText(text)
 			end
 		elseif key == "L" then
 			out.layout = Unescape(value)
-		elseif key == "S" or key == "O" or key == "F" then
+		elseif key == "S" or key == "O" or key == "F" or key == "K" then
 			local t = {}
 			for item in value:gmatch("[^,]+") do
 				local var, kind, v = item:match("^([^:]+):(%a)(.*)$")
@@ -969,6 +1067,16 @@ function ns.ParseProfileText(text)
 			end
 			if key == "O" then
 				out.moduleSettings = t
+			elseif key == "S" then
+				out.settings = t
+			elseif key == "K" then
+				-- key = command: only text
+				out.keys = {}
+				for k, v in pairs(t) do
+					if type(v) == "string" then
+						out.keys[k] = v
+					end
+				end
 			elseif key == "F" then
 				out.layoutData = {}
 				for var, v in pairs(t) do

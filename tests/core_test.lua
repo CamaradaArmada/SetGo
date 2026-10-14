@@ -152,7 +152,7 @@ local function LastPopup() return POPUPS[#POPUPS] end
 local ns = {}
 LOAD(B .. "/SetGo", { "Libs/LibStub/LibStub.lua", "Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua", "Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua" }, "SetGo", ns)
 LOAD(B .. "/SetGo", { "Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua" }, "SetGo", ns)
-LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Wizard.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
+LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Wizard.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
 -- a module with one option (Chat)
 local chatDB = { font = "A" }
 local chatS = ns.Pseudo("SETGO_CHAT_font", "Font", "", "A", function() return chatDB.font end, function(v) chatDB.font = v end)
@@ -301,8 +301,10 @@ ns.ResumeSkills()
 -- export / import: character settings never travel
 local txt = ns.ExportProfile("Healer")
 local pp = ns.ParseProfileText(txt)
-check(not txt:find(";S=") and pp.settings == nil, "own settings not exported")
-check(ns.ParseProfileText(txt .. ";S=charVar:n9").settings == nil, "an old S= part is read past")
+check(not txt:find(";S=") and not txt:find(";K=") and pp.settings == nil, "own settings and keys not exported unless asked")
+-- 0.30: asked for, settings (S=) and keybinds (K=) go too
+local full = ns.ParseProfileText(ns.ExportProfile("Healer", { settings = true, keys = true }))
+check(full and full.settings and full.settings.charVar == 8 and full.keys and full.keys.Q == "JUMP", "export with settings and keys: read back")
 ns.ImportProfile(txt)
 check(ns.creating and ns.creating.edit == nil and ns.form.scope.settings == "global" and ns.form.layout.new, "import: a new profile, settings Global")
 ns.LeaveForm(function() ns.OpenForm("Healer") end)

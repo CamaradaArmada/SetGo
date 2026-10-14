@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.30.0 to 0.34.3
+
+- Addons tab in a profile (Addons.lua), shown while there are other addons:
+  - Change addons: the profile switches the other addons on or off on this
+    character, as the game's addon list does (a reload). Addons installed
+    later are left as they are; SetGo! and its modules stay on the Modules
+    tab. Each addon shows its icon, version (red when out of date), author
+    and the addons that go with it.
+  - Ace3 addons: the profile each one switches to when the profile is
+    applied, or Don't change. Only the name: a profile the addon doesn't
+    have here is skipped. Addons switched on by the profile get theirs
+    after the reload.
+- Export: character settings and keybinds can go too, ticked in the
+  Export menu (off each time). Import puts them in the profile's own set;
+  settings this game doesn't have are left out, and said so.
+- The code is compressed with Blizzard's own functions (SGP2:); older
+  codes (SGP1) are still read.
+- Apply counts the addons and Ace3 profiles to change.
+
 ## 0.29.1, Fetch! 0.12.2, Hide! 0.7.2
 
 Cleanup only: nothing changes in the game.

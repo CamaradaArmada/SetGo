@@ -25,7 +25,20 @@ local U = ns.ui
 local form = {}
 ns.form = form
 
-local FORM_TABS = { "layout", "modules", "settings" }
+local ALL_TABS = { "layout", "modules", "addons", "settings" }
+
+-- the tabs shown: Addons only while there are other addons (Ace3 ones may
+-- load later, on demand: looked at each time)
+local function Tabs()
+	local list = {}
+	local ace = ns.AddonList and (#ns.AddonList() > 0 or #ns.AceAddons() > 0)
+	for _, tab in ipairs(ALL_TABS) do
+		if tab ~= "addons" or ace then
+			list[#list + 1] = tab
+		end
+	end
+	return list
+end
 local BLIZZARD_TINT = { 0.12, 0.23, 0.45 } -- Blizzard's layouts: blue ink
 local CELL_H, CELL_GAP = 28, 3
 local LIST_ROWS = 5 -- the account's layouts, all shown
@@ -91,7 +104,7 @@ local function NameText()
 end
 
 local function TabIndex(tab)
-	for i, t in ipairs(FORM_TABS) do
+	for i, t in ipairs(Tabs()) do
 		if t == tab then
 			return i
 		end
@@ -251,6 +264,11 @@ local function FormDefaults(edit)
 		form.customModules = p.customModules and true or false
 		form.moduleSettings = Copy(p.moduleSettings)
 	end
+	-- other addons (Addons.lua): on or off (Change addons), their profiles
+	-- (none listed: none changed)
+	form.aceProfiles = Copy(p and p.aceProfiles) or {}
+	form.customAddons = p and p.customAddons and true or false
+	form.addonStates = Copy(p and p.addonStates)
 	-- the module pages show something even when the profile keeps none yet
 	if form.customModules and not form.moduleSettings then
 		form.moduleSettings = ns.ModuleSnapshot()
@@ -259,6 +277,8 @@ local function FormDefaults(edit)
 		use = index, ui = Copy(form.ui), modules = Copy(form.modules), icon = form.icon,
 		scope = Copy(form.scope), settings = Copy(form.settings), keys = Copy(form.keys),
 		customModules = form.customModules, moduleSettings = Copy(form.moduleSettings),
+		aceProfiles = Copy(form.aceProfiles),
+		customAddons = form.customAddons, addonStates = Copy(form.addonStates),
 	}
 end
 
@@ -280,13 +300,15 @@ local function Dirty()
 	end
 	return not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules)
 		and SameValues(form.scope, o.scope) and SameValues(form.settings, o.settings)
-		and SameValues(form.keys, o.keys) and SameValues(form.moduleSettings, o.moduleSettings))
+		and SameValues(form.keys, o.keys) and SameValues(form.moduleSettings, o.moduleSettings)
+		and SameValues(form.aceProfiles, o.aceProfiles)
+		and form.customAddons == o.customAddons and SameFlags(form.addonStates, o.addonStates))
 end
 ns.FormDirty = Dirty
 
 -- every tab seen (a new profile)
 local function AllVisited()
-	for _, tab in ipairs(FORM_TABS) do
+	for _, tab in ipairs(Tabs()) do
 		if not form.visited[tab] then
 			return false
 		end
@@ -446,6 +468,21 @@ local function CopyFrom(p, what)
 			form.moduleSettings = ns.ModuleSnapshot()
 		end
 		ns.SetFormModules(true)
+	elseif what == "addons" then
+		if p then
+			form.aceProfiles = Copy(p.aceProfiles) or {}
+			form.customAddons = p.customAddons and true or false
+			form.addonStates = Copy(p.addonStates)
+		else
+			-- the addons as they are now, and the profiles they use
+			form.aceProfiles = {}
+			for _, a in ipairs(ns.AceAddons()) do
+				form.aceProfiles[a.addon] = Try(a.db.GetCurrentProfile, a.db)
+			end
+			form.customAddons = true
+			form.addonStates = ns.AddonStates()
+		end
+		ns.Refresh()
 	end
 end
 
@@ -512,6 +549,31 @@ function ns.ImportProfile(text, into)
 		for var, v in pairs(profile.moduleSettings or {}) do
 			form.moduleSettings[var] = v
 		end
+	end
+	-- its character settings and keybinds, when the code has them: this
+	-- profile's own (Profile), so the shared set isn't touched; what this
+	-- version of the game doesn't have is left out
+	if profile.settings then
+		ns.AllSettings()
+		local kept, skipped = {}, 0
+		-- (the game's list not read yet: all of them kept)
+		local known = ns.known and next(ns.known) and ns.known
+		for var, v in pairs(profile.settings) do
+			if not known or known[var] then
+				kept[var] = v
+			else
+				skipped = skipped + 1
+			end
+		end
+		form.scope.settings = "profile"
+		form.settings = kept
+		if skipped > 0 then
+			ns.Print(L.MSG_IMPORT_SKIPPED:format(skipped))
+		end
+	end
+	if profile.keys then
+		form.scope.keys = "profile"
+		form.keys = Copy(profile.keys)
 	end
 	if not replacing then
 		head.name:SetText(ns.FreePresetName(profile.name))
@@ -587,8 +649,8 @@ StaticPopupDialogs.SETGO_EXPORT = {
 	hideOnEscape = true,
 }
 
-function ns.ExportProfileText(name)
-	local text = ns.ExportProfile(name)
+function ns.ExportProfileText(name, opts)
+	local text = ns.PackProfileText(ns.ExportProfile(name, opts))
 	if text then
 		U.Popup("SETGO_EXPORT", L.POPUP_EXPORT_PROFILE:format(name), { text = text })
 	end
@@ -808,6 +870,8 @@ local function FormSave(name, apply)
 		name = name, replace = form.edit, icon = form.icon, ui = Copy(form.ui), modules = form.modules,
 		scope = Copy(form.scope), settings = form.settings, skillsFrom = form.skillsFrom, shared = form.shared,
 		customModules = form.customModules, moduleSettings = form.moduleSettings,
+		aceProfiles = form.aceProfiles,
+		customAddons = form.customAddons, addonStates = form.addonStates,
 		noApply = true,
 	}
 	if form.layout.new then
@@ -894,7 +958,7 @@ function ns.FormButton()
 	if not form.edit then
 		if not AllVisited() then
 			-- Next: the next tab not seen yet
-			for _, tab in ipairs(FORM_TABS) do
+			for _, tab in ipairs(Tabs()) do
 				if not form.visited[tab] then
 					ns.ShowFormTab(tab)
 					return
@@ -930,6 +994,62 @@ local function HasAtlas(atlas)
 	return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) ~= nil
 end
 
+-- A field in ink that opens a menu: its text, Blizzard's arrow (the first
+-- the client has), a ground a little darker than the page, a line under the
+-- text on hover (Copy from in the header; the addons' profile)
+local function InkField(parent, label)
+	local r, g, bl = W.Ink()
+	local b = CreateFrame("Button", nil, parent)
+	b:SetSize(200, 20)
+	b.text = W.Text(b, W.FONT_BODY, nil, label or "", 0.85)
+	b.text:SetPoint("LEFT", 6, 0)
+	Try(b.text.SetWordWrap, b.text, false)
+	local field = b:CreateTexture(nil, "BACKGROUND")
+	field:SetAllPoints()
+	field:SetColorTexture(r, g, bl, 0.1)
+	b:HookScript("OnEnter", function()
+		field:SetColorTexture(r, g, bl, 0.18)
+	end)
+	b:HookScript("OnLeave", function()
+		field:SetColorTexture(r, g, bl, 0.1)
+	end)
+	b.arrow = b:CreateTexture(nil, "ARTWORK")
+	local arrowW = 12
+	if HasAtlas("friendslist-categorybutton-arrow-down") then
+		b.arrow:SetAtlas("friendslist-categorybutton-arrow-down")
+		b.arrow:SetSize(12, 7)
+	elseif HasAtlas("common-dropdown-c-button-hover-arrow") then
+		b.arrow:SetAtlas("common-dropdown-c-button-hover-arrow")
+		b.arrow:SetSize(12, 12)
+	else
+		b.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+		b.arrow:SetSize(14, 14)
+		arrowW = 14
+	end
+	b.arrow:SetPoint("LEFT", b.text, "RIGHT", 6, 0)
+	b.arrow:SetVertexColor(r, g, bl)
+	-- room for the text, the arrow and the margins (the text can change);
+	-- maxW: no wider than that (the text is cut)
+	function b:Fit(maxW)
+		local extra = 6 + 6 + arrowW + 8
+		local textW = tonumber(self.text:GetStringWidth()) or 120
+		if maxW and textW + extra > maxW then
+			textW = maxW - extra
+			self.text:SetWidth(textW)
+		else
+			self.text:SetWidth(0)
+		end
+		self:SetWidth(textW + extra)
+	end
+	local line = b:CreateTexture(nil, "HIGHLIGHT")
+	line:SetHeight(1)
+	line:SetColorTexture(r, g, bl, 0.6)
+	line:SetPoint("BOTTOMLEFT", b.text, "BOTTOMLEFT", 0, -2)
+	line:SetPoint("BOTTOMRIGHT", b.text, "BOTTOMRIGHT", 0, -2)
+	b:Fit()
+	return b
+end
+
 -- Copy from: as the game is now, or another profile (what the tab shows)
 local function CopySources(root)
 	local what = form.tab or "layout"
@@ -951,6 +1071,7 @@ local function CopySources(root)
 			CopyFrom(p, what)
 		end)
 		local empty = (what == "modules" and not (p and (p.customModules or p.moduleSettings)))
+			or (what == "addons" and not (p and (p.customAddons or (p.aceProfiles and next(p.aceProfiles)))))
 		if empty and b and b.SetEnabled then
 			b:SetEnabled(false)
 		end
@@ -1024,50 +1145,9 @@ local function CreateHead(rightPage, width)
 	end)
 	W.TipScripts(head.name, L.NP_NAME, L.NP_NAME_DESC, true)
 
-	-- Copy from, under the name: a line of ink that opens the menu
-	head.copy = CreateFrame("Button", nil, head)
+	-- Copy from, under the name: a field in ink that opens the menu
+	head.copy = InkField(head, L.NP_COPY_FROM .. " " .. L.COPY_CURRENT)
 	head.copy:SetPoint("TOPLEFT", x + 4, -38)
-	head.copy:SetSize(200, 20)
-	head.copy.text = W.Text(head.copy, W.FONT_BODY, nil, L.NP_COPY_FROM .. " " .. L.COPY_CURRENT, 0.85)
-	head.copy.text:SetPoint("LEFT")
-	head.copy.text:ClearAllPoints()
-	head.copy.text:SetPoint("LEFT", 6, 0)
-	-- a field of its own: the page a little darker under it
-	local field = head.copy:CreateTexture(nil, "BACKGROUND")
-	field:SetAllPoints()
-	field:SetColorTexture(r, g, bl, 0.1)
-	head.copy:HookScript("OnEnter", function()
-		field:SetColorTexture(r, g, bl, 0.18)
-	end)
-	head.copy:HookScript("OnLeave", function()
-		field:SetColorTexture(r, g, bl, 0.1)
-	end)
-	-- Blizzard's arrow (the first the client has), in ink
-	head.copy.arrow = head.copy:CreateTexture(nil, "ARTWORK")
-	local arrowW = 12
-	if HasAtlas("friendslist-categorybutton-arrow-down") then
-		head.copy.arrow:SetAtlas("friendslist-categorybutton-arrow-down")
-		head.copy.arrow:SetSize(12, 7)
-	elseif HasAtlas("common-dropdown-c-button-hover-arrow") then
-		head.copy.arrow:SetAtlas("common-dropdown-c-button-hover-arrow")
-		head.copy.arrow:SetSize(12, 12)
-	else
-		head.copy.arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
-		head.copy.arrow:SetSize(14, 14)
-		arrowW = 14
-	end
-	head.copy.arrow:SetPoint("LEFT", head.copy.text, "RIGHT", 6, 0)
-	head.copy.arrow:SetVertexColor(r, g, bl)
-	-- room for the text, the arrow and the margins (the text can change)
-	function head.copy:Fit()
-		self:SetWidth((tonumber(self.text:GetStringWidth()) or 120) + 6 + 6 + arrowW + 8)
-	end
-	head.copy:Fit()
-	local line = head.copy:CreateTexture(nil, "HIGHLIGHT")
-	line:SetHeight(1)
-	line:SetColorTexture(r, g, bl, 0.6)
-	line:SetPoint("BOTTOMLEFT", head.copy.text, "BOTTOMLEFT", 0, -2)
-	line:SetPoint("BOTTOMRIGHT", head.copy.text, "BOTTOMRIGHT", 0, -2)
 	head.copy:SetScript("OnClick", function(self)
 		if MenuUtil and MenuUtil.CreateContextMenu then
 			MenuUtil.CreateContextMenu(self, function(_, root)
@@ -1105,8 +1185,9 @@ local function CreateHead(rightPage, width)
 	band:SetPoint("TOPLEFT", 0, -(TABS_TOP - U.PAD_TOP))
 	band:SetSize(width, TAB_H)
 	head.tabs = {}
-	local tabW = width / #FORM_TABS
-	for i, tab in ipairs(FORM_TABS) do
+	head.tabsWidth = width
+	local tabW = width / #ALL_TABS
+	for i, tab in ipairs(ALL_TABS) do
 		local t = U.MakeTab(head, L["FORM_TAB_" .. tab:upper()], tabW, function()
 			ns.ShowFormTab(tab)
 		end)
@@ -1156,7 +1237,7 @@ local function CreateFoot(rightPage, width)
 	foot.back = W.Button(foot, 90, L.WIZ_BACK, function()
 		local i = TabIndex(form.tab)
 		if i > 1 then
-			ns.ShowFormTab(FORM_TABS[i - 1])
+			ns.ShowFormTab(Tabs()[i - 1])
 		elseif not form.edit then
 			-- the first tab: back to the presets menu
 			form.choosing = true
@@ -1185,7 +1266,7 @@ function ns.RefreshFormButton()
 	end
 	if not edit then
 		local seen = 0
-		for _, tab in ipairs(FORM_TABS) do
+		for _, tab in ipairs(Tabs()) do
 			seen = seen + (form.visited[tab] and 1 or 0)
 		end
 		if AllVisited() then
@@ -1193,7 +1274,7 @@ function ns.RefreshFormButton()
 			foot.pending:SetText(L.FORM_NEW_READY)
 		else
 			foot.main:SetText(L.GUIDE_NEXT)
-			foot.pending:SetText(L.FORM_STEP:format(seen, #FORM_TABS))
+			foot.pending:SetText(L.FORM_STEP:format(seen, #Tabs()))
 		end
 		return
 	end
@@ -1233,8 +1314,19 @@ function ns.RefreshFormHead(onForm)
 	-- the Settings tab has a Copy from for each of its parts
 	head.copy:SetShown(form.tab ~= "settings")
 	head.import:SetEnabled(form.edit ~= nil or not ns.ProfilesFull())
+	-- the tabs shown, side by side over the band
+	local shown = Tabs()
+	local tabW = head.tabsWidth / #shown
 	for tab, t in pairs(head.tabs) do
+		t:Hide()
+	end
+	for i, tab in ipairs(shown) do
+		local t = head.tabs[tab]
+		t:SetWidth(tabW)
+		t:ClearAllPoints()
+		t:SetPoint("TOPLEFT", (i - 1) * tabW, -(TABS_TOP - U.PAD_TOP))
 		t:SetOn(tab == form.tab)
+		t:Show()
 	end
 	ns.RefreshFormButton()
 end
@@ -1618,7 +1710,7 @@ local function CreateModulesBody(width)
 	local list = CreateFrame("Frame", nil, scroll)
 	list:SetSize(listW, 10)
 	scroll:SetScrollChild(list)
-	np.moduleScroll, np.moduleList = scroll, list
+	np.moduleScroll, np.moduleList, np.moduleListW = scroll, list, listW
 
 	np.moduleRows = {}
 	for _, m in ipairs(ns.KNOWN_MODULES) do
@@ -1670,23 +1762,385 @@ local function CreateModulesBody(width)
 		local note = W.Text(list, W.FONT_SMALL, listW, L.NO_MODULES, 0.8)
 		note:SetPoint("TOPLEFT")
 	end
-	-- unticked: nothing can be changed
-	np.moduleBlock = CreateFrame("Frame", nil, body)
-	np.moduleBlock:SetPoint("TOPLEFT", scroll, "TOPLEFT")
-	np.moduleBlock:SetPoint("BOTTOMRIGHT", body, "BOTTOMRIGHT")
+	-- unticked: the modules can't be changed (over their rows only: the
+	-- addons below have their own Don't change)
+	np.moduleBlock = CreateFrame("Frame", nil, list)
+	np.moduleBlock:SetPoint("TOPLEFT", list, "TOPLEFT")
+	np.moduleBlock:SetSize(listW, 10)
 	np.moduleBlock:EnableMouse(true)
-	np.moduleBlock:EnableMouseWheel(true)
-	np.moduleBlock:SetFrameLevel(scroll:GetFrameLevel() + 30)
+	np.moduleBlock:SetFrameLevel(list:GetFrameLevel() + 30)
 	W.TipScripts(np.moduleBlock, L.FORM_CUSTOM_MODULES, L.FORM_MODULES_OFF)
+end
+
+--------------------------------------------------------------------------------
+-- The Addons tab (Addons.lua): Change addons, then every addon installed,
+-- on or off for this profile, and for the Ace3 ones the profile each
+-- switches to (or Don't change, which works with Change addons unticked)
+--------------------------------------------------------------------------------
+
+-- Turns Change addons on or off; on the first time, the addons as they are
+function ns.SetFormAddons(on)
+	form.customAddons = on and true or false
+	if form.customAddons and not form.addonStates then
+		form.addonStates = ns.AddonStates()
+	end
+	ns.Refresh()
+end
+
+-- the profile menu of an Ace3 addon (Don't change, or one of its profiles)
+local function ProfileMenu(owner, row)
+	if not (MenuUtil and MenuUtil.CreateContextMenu) then
+		return
+	end
+	MenuUtil.CreateContextMenu(owner, function(_, root)
+		root:CreateRadio(L.ACE_KEEP, function()
+			return form.aceProfiles[row.ace] == nil
+		end, function()
+			form.aceProfiles[row.ace] = nil
+			ns.Refresh()
+		end)
+		for _, name in ipairs(row.db and ns.AceProfileNames(row.db) or {}) do
+			root:CreateRadio(name, function()
+				return form.aceProfiles[row.ace] == name
+			end, function()
+				form.aceProfiles[row.ace] = name
+				ns.Refresh()
+			end)
+		end
+	end)
+end
+
+-- a card: the icon, the name and the box; under the name the version (red
+-- when out of date) and the author; then, when it has them, the profile
+-- (Ace3) and the button that shows the addons that go with it
+local TEXT_H = 44 -- the name and the line under it
+local FIELD_H = 24 -- the profile field
+local MORE_H = 26 -- the button of the addons that go with it
+local ADDON_ICON = 28
+local CHILD_INDENT = 24
+local TEXT_X = ADDON_ICON + 16
+
+local openGroups = {} -- the groups shown open (this session)
+
+local function AddonRow(list, width)
+	local r, g, bl = W.Ink()
+	local row = CreateFrame("Frame", nil, list)
+	row:SetSize(width, TEXT_H)
+	U.Card(row)
+	row:Look(0.07, 0.35, false)
+	row.icon = ns.RoundIcon(row, ADDON_ICON)
+	row.icon:SetPoint("TOPLEFT", 8, -8)
+	row.on = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+	row.on:SetSize(24, 24)
+	row.on:SetPoint("TOPRIGHT", -6, -9)
+	row.on:SetScript("OnClick", function(self)
+		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+		local on = self:GetChecked() and true or false
+		form.addonStates = form.addonStates or {}
+		form.addonStates[row.addon] = on
+		-- the main addon: the ones that go with it too
+		for _, child in ipairs(row.children or {}) do
+			form.addonStates[child] = on
+		end
+		ns.Refresh()
+	end)
+	W.TipScripts(row.on, function()
+		return row.title
+	end, function()
+		return row.tip
+	end)
+	local textW = width - TEXT_X - 40
+	row.name = W.Text(row, W.FONT_BODY, textW, "")
+	row.name:SetPoint("TOPLEFT", TEXT_X, -8)
+	Try(row.name.SetWordWrap, row.name, false)
+	row.info = W.Text(row, W.FONT_SMALL, textW, "", 0.8)
+	row.info:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
+	Try(row.info.SetWordWrap, row.info, false)
+	-- the profile: a field in ink, as Copy from in the header
+	row.dd = InkField(row, "")
+	row.dd:SetScript("OnClick", function(self)
+		ProfileMenu(self, row)
+	end)
+	W.TipScripts(row.dd, function()
+		return row.title
+	end, L.ACE_TIP, true)
+	-- the addons that go with it: a button with a border, in ink
+	row.more = CreateFrame("Button", nil, row)
+	row.more:SetHeight(20)
+	U.Card(row.more)
+	row.more:Look(0.04, 0.6, false)
+	row.more.text = W.Text(row.more, W.FONT_SMALL, nil, "")
+	row.more.text:SetPoint("CENTER")
+	row.more:SetScript("OnClick", function()
+		openGroups[row.group] = not openGroups[row.group] or nil
+		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+		ns.Refresh()
+	end)
+	W.TipScripts(row.more, function()
+		return row.title
+	end, function()
+		return L.ADDON_CHILDREN:format(#(row.children or {}))
+	end)
+	return row
+end
+
+local rowsMade = {}
+local emptyNote
+
+-- an addon's state on the form (its own when Change addons is on, else
+-- the game's)
+local function StateOf(name)
+	if form.customAddons and form.addonStates and form.addonStates[name] ~= nil then
+		return form.addonStates[name] and true or false
+	end
+	return ns.AddonOn(name)
+end
+
+local function Info(e)
+	-- version (red: made for an older game) and author
+	local version = e.version and L.ADDON_VERSION:format(e.version)
+	if version and e.outdated then
+		version = "|cffd02020" .. version .. "|r"
+	elseif not version and e.outdated then
+		version = "|cffd02020" .. ns.G("ADDON_INTERFACE_VERSION", L.ADDON_OUTDATED) .. "|r"
+	end
+	local parts = {}
+	parts[#parts + 1] = version
+	parts[#parts + 1] = e.author and L.ADDON_AUTHOR:format(e.author)
+	return table.concat(parts, "  \194\183  ")
+end
+
+-- the profile field's text: the one chosen, else Don't change
+local function ProfileLabel(row)
+	local chosen = row.ace and form.aceProfiles[row.ace]
+	return L.ADDON_PROFILE:format(chosen or L.ACE_KEEP)
+end
+
+local function RefreshAddonList()
+	local list, width = np.aceList, np.aceListW
+	form.aceProfiles = form.aceProfiles or {}
+	local custom = form.customAddons
+	-- the game's groups: an addon whose group is another addon here goes
+	-- under it
+	local all, byName, matched = ns.AddonList(), {}, {}
+	for _, a in ipairs(all) do
+		byName[a.name] = a
+	end
+	local tops, kids = {}, {}
+	local aceMap = ns.AceMap(all)
+	-- which addon each one goes with: its Group or X-Part-Of (Spoken_Quests
+	-- and SpokenQuests are the same), else an addon whose name its own
+	-- starts with (SpokenZonesAudio: Spoken_Zones); then up to the top one
+	local function KeyOf(text)
+		return (tostring(text or ""):lower():gsub("[^%w]", ""))
+	end
+	local byKey = {}
+	for _, a in ipairs(all) do
+		byKey[KeyOf(a.name)] = byKey[KeyOf(a.name)] or a.name
+	end
+	local parentOf = {}
+	for _, a in ipairs(all) do
+		local own = KeyOf(a.name)
+		local found
+		for _, g in ipairs({ a.group or false, a.partOf or false }) do
+			local p = g and byKey[KeyOf(g)]
+			if not found and p and p ~= a.name then
+				found = p
+			end
+		end
+		if not found then
+			local bestKey
+			for key, name in pairs(byKey) do
+				if #key >= 5 and key ~= own and own:sub(1, #key) == key and (not bestKey or #key > #bestKey) then
+					bestKey, found = key, name
+				end
+			end
+		end
+		parentOf[a.name] = found
+	end
+	local function Top(name)
+		local p, seen = parentOf[name], { [name] = true }
+		while p and parentOf[p] and not seen[parentOf[p]] do
+			seen[p] = true
+			p = parentOf[p]
+		end
+		return p
+	end
+	for _, a in ipairs(all) do
+		local ace = aceMap[a.name]
+		if ace then
+			matched[ace.addon] = true
+		end
+		local e = {
+			addon = a.name, title = a.title, deps = a.deps, ace = ace, icon = a.icon, atlas = a.atlas,
+			version = a.version, author = a.author, outdated = a.outdated,
+		}
+		local parent = Top(a.name)
+		if parent and parent ~= a.name then
+			kids[parent] = kids[parent] or {}
+			table.insert(kids[parent], e)
+		else
+			tops[#tops + 1] = e
+		end
+	end
+	-- Ace3 databases no addon here was matched to: their dropdown alone
+	for _, ace in ipairs(ns.AceAddons()) do
+		if not matched[ace.addon] then
+			tops[#tops + 1] = { title = ace.addon, ace = ace }
+		end
+	end
+	local y, n = 0, 0
+	local function Place(e, child, parentOn)
+		n = n + 1
+		local row = rowsMade[n] or AddonRow(list, width)
+		rowsMade[n] = row
+		row.addon, row.title = e.addon, e.title
+		row.ace = e.ace and e.ace.addon or nil
+		row.db = e.ace and e.ace.db or nil
+		row.group = e.addon
+		local children = not child and e.addon and kids[e.addon] or nil
+		row.children = {}
+		for _, k in ipairs(children or {}) do
+			row.children[#row.children + 1] = k.addon
+		end
+		row.name:SetText(e.title)
+		row.info:SetText(Info(e))
+		if e.atlas then
+			row.icon:SetAtlas(e.atlas)
+		else
+			row.icon:SetTexture(e.icon or 134400)
+		end
+		-- what it needs, in Blizzard's words
+		local deps = {}
+		for _, d in ipairs(e.deps or {}) do
+			if type(d) == "string" then
+				deps[#deps + 1] = d
+			end
+		end
+		row.tip = #deps > 0 and (ns.G("ADDON_DEPENDENCIES", L.ADDON_DEPS) .. table.concat(deps, ", ")) or L.ADDON_SWITCH_DESC
+		local state
+		row.on:SetShown(e.addon ~= nil)
+		if e.addon then
+			state = StateOf(e.addon)
+			row.on:SetChecked(state)
+			-- a dependent of an addon that is off: it can't load
+			local usable = custom and parentOn ~= false
+			row.on:SetEnabled(usable and true or false)
+			row.on:SetAlpha(usable and 1 or 0.45)
+		end
+		local dim = parentOn == false
+		row.name:SetAlpha(dim and 0.45 or 1)
+		row.info:SetAlpha(dim and 0.45 or 0.8)
+		row.icon:SetDesaturated(dim or state == false)
+		local x = child and CHILD_INDENT or 0
+		local rowW = width - x
+		local h = TEXT_H
+		-- the profile field: Ace3 addons (greyed while off here)
+		local hasProfiles = row.db ~= nil
+		row.dd:SetShown(hasProfiles)
+		if hasProfiles then
+			local on = state ~= false and not dim
+			row.dd.text:SetText(ProfileLabel(row))
+			row.dd:Fit(rowW - TEXT_X - 10)
+			row.dd:ClearAllPoints()
+			row.dd:SetPoint("TOPLEFT", row, "TOPLEFT", TEXT_X - 6, -h)
+			row.dd:SetEnabled(on)
+			row.dd:SetAlpha(on and 1 or 0.45)
+			h = h + FIELD_H
+		end
+		-- the button of a main addon: + 4 addons (open: - 4 addons)
+		local hasKids = #row.children > 0
+		row.more:SetShown(hasKids)
+		if hasKids then
+			row.more.text:SetText(L.ADDON_MORE:format(openGroups[row.group] and "-" or "+", #row.children))
+			row.more:SetWidth((tonumber(row.more.text:GetStringWidth()) or 80) + 20)
+			row.more:ClearAllPoints()
+			row.more:SetPoint("TOPLEFT", row, "TOPLEFT", TEXT_X - 6, -h)
+			h = h + MORE_H
+		end
+		local rowH = h + (h > TEXT_H and 4 or 0)
+		row:SetHeight(rowH)
+		row:SetWidth(rowW)
+		row:ClearAllPoints()
+		row:SetPoint("TOPLEFT", list, "TOPLEFT", x, -y)
+		row:Show()
+		y = y + rowH + CELL_GAP
+		if hasKids and openGroups[row.group] then
+			local on = state ~= false
+			for _, k in ipairs(children) do
+				Place(k, true, on)
+			end
+		end
+	end
+	for _, e in ipairs(tops) do
+		Place(e, false, nil)
+	end
+	for i = n + 1, #rowsMade do
+		rowsMade[i]:Hide()
+	end
+	if not emptyNote then
+		emptyNote = W.Text(list, W.FONT_SMALL, width, L.ADDONS_NONE, 0.8)
+		emptyNote:SetPoint("TOPLEFT")
+	end
+	emptyNote:SetShown(n == 0)
+	return y
+end
+
+local function AddonsChanged()
+	if not (form.customAddons and form.addonStates) then
+		return false
+	end
+	for name, on in pairs(form.addonStates) do
+		if ns.AddonOn(name) ~= (on and true or false) then
+			return true
+		end
+	end
+	return false
+end
+
+-- The Addons tab: a list that scrolls
+local function CreateAddonsBody(width)
+	local body = CreateFrame("Frame", nil, np)
+	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
+	body:SetSize(width, BODY_H)
+	np.addonsBody = body
+	np.customAddons = CustomRow(body, L.FORM_CUSTOM_ADDONS, L.FORM_CUSTOM_ADDONS_DESC, function(on)
+		ns.SetFormAddons(on)
+	end)
+	local listW = width - 22
+	local scroll = CreateFrame("ScrollFrame", nil, body, ScrollTemplate())
+	scroll:SetPoint("TOPLEFT", 0, -ROW_H)
+	scroll:SetSize(listW, BODY_H - ROW_H - 18)
+	-- switching an addon on or off reloads the game when applied
+	np.addonsReload = W.Text(body, W.FONT_SMALL, width, L.RELOAD_LEGEND, 0.8)
+	np.addonsReload:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 0, 2)
+	np.addonsReload:Hide()
+	if scroll.ScrollBar and scroll.ScrollBar.SetHideIfUnscrollable then
+		scroll.ScrollBar:SetHideIfUnscrollable(true)
+	end
+	local list = CreateFrame("Frame", nil, scroll)
+	list:SetSize(listW, 10)
+	scroll:SetScrollChild(list)
+	np.aceList, np.aceListW = list, listW
+	body:Hide()
+end
+
+local function RefreshAddonsBody()
+	np.customAddons:SetChecked(form.customAddons and true or false)
+	np.aceList:SetHeight(math.max(RefreshAddonList(), 10))
+	np.addonsReload:SetShown(AddonsChanged())
 end
 
 local function RefreshModulesBody()
 	local on = form.customModules
 	np.customModules:SetChecked(on)
 	np.moduleBlock:SetShown(not on)
-	np.moduleList:SetAlpha(on and 1 or 0.45)
+	if not on then
+		np.openModule = nil
+	end
 	local y = 0
 	for _, row in ipairs(np.moduleRows) do
+		row:SetAlpha(on and 1 or 0.45)
 		row:ClearAllPoints()
 		row:SetPoint("TOPLEFT", np.moduleList, "TOPLEFT", 0, -y)
 		row.on:SetChecked(form.modules[row.key] and true or false)
@@ -1706,6 +2160,7 @@ local function RefreshModulesBody()
 			row.panel:Hide()
 		end
 	end
+	np.moduleBlock:SetHeight(math.max(y, 1))
 	np.moduleList:SetHeight(math.max(y, 10))
 	np.moduleReload:SetShown(on and not SameFlags(form.modules, (form.orig or {}).modules) or false)
 end
@@ -1879,11 +2334,14 @@ function ns.RefreshNewPreset()
 	np.choiceBody:SetShown(form.choosing and true or false)
 	np.layoutBody:SetShown(tab == "layout")
 	np.modulesBody:SetShown(tab == "modules")
+	np.addonsBody:SetShown(tab == "addons")
 	np.settingsBody:SetShown(tab == "settings")
 	if form.choosing then
 		return
 	elseif tab == "modules" then
 		RefreshModulesBody()
+	elseif tab == "addons" then
+		RefreshAddonsBody()
 	elseif tab == "settings" then
 		RefreshSettingsBody()
 	else
@@ -1901,6 +2359,7 @@ function ns.CreateProfileForm()
 	CreateChoiceBody(width)
 	CreateLayoutBody(width)
 	CreateModulesBody(width)
+	CreateAddonsBody(width)
 	CreateSettingsBody(width)
 	CreateHead(rightPage, width)
 	CreateFoot(rightPage, width)
