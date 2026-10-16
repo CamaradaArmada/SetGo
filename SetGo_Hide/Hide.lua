@@ -288,6 +288,7 @@ function ns.HideManaged(f)
 	return moved[f] ~= nil
 end
 local events = CreateFrame("Frame")
+local DropOldOptions
 
 local function Container(driver)
 	local c = containers[driver]
@@ -706,6 +707,30 @@ SetGo.RegisterModule({ key = "hide", title = L.TITLE, items = Items,
 	-- its tip in SetGo!'s tour: no frame of its own, in the middle of the screen
 	tour = { text = L.TOUR } })
 
+-- Names out of combat and the hidden buffs icon were tried for a few builds
+-- and taken out: the names they hid for a while go back to the player's
+-- values (only those still as they left them), and their data goes.
+DropOldOptions = function()
+	if type(db) ~= "table" then
+		return
+	end
+	local n = db.names
+	if type(n) == "table" and type(n.base) == "table" and type(n.wrote) == "table" and next(n.wrote) then
+		if InCombatLockdown() then
+			events:RegisterEvent("PLAYER_REGEN_ENABLED")
+			return
+		end
+		for var, base in pairs(n.base) do
+			local wrote = n.wrote[var]
+			if wrote ~= nil and C_CVar.GetCVar(var) == wrote then
+				pcall(C_CVar.SetCVar, var, base)
+			end
+		end
+	end
+	db.names, db.buffIcon = nil, nil
+	db.enemyNames, db.enemyNamesKey, db.friendNames, db.friendNamesKey = nil, nil, nil, nil
+end
+
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_LOGIN")
 events:SetScript("OnEvent", function(self, event, arg1)
@@ -720,6 +745,7 @@ events:SetScript("OnEvent", function(self, event, arg1)
 			HookSpellbooks()
 		end
 	elseif event == "PLAYER_LOGIN" then
+		DropOldOptions()
 		-- switched off in SetGo!: only the settings page is here
 		if SetGo.ModuleOn("hide") then
 			Start()
@@ -728,6 +754,7 @@ events:SetScript("OnEvent", function(self, event, arg1)
 		RevealChanged()
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+		DropOldOptions()
 		Apply()
 	end
 end)

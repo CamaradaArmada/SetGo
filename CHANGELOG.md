@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.3
+
+New version numbering: one public version for the whole package (SetGo!
+and its modules), 0.x while in beta. 0.9.3 follows 0.34.3. Each addon's
+own build is in its toc as X-Build.
+
+SetGo! (build 3)
+- Addons tab cards: the Ace3 profile field sits on the first line, next to
+  the checkbox; the "+ N addons" button sits centred under a thin rule.
+- Change addons switches the other addons on and off for this character
+  (by its GUID, as the game's addon list does), so applying the profile no
+  longer keeps asking to apply again.
+- ns.AceOfAddon, called by nothing, gone.
+
+Hide! (build 5)
+- Names out of combat and the hidden buffs icon, tried in test builds and
+  taken out: the names they hid go back to the player's values, and their
+  saved data goes.
+
 ## 0.30.0 to 0.34.3
 
 - Addons tab in a profile (Addons.lua), shown while there are other addons:

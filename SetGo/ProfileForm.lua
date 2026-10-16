@@ -1810,17 +1810,24 @@ local function ProfileMenu(owner, row)
 	end)
 end
 
--- a card: the icon, the name and the box; under the name the version (red
--- when out of date) and the author; then, when it has them, the profile
--- (Ace3) and the button that shows the addons that go with it
+-- a card: the icon, the name, the profile (Ace3) and the box on the first
+-- line; under the name the version (red when out of date) and the author;
+-- then, when it has them, a thin rule and the button that shows the addons
+-- that go with it
 local TEXT_H = 44 -- the name and the line under it
-local FIELD_H = 24 -- the profile field
-local MORE_H = 26 -- the button of the addons that go with it
+local MORE_H = 32 -- the rule and the button of the addons that go with it
+local FIELD_MAX = 0.4 -- the profile field: at most this much of the card
 local ADDON_ICON = 28
 local CHILD_INDENT = 24
 local TEXT_X = ADDON_ICON + 16
 
 local openGroups = {} -- the groups shown open (this session)
+
+-- the profile field's text: the one chosen, else Don't change
+local function ProfileLabel(row)
+	local chosen = row.ace and form.aceProfiles[row.ace]
+	return L.ADDON_PROFILE:format(chosen or L.ACE_KEEP)
+end
 
 local function AddonRow(list, width)
 	local r, g, bl = W.Ink()
@@ -1863,7 +1870,16 @@ local function AddonRow(list, width)
 	end)
 	W.TipScripts(row.dd, function()
 		return row.title
-	end, L.ACE_TIP, true)
+	end, function()
+		-- the whole name (the field can cut it)
+		return ProfileLabel(row) .. "\n\n" .. L.ACE_TIP
+	end, true)
+	-- a thin rule over the button of the addons that go with it
+	row.rule = row:CreateTexture(nil, "ARTWORK")
+	row.rule:SetHeight(1)
+	row.rule:SetColorTexture(r, g, bl, 0.25)
+	row.rule:SetPoint("TOPLEFT", row, "TOPLEFT", 8, -TEXT_H)
+	row.rule:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -TEXT_H)
 	-- the addons that go with it: a button with a border, in ink
 	row.more = CreateFrame("Button", nil, row)
 	row.more:SetHeight(20)
@@ -1910,11 +1926,6 @@ local function Info(e)
 	return table.concat(parts, "  \194\183  ")
 end
 
--- the profile field's text: the one chosen, else Don't change
-local function ProfileLabel(row)
-	local chosen = row.ace and form.aceProfiles[row.ace]
-	return L.ADDON_PROFILE:format(chosen or L.ACE_KEEP)
-end
 
 local function RefreshAddonList()
 	local list, width = np.aceList, np.aceListW
@@ -2035,30 +2046,41 @@ local function RefreshAddonList()
 		local x = child and CHILD_INDENT or 0
 		local rowW = width - x
 		local h = TEXT_H
-		-- the profile field: Ace3 addons (greyed while off here)
+		-- the room the name has: up to the box (or the card's edge)
+		local textW = rowW - TEXT_X - (e.addon and 38 or 10)
+		-- the profile field: Ace3 addons, on the first line, left of the box
+		-- (greyed while off here)
 		local hasProfiles = row.db ~= nil
 		row.dd:SetShown(hasProfiles)
 		if hasProfiles then
 			local on = state ~= false and not dim
 			row.dd.text:SetText(ProfileLabel(row))
-			row.dd:Fit(rowW - TEXT_X - 10)
+			row.dd:Fit(math.floor(rowW * FIELD_MAX))
 			row.dd:ClearAllPoints()
-			row.dd:SetPoint("TOPLEFT", row, "TOPLEFT", TEXT_X - 6, -h)
+			if e.addon then
+				row.dd:SetPoint("RIGHT", row.on, "LEFT", -4, 0)
+			else
+				row.dd:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -11)
+			end
 			row.dd:SetEnabled(on)
 			row.dd:SetAlpha(on and 1 or 0.45)
-			h = h + FIELD_H
+			textW = textW - (tonumber(row.dd:GetWidth()) or 0) - 8
 		end
-		-- the button of a main addon: + 4 addons (open: - 4 addons)
+		row.name:SetWidth(math.max(textW, 40))
+		row.info:SetWidth(math.max(textW, 40))
+		-- the button of a main addon, centred under a thin rule: + 4 addons (open:
+		-- - 4 addons)
 		local hasKids = #row.children > 0
+		row.rule:SetShown(hasKids)
 		row.more:SetShown(hasKids)
 		if hasKids then
 			row.more.text:SetText(L.ADDON_MORE:format(openGroups[row.group] and "-" or "+", #row.children))
 			row.more:SetWidth((tonumber(row.more.text:GetStringWidth()) or 80) + 20)
 			row.more:ClearAllPoints()
-			row.more:SetPoint("TOPLEFT", row, "TOPLEFT", TEXT_X - 6, -h)
+			row.more:SetPoint("TOP", row, "TOP", 0, -(h + 6))
 			h = h + MORE_H
 		end
-		local rowH = h + (h > TEXT_H and 4 or 0)
+		local rowH = h
 		row:SetHeight(rowH)
 		row:SetWidth(rowW)
 		row:ClearAllPoints()

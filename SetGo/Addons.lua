@@ -143,8 +143,10 @@ end
 -- a reload, as in the game's list.
 --------------------------------------------------------------------------------
 
+-- this character, as the game's addon list knows it in game (by GUID; the
+-- name only if there's no GUID)
 local function Me()
-	return UnitName("player")
+	return UnitGUID("player") or UnitName("player")
 end
 
 local function Plain(text)
@@ -291,10 +293,6 @@ function ns.AceMap(addons)
 		end
 	end
 	return map
-end
-
-function ns.AceOfAddon(name, title)
-	return ns.AceMap({ { name = name, title = title } })[name]
 end
 
 -- After a reload: the Ace3 profiles of addons the profile switched on (they
