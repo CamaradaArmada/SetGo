@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.10.0
+
+SetGo! (builds 4 to 8)
+- Window size: a checkbox and slider (75% to 150%) on the SetGo! page;
+  the SetGo! window, the guide and the Quick Menu follow it
+  (ns.ScaleFrame), applied with the page's Apply button.
+- GitHub button on the SetGo! page: a popup with the address to copy.
+- SetGo! page grouped under General, Window size, Keybinds and Help; the
+  tour and GitHub buttons side by side at the bottom.
+- Options with a checkbox and a slider show both on one line.
+- Import is a menu, as Export: Character settings and Keybindings (off
+  each time), then Import.
+- Import: when the layout in the code doesn't load in this game,
+  everything else is still imported and the Layout tab asks for one.
+- Tour: a tip next to a frame at the edge of the screen moves to the side
+  with room, so its button stays on screen.
+- ns.AceOfAddon, called by nothing, gone again (it came back with a build
+  made from an older copy).
+
 ## 0.9.3
 
 New version numbering: one public version for the whole package (SetGo!

@@ -560,6 +560,7 @@ end
 
 local function Build()
 	frame = CreateFrame("Frame", "SetGoQuickFrame", UIParent, "ButtonFrameTemplate")
+	ns.ScaleFrame(frame)
 	frame:SetFrameStrata("HIGH")
 	frame:SetToplevel(true)
 	frame:EnableMouse(true)

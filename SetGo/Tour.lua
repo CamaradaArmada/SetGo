@@ -96,6 +96,56 @@ local function AutoPoint(frame)
 	return x > w / 2 and "left" or "right"
 end
 
+-- the room around a frame, in UIParent's units: left, right, below, above,
+-- and its middle (nil when it isn't placed)
+local TIP_W, TIP_H = 330, 170 -- about a tip's size, with its button
+local function Room(frame)
+	local l, r = Try(frame.GetLeft, frame), Try(frame.GetRight, frame)
+	local t, b = Try(frame.GetTop, frame), Try(frame.GetBottom, frame)
+	local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+	if not (l and r and t and b and w and h) then
+		return nil
+	end
+	local k = (Try(frame.GetEffectiveScale, frame) or 1) / (UIParent:GetEffectiveScale() or 1)
+	l, r, t, b = l * k, r * k, t * k, b * k
+	return { left = l, right = w - r, below = b, above = h - t, midY = (t + b) / 2, h = h }
+end
+
+local OPPOSITE = { left = "right", right = "left", top = "bottom", bottom = "top" }
+
+-- the side asked for (or worked out), unless the tip wouldn't fit there:
+-- then the other side; at the left or right of a frame near the bottom
+-- (or top) of the screen, the tip goes up (or down) from the arrow, so its
+-- button stays on the screen. Returns the side and the alignment.
+local function FitSide(frame, side)
+	local room = Room(frame)
+	if not room then
+		return side, nil
+	end
+	local function Fits(s)
+		if s == "bottom" then
+			return room.below >= TIP_H
+		elseif s == "top" then
+			return room.above >= TIP_H
+		elseif s == "left" then
+			return room.left >= TIP_W
+		end
+		return room.right >= TIP_W
+	end
+	if not Fits(side) and Fits(OPPOSITE[side]) then
+		side = OPPOSITE[side]
+	end
+	local align
+	if side == "left" or side == "right" then
+		if room.midY - TIP_H / 2 < 0 then
+			align = HelpTip.Alignment.Bottom
+		elseif room.midY + TIP_H / 2 > room.h then
+			align = HelpTip.Alignment.Top
+		end
+	end
+	return side, align
+end
+
 local function Centre()
 	if not centre then
 		centre = CreateFrame("Frame", nil, UIParent)
@@ -122,12 +172,15 @@ function ShowStep(i)
 	end
 	index = i
 	local frame = Resolve(step.frame)
-	local target, point, arrow = frame, nil, true
+	local target, point, arrow, align = frame, nil, true, nil
+	local side
 	if not Shown(frame) then
 		target, arrow = Centre(), false
 		point = "TopEdgeCenter"
 	else
-		point = POINTS[step.point] or POINTS[AutoPoint(frame)]
+		side = POINTS[step.point] and step.point or AutoPoint(frame)
+		side, align = FitSide(frame, side)
+		point = POINTS[side]
 	end
 	local last = i == #steps
 	local info = {
@@ -135,6 +188,9 @@ function ShowStep(i)
 		text = step.text .. "\n\n|cff9d9d9d" .. L.TOUR_STEP:format(i, #steps) .. "|r",
 		buttonStyle = last and HelpTip.ButtonStyle.GotIt or HelpTip.ButtonStyle.Next,
 		targetPoint = HelpTip.Point[point],
+		alignment = align,
+		-- above or under a frame: slid sideways to stay on the screen
+		autoHorizontalSlide = (side == "top" or side == "bottom") or nil,
 		hideArrow = not arrow,
 		system = SYSTEM,
 		onAcknowledgeCallback = function()

@@ -667,6 +667,8 @@ local EN32 = {
 	ADDON_CHILDREN = "%d addons that go with it. Its box switches them too.",
 	ADDON_PROFILE = "Profile: %s",
 	ADDON_MORE = "%s %d addons",
+	MSG_IMPORT_NO_LAYOUT = "The layout in this code doesn't load in this version of the game. Everything else was imported: pick a layout on the Layout tab.",
+	IMPORT_PART_DESC = "Ticked: if the code has them, they come in as this profile's own. Unticked: left out, and the profile keeps the ones it uses.",
 }
 
 local PT32 = {
@@ -682,6 +684,8 @@ local PT32 = {
 	ADDON_CHILDREN = "%d addons que vão com este. A caixa deste também os liga e desliga.",
 	ADDON_PROFILE = "Perfil: %s",
 	ADDON_MORE = "%s %d addons",
+	MSG_IMPORT_NO_LAYOUT = "O layout deste código não carrega nesta versão do jogo. O resto foi importado: escolhe um layout na aba Layout.",
+	IMPORT_PART_DESC = "Marcado: se o código as tiver, entram como as próprias deste perfil. Desmarcado: ficam de fora e o perfil fica com as que usa.",
 }
 
 for key, value in pairs(EN32) do

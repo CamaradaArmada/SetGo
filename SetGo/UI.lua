@@ -260,10 +260,13 @@ local function RenderItems(pf, items, y, width)
 			y = W.Dropdown(pf, y, CW, item.indent, Label(item), item.tooltip, item.options, Getter(item.setting), Setter(item.setting))
 		elseif kind == "slider" then
 			y = W.Slider(pf, y, CW, item.indent, Label(item), item.tooltip, item.options, Getter(item.setting), Setter(item.setting))
-		elseif kind == "cbslider" or kind == "cbdropdown" then
+		elseif kind == "cbslider" then
+			-- the box and its slider on one line, as Blizzard's
+			y = W.CheckSlider(pf, y, CW, item.indent, Label(item), item.tooltip, Getter(item.setting), Setter(item.setting),
+				item.secondName, item.secondTooltip, item.options, Getter(item.second), Setter(item.second))
+		elseif kind == "cbdropdown" then
 			y = W.Checkbox(pf, y, CW, item.indent, Label(item), item.tooltip, Getter(item.setting), Setter(item.setting))
-			local build = kind == "cbslider" and W.Slider or W.Dropdown
-			y = build(pf, y, CW, true, item.secondName, item.secondTooltip, item.options, Getter(item.second), Setter(item.second))
+			y = W.Dropdown(pf, y, CW, true, item.secondName, item.secondTooltip, item.options, Getter(item.second), Setter(item.second))
 		elseif kind == "blizzard" then
 			y = y + 8
 			local b = W.Button(pf, 260, item.name, function()
@@ -977,10 +980,13 @@ local function CreatePages()
 	rp.pending:SetJustifyH("CENTER")
 	rp.pending:SetPoint("BOTTOM", rp, "BOTTOM", 0, 48)
 	rp.discard = IconBox(rp, { "common-icon-undo" }, "X", function()
-		local n = ns.CountStaged()
+		local n = ns.CountStaged() + ((ns.ScaleWaiting and ns.ScaleWaiting()) and 1 or 0)
 		if n > 0 then
 			Confirm(L.POPUP_DISCARD:format(n), function()
 				ns.ClearStaged()
+				if ns.DiscardScale then
+					ns.DiscardScale()
+				end
 				ns.Refresh()
 			end)
 		end
@@ -1168,7 +1174,9 @@ UpdateChrome = function()
 	-- Changes waiting (a module page's Blizzard setting): Apply puts them on
 	-- this character. The Modules tab: Save to active profile.
 	local group = state.group
-	local staging = state.mode == "pages" and ns.CountStaged() > 0
+	-- SetGo!'s page: the window size waiting counts as one
+	local extra = (group == "setgo" and ns.ScaleWaiting and ns.ScaleWaiting()) and 1 or 0
+	local staging = state.mode == "pages" and ns.CountStaged() + extra > 0
 	local saving = group == "modules"
 	rp.main:SetShown(staging)
 	rp.save:SetShown(saving)
@@ -1188,7 +1196,7 @@ UpdateChrome = function()
 	if not staging then
 		return
 	end
-	local n = ns.CountStaged()
+	local n = ns.CountStaged() + extra
 	rp.pending:SetText(n > 0 and L.PENDING:format(n) or L.NO_PENDING)
 	rp.main:SetText(L.APPLY)
 	rp.main:SetEnabled(n > 0)
@@ -1287,6 +1295,10 @@ function ns.Select(group, index, quiet)
 		state.tab = TAB_OF[group]
 	end
 	local sameGroup = group == state.group
+	-- leaving SetGo!'s page: a window size not applied is dropped
+	if not sameGroup and ns.DiscardScale then
+		ns.DiscardScale()
+	end
 	state.group = group
 	if special then
 		state.pages = nil
@@ -1464,8 +1476,10 @@ function ns.SlotMenu(b)
 		local new = root:CreateButton(L.NEW_PRESET, function()
 			ns.SlotClick("options", nil)
 		end)
-		local import = root:CreateButton(L.IMPORT_PROFILE, function()
-			ns.AskImportProfile()
+		-- Import: what of the code comes in too (as Export)
+		local import = root:CreateButton(L.IMPORT_PROFILE)
+		ns.ImportMenuItems(import, function(opts)
+			ns.AskImportProfile(nil, opts)
 		end)
 		if full then
 			for _, b in ipairs({ new, import }) do
@@ -1480,6 +1494,14 @@ end
 -- Apply: every change waiting, after asking: the
 -- reload must come from Blizzard's own popup
 function ns.ApplyAndSave()
+	-- the window size (SetGo!'s page): at once, no reload
+	if ns.ScaleWaiting and ns.ScaleWaiting() then
+		ns.ApplyScaleDraft()
+		if ns.CountStaged() == 0 then
+			ns.Refresh()
+			return
+		end
+	end
 	local n = ns.CountStaged()
 	if n == 0 then
 		ns.Print(L.NO_CHANGES)
@@ -1552,6 +1574,13 @@ end
 local function CreateWindow()
 	frame = CreateFrame("Frame", "SetGoFrame", UIParent, "ButtonFrameTemplate")
 	frame:SetSize(FRAME_W, FRAME_H)
+	ns.ScaleFrame(frame)
+	-- closed: a window size not applied is dropped
+	frame:HookScript("OnHide", function()
+		if ns.DiscardScale then
+			ns.DiscardScale()
+		end
+	end)
 	frame:SetPoint("CENTER")
 	frame:SetFrameStrata("DIALOG")
 	frame:SetToplevel(true)

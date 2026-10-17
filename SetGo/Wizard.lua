@@ -767,6 +767,7 @@ local resumeAfterCombat = false
 local function CreateWindow()
 	frame = CreateFrame("Frame", "SetGoWizard", UIParent, "ButtonFrameTemplate")
 	frame:SetSize(FRAME_W, FRAME_H)
+	ns.ScaleFrame(frame)
 	frame:SetPoint("CENTER")
 	frame:SetFrameStrata("DIALOG")
 	frame:SetToplevel(true)

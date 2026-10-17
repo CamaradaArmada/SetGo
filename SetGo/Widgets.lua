@@ -247,6 +247,55 @@ function W.Slider(page, y, width, indent, label, tip, options, get, set)
 	return y + 20 + ROW_GAP, slider
 end
 
+-- a checkbox with its slider on the same line, as Blizzard's (Use UI
+-- Scale): the slider greyed while the box is off
+function W.CheckSlider(page, y, width, indent, label, tip, get, set, sLabel, sTip, options, sget, sset)
+	local x = indent and INDENT or 0
+	local sliderW = math.min(200, math.floor((width - x) * 0.42))
+	local textRoom = 44 -- the value on the slider's right
+	local cb = CreateFrame("CheckButton", nil, page, "UICheckButtonTemplate")
+	cb:SetSize(26, 26)
+	cb:SetPoint("TOPLEFT", page, "TOPLEFT", x - 3, -(y - 5))
+	local h = Label(page, x + 26, y, width - x - 26 - sliderW - textRoom - 12, label, tip)
+	TipScripts(cb, label, tip)
+	local slider = CreateFrame("Frame", nil, page, "MinimalSliderWithSteppersTemplate")
+	slider:SetPoint("TOPLEFT", page, "TOPLEFT", width - sliderW - textRoom, -(y - 2))
+	slider:SetSize(sliderW, 20)
+	TipScripts(slider, sLabel or label, sTip or tip, true)
+	local min, max = options.minValue or 0, options.maxValue or 1
+	local steps = options.steps or 100
+	local busy = false
+	local function Shade(on)
+		if slider.SetEnabled then
+			pcall(slider.SetEnabled, slider, on)
+		end
+		DarkenSliderText(slider)
+		slider:SetAlpha(on and 1 or 0.5)
+	end
+	slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
+		if not busy then
+			sset(value)
+		end
+	end, slider)
+	cb:SetScript("OnClick", function(self)
+		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+		local on = self:GetChecked() and true or false
+		set(on)
+		Shade(on)
+	end)
+	table.insert(page.refreshers, function()
+		local on = get() and true or false
+		cb:SetChecked(on)
+		busy = true
+		local value = tonumber(sget()) or min
+		value = math.max(min, math.min(max, value))
+		slider:Init(value, min, max, steps, options.formatters)
+		busy = false
+		Shade(on)
+	end)
+	return y + math.max(h, 20) + ROW_GAP, cb, slider
+end
+
 -- key binding button: click, then press a key; right click clears
 local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true, RALT = true, UNKNOWN = true }
 local MOUSE_KEYS = { MiddleButton = "BUTTON3", Button4 = "BUTTON4", Button5 = "BUTTON5" }

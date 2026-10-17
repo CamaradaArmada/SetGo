@@ -80,6 +80,13 @@ local L = {
 	-- SetGo! settings
 	SETGO_MUTE = "Mute SetGo! sounds",
 	SETGO_MUTE_DESC = "No book, page or checkbox sounds from SetGo!.",
+	SETGO_GENERAL = "General",
+	SETGO_HELP = "Help",
+	SETGO_GITHUB = "GitHub",
+	SETGO_GITHUB_DESC = "SetGo!'s page on GitHub: what changed in each version, and where to report a problem.",
+	POPUP_GITHUB = "SetGo! on GitHub. Copy the address with Ctrl+C and open it in your browser.",
+	SETGO_SCALE = "Window size",
+	SETGO_SCALE_DESC = "Makes SetGo!'s windows bigger or smaller: this one, the guide and the Quick Menu. The game's own UI scale is in Blizzard's Options.",
 	SETGO_KEY = "Key to open SetGo!",
 	SETGO_KEY_DESC = "Click, then press a key. Right click clears it.",
 	BINDING_TOGGLE = "Open or close SetGo!",
@@ -179,6 +186,12 @@ if GetLocale() == "ptBR" then
 
 	L.SETGO_MUTE = "Silenciar os sons do SetGo!"
 	L.SETGO_MUTE_DESC = "Sem sons de livro, páginas ou caixas de selecção vindos do SetGo!."
+	L.SETGO_GENERAL = "Geral"
+	L.SETGO_HELP = "Ajuda"
+	L.SETGO_GITHUB_DESC = "A página do SetGo! no GitHub: o que mudou em cada versão e onde reportar um problema."
+	L.POPUP_GITHUB = "O SetGo! no GitHub. Copia o endereço com Ctrl+C e abre-o no navegador."
+	L.SETGO_SCALE = "Tamanho das janelas"
+	L.SETGO_SCALE_DESC = "Aumenta ou diminui as janelas do SetGo!: esta, o guia e o Quick Menu. A escala da interface do jogo está nas Opções da Blizzard."
 	L.SETGO_KEY = "Tecla para abrir o SetGo!"
 	L.SETGO_KEY_DESC = "Clica e carrega numa tecla. O clique direito apaga-a."
 	L.BINDING_TOGGLE = "Abrir ou fechar o SetGo!"

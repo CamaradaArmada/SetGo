@@ -511,7 +511,9 @@ end
 -- Import profile: a SetGo! profile as text, every tab of the form filled;
 -- nothing is kept until saved. into: the profile open on the form, which
 -- it replaces (its name stays); else (the cards) a new profile.
-function ns.ImportProfile(text, into)
+-- opts: { settings, keys } false leaves that part of the code out (the
+-- Import menu's boxes)
+function ns.ImportProfile(text, into, opts)
 	text = strtrim(text or "")
 	local profile = ns.ParseProfileText(text)
 	if not profile then
@@ -533,7 +535,12 @@ function ns.ImportProfile(text, into)
 		end
 	end
 	form.choosing = nil
-	form.layout = { new = true, template = profile.layout, imported = true, fromLabel = profile.name, data = profile.layoutData or false }
+	-- its layout, if this version of the game can read it (Blizzard's own
+	-- format); else the form keeps the layout it has, and says so
+	local layoutOK = type(C_EditMode and Try(C_EditMode.ConvertStringToLayoutInfo, profile.layout)) == "table"
+	if layoutOK then
+		form.layout = { new = true, template = profile.layout, imported = true, fromLabel = profile.name, data = profile.layoutData or false }
+	end
 	for key, on in pairs(profile.ui) do
 		form.ui[key] = on
 	end
@@ -553,7 +560,8 @@ function ns.ImportProfile(text, into)
 	-- its character settings and keybinds, when the code has them: this
 	-- profile's own (Profile), so the shared set isn't touched; what this
 	-- version of the game doesn't have is left out
-	if profile.settings then
+	opts = opts or {}
+	if profile.settings and opts.settings ~= false then
 		ns.AllSettings()
 		local kept, skipped = {}, 0
 		-- (the game's list not read yet: all of them kept)
@@ -571,7 +579,7 @@ function ns.ImportProfile(text, into)
 			ns.Print(L.MSG_IMPORT_SKIPPED:format(skipped))
 		end
 	end
-	if profile.keys then
+	if profile.keys and opts.keys ~= false then
 		form.scope.keys = "profile"
 		form.keys = Copy(profile.keys)
 	end
@@ -579,8 +587,21 @@ function ns.ImportProfile(text, into)
 		head.name:SetText(ns.FreePresetName(profile.name))
 	end
 	ns.Print(L.MSG_PROFILE_IMPORTED:format(profile.name))
+	if not layoutOK then
+		ns.Print(L.MSG_IMPORT_NO_LAYOUT)
+		U.Popup("SETGO_NOTICE", L.MSG_IMPORT_NO_LAYOUT)
+	end
 	ns.Refresh()
 end
+
+StaticPopupDialogs.SETGO_NOTICE = {
+	text = "%s",
+	button1 = OKAY or "Okay",
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	showAlert = true,
+}
 
 StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	text = "%s",
@@ -592,8 +613,9 @@ StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	OnAccept = function(self, data)
 		local text = U.EditBoxOf(self):GetText()
 		local into = data and data.into
+		local opts = data and data.opts
 		C_Timer.After(0, function()
-			ns.ImportProfile(text, into)
+			ns.ImportProfile(text, into, opts)
 		end)
 	end,
 	EditBoxOnEscapePressed = function(self)
@@ -604,9 +626,38 @@ StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	hideOnEscape = true,
 }
 
-function ns.AskImportProfile(into)
+function ns.AskImportProfile(into, opts)
 	C_Timer.After(0, function()
-		U.Popup("SETGO_IMPORT_PROFILE", L.POPUP_IMPORT_PROFILE, { into = into })
+		U.Popup("SETGO_IMPORT_PROFILE", L.POPUP_IMPORT_PROFILE, { into = into, opts = opts })
+	end)
+end
+
+-- The Import menu, as the Export one: what of the code comes in too, when
+-- it has them (ticked each time it opens), then Import. run(opts) asks for
+-- the code.
+function ns.ImportMenuItems(parent, run)
+	local with = { settings = false, keys = false }
+	local function Box(label, key)
+		local box = parent:CreateCheckbox(label, function()
+			return with[key]
+		end, function()
+			with[key] = not with[key]
+		end)
+		if box and box.SetResponse and MenuResponse then
+			box:SetResponse(MenuResponse.Refresh)
+		end
+		if box and box.SetTooltip then
+			box:SetTooltip(function(tooltip)
+				GameTooltip_SetTitle(tooltip, label)
+				GameTooltip_AddNormalLine(tooltip, L.IMPORT_PART_DESC)
+			end)
+		end
+	end
+	Box(L.SCOPE_SETTINGS, "settings")
+	Box(ns.G("KEY_BINDINGS", L.SCOPE_KEYS), "keys")
+	parent:CreateDivider()
+	parent:CreateButton(L.IMPORT_PROFILE .. "...", function()
+		run({ settings = with.settings, keys = with.keys })
 	end)
 end
 
@@ -732,6 +783,9 @@ local function CreatePicker()
 	local template = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("BasicFrameTemplateWithInset")
 		and "BasicFrameTemplateWithInset" or nil
 	picker = CreateFrame("Frame", "SetGoIconPicker", U.frame or UIParent, template)
+	if picker:GetParent() == UIParent then
+		ns.ScaleFrame(picker)
+	end
 	local w = PICK_COLS * (PICK_SIZE + PICK_GAP) + 50
 	local h = PICK_ROWS * (PICK_SIZE + PICK_GAP) + PICK_TOP + 20
 	picker:SetSize(w, h)
@@ -1161,15 +1215,25 @@ local function CreateHead(rightPage, width)
 
 	-- Import, on the right of the same line: a profile someone shared, made
 	-- as a new one (as Import profile on the cards' menu)
-	head.import = W.Button(head, 120, L.IMPORT_PROFILE, function()
-		local edit = form.edit
-		if edit then
-			-- into the profile open: always asked first
-			U.Confirm(L.POPUP_IMPORT_REPLACE:format(edit), function()
-				ns.AskImportProfile(edit)
+	head.import = W.Button(head, 120, L.IMPORT_PROFILE, function(self)
+		local function Run(opts)
+			local edit = form.edit
+			if edit then
+				-- into the profile open: always asked first
+				U.Confirm(L.POPUP_IMPORT_REPLACE:format(edit), function()
+					ns.AskImportProfile(edit, opts)
+				end)
+			else
+				ns.AskImportProfile(nil, opts)
+			end
+		end
+		-- the menu: what comes in too, then Import
+		if MenuUtil and MenuUtil.CreateContextMenu then
+			MenuUtil.CreateContextMenu(self or head.import, function(_, root)
+				ns.ImportMenuItems(root, Run)
 			end)
 		else
-			ns.AskImportProfile()
+			Run(nil)
 		end
 	end, 22)
 	local fs = head.import.GetFontString and head.import:GetFontString()

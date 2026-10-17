@@ -418,6 +418,8 @@ for _, f in ipairs(FRAMES) do
 end
 check(importButton ~= nil, "Import on the header")
 importButton._scripts.OnClick(importButton)
+-- build 8: a menu, as Export (settings and keybindings, then Import)
+Click(RunCtx(), ns.L.IMPORT_PROFILE .. "...")
 check(LastPopup().which == "SETGO_CONFIRM", "Import on a profile: asked first")
 LastPopup().data.onAccept()
 RUN_TIMERS()
