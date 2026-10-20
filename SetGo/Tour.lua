@@ -273,7 +273,7 @@ end
 -- a profile)
 local function ModuleTips()
 	local list = {}
-	if #ns.ProfileSlots() == 0 then
+	if #ns.ProfileSlots() == 0 or not CanShow() then
 		return list
 	end
 	ns.db.tourSeen = ns.db.tourSeen or {}
@@ -282,16 +282,10 @@ local function ModuleTips()
 		if def and def.tour and ns.ModuleOn(m.key) and not ns.db.tourSeen[m.key] then
 			local steps = StepsOf(def.tour)
 			if #steps > 0 then
-				local key = m.key
-				-- seen once its last tip is
-				local copy = {}
-				for i, step in ipairs(steps) do
-					copy[i] = setmetatable({}, { __index = step })
-				end
-				copy[#copy].onDone = function()
-					ns.db.tourSeen[key] = true
-				end
-				for _, step in ipairs(copy) do
+				-- seen once they start: not again on the next login, even
+				-- if the last one (waiting for a flyout, say) never shows
+				ns.db.tourSeen[m.key] = true
+				for _, step in ipairs(steps) do
 					list[#list + 1] = step
 				end
 			end

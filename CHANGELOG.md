@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.2
+
+SetGo! (build 12)
+- A module's tips (Fetch!) count as seen once they start, so they no
+  longer show again on every login when the last one, which waits for a
+  flyout to open, was never reached. Nothing shows while the help tips
+  can't show (combat).
+
 ## 0.10.1
 
 SetGo! (builds 9 to 11)
