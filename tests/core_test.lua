@@ -152,7 +152,7 @@ local function LastPopup() return POPUPS[#POPUPS] end
 local ns = {}
 LOAD(B .. "/SetGo", { "Libs/LibStub/LibStub.lua", "Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua", "Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua" }, "SetGo", ns)
 LOAD(B .. "/SetGo", { "Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua" }, "SetGo", ns)
-LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Wizard.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
+LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
 -- a module with one option (Chat)
 local chatDB = { font = "A" }
 local chatS = ns.Pseudo("SETGO_CHAT_font", "Font", "", "A", function() return chatDB.font end, function(v) chatDB.font = v end)
@@ -258,12 +258,16 @@ ns.SlotClick("options", nil)
 check(ns.form.scope.settings == "global" and ns.form.scope.keys == "global" and ns.form.scope.bars == "global", "new: all Global")
 -- 0.29: a new profile starts on the presets menu; Custom opens the tabs
 check(ns.form.choosing and not ns.FormDirty(), "new: the presets menu, nothing filled in")
-ns.FormButton()
-check(not ns.form.choosing and ns.form.tab == "layout", "Custom: the Layout tab")
-ns.FormButton()
+-- build 10: pick a preset (here the current configuration), then Customize
+ns.form.pick = ns.CurrentPreset()
+ns.FormCustomize()
+check(not ns.form.choosing and ns.form.tab == "layout", "Customize: the Layout tab")
+local nextButton = ns.FormFrames().next
+nextButton._scripts.OnClick(nextButton)
+check(ns.form.tab == "settings", "Next: settings (tabs: Layout, Settings, Modules)")
+nextButton._scripts.OnClick(nextButton)
 check(ns.form.tab == "modules", "Next: modules")
-ns.FormButton()
-check(ns.form.tab == "settings", "Next: settings")
+ns.ShowFormTab("settings")
 ns.SetFormScope("keys", "profile")
 check(ns.form.keys and ns.form.keys.Q == "JUMP", "Profile keys start from the game")
 ns.SetFormScope("settings", "profile")
@@ -433,87 +437,49 @@ ns.LeaveForm(function() ns.OpenForm(openName) end)
 ns.Toggle()
 RUN_TIMERS()
 
--- 0.24: the first profile's guide
--- Blizzard's settings for the bars (the guide switches them through them)
-Settings = { GetSetting = function(var)
-	local n = type(var) == "string" and tonumber(var:match("^PROXY_SHOW_ACTIONBAR_(%d)$"))
-	if n then
-		return { SetValue = function(_, v) BARS[n - 1] = v end }
-	end
-end }
+-- the first profile (build 10: no guide; Blizzard's tips over the form)
 check(#ns.PresetList() == 3 and ns.PresetList()[1].prof.layout ~= nil, "the presets that come with SetGo! read")
-local presetCode = ns.ExportProfile("Healer")
-ns.PRESETS = { { code = presetCode, desc = "WIZ_PRESET_TIP" } }
+TIPS = {}
+HelpTip = { ButtonStyle = { Next = 5, GotIt = 4, Close = 1 }, Point = { LeftEdgeCenter = 11, RightEdgeCenter = 8, TopEdgeCenter = 2, BottomEdgeCenter = 5 },
+	Show = function(self, parent, info) table.insert(TIPS, info) end, Hide = function() end, HideAll = function() end, HideAllSystem = function() end }
 local keepProfiles = SetGoDB.profiles
 SetGoDB.profiles = {}
-local firstFrame = #FRAMES
+ns.db.guideSeen = nil
 ns.Open()
-local WZ = _G.SetGoWizard
-check(WZ and WZ:IsShown() and not F:IsShown(), "no profile: the guide opens")
-local function Find(test)
-	local found
-	for i = firstFrame + 1, #FRAMES do
-		if test(FRAMES[i]) then found = FRAMES[i] end
-	end
-	return found
-end
-ns.ShowWizardStep(3)
-local bar6 = Find(function(f) return f.text and f.text._text == "6" and f._scripts.OnClick end)
-local was = BARS[5] and true or false
-bar6._scripts.OnClick(bar6)
-check((BARS[5] and true or false) ~= was, "the screen: bar 6 switched at once")
-FIRE_SCRIPT(WZ, "OnKeyDown", "ESCAPE")
-check(LastPopup().which == "SETGO_WIZARD_LEAVE", "leaving with changes asks")
-StaticPopupDialogs.SETGO_WIZARD_LEAVE.OnAccept()
-check(not WZ:IsShown() and (BARS[5] and true or false) == was, "left: the screen put back")
--- again, to the end
-ns.Open()
-check(WZ:IsShown(), "opens again")
-local nameBox = Find(function(f) return f._scripts.OnEditFocusGained end)
-ns.ShowWizardStep(3)
-nameBox:SetText("First")
-ns.ShowWizardStep(3)
-bar6._scripts.OnClick(bar6)
-ns.ShowWizardStep(4)
-check(ns.moduleDraft ~= nil, "step 4: module options go to the profile")
-local saveButton = Find(function(f) return f._text == ns.L.SAVE_AND_APPLY and f._scripts.OnClick end)
+check(F:IsShown() and ns.creating and ns.form.choosing, "no profile: SetGo! on the presets menu")
+check(ns.db.guideSeen and #TIPS >= 1, "the first profile's tips start, once")
+-- the current configuration, customized, saved and applied
+ns.form.pick = ns.CurrentPreset()
+ns.FormCustomize()
+ns.FormFrames().name:SetText("First")
 RELOADED = 0
-saveButton._scripts.OnClick(saveButton)
+ns.FormButton()
 check(LastPopup().which == "SETGO_CONFIRM", "Save and apply asks")
 LastPopup().data.onAccept()
 local first = SetGoDB.profiles.First
 check(first and SetGoCharDB.profile == "First", "first profile made and applied")
 check(first.scope.settings == "global" and first.scope.keys == "global" and first.scope.bars == "global", "all Global")
-check(first.layoutText and first.ui.bar6 == (not was), "its own layout (text), the screen as chosen")
+check(first.layoutText ~= nil, "its own layout (text)")
 local slotFound
 for _, l in ipairs(LAYOUTS.layouts) do
 	if l.layoutName == "SetGo!: First" and l.layoutType == 2 then slotFound = true end
 end
-check(slotFound and SetGoCharDB.slotName == "SetGo!: First" and SetGoCharDB.slotApplied.id == first.id, "a character layout, SetGo!: First, in use")
-check(RELOADED == 1 and not WZ:IsShown(), "reloaded, guide closed")
-check((BARS[5] and true or false) == (not was), "the screen kept")
+check(slotFound and SetGoCharDB.slotName == "SetGo!: First", "a character layout, SetGo!: First, in use")
 ns.ResumeSkills()
--- a preset: made and applied at once
-SetGoDB.profiles = {}
+-- a preset from the menu: Apply makes it a profile at once
+SetGoDB.profiles = { First = first }
 ns.Open()
-ns.ShowWizardStep(2)
-local card = Find(function(f) return rawget(f, "entry") end)
-check(card and card.entry.name == "Healer", "the preset listed")
+ns.LeaveForm(function() ns.SlotClick("options", nil) end)
+ns.form.pick = ns.PresetList()[1]
 RELOADED = 0
-card._scripts.OnClick(card)
+ns.FormButton()
 check(LastPopup().which == "SETGO_CONFIRM", "preset asks")
 LastPopup().data.onAccept()
-check(SetGoDB.profiles.Healer and SetGoCharDB.profile == "Healer" and RELOADED == 1, "preset applied")
-check(SetGoDB.profiles.Healer.scope.settings == "global", "preset: settings Global")
+local made = SetGoDB.profiles[ns.PresetList()[1].name]
+check(made and SetGoCharDB.profile == ns.PresetList()[1].name and made.scope.settings == "global", "preset applied, settings Global")
 ns.ResumeSkills()
--- Skip: SetGo! itself, and the guide stays away
-SetGoDB.profiles = {}
-ns.Open()
-ns.ShowWizardStep(1)
-local skip = Find(function(f) return f._text == ns.L.WIZ_SKIP and f._scripts.OnClick end)
-skip._scripts.OnClick(skip)
-check(not WZ:IsShown() and F:IsShown() and SetGoDB.wizardSkipped, "skip: SetGo! opens")
 SetGoDB.profiles = keepProfiles
+if F:IsShown() then ns.Toggle() RUN_TIMERS() end
 
 -- 0.26: the tour (Blizzard's help tips), after the first profile
 TIPS = {}
@@ -525,6 +491,10 @@ local tourFrame = CreateFrame("Frame", "TourTarget", UIParent)
 ns.RegisterModule({ key = "hide", title = "Hide", items = function() return {} end,
 	tour = { { text = "Chat tip", frame = tourFrame }, { text = "Chat two" } } })
 ns.SetModuleOn("hide", true)
+-- tips left over from the first profile: combat clears them (as in the game)
+FIRE_EVENT("PLAYER_REGEN_DISABLED")
+FIRE_EVENT("PLAYER_REGEN_ENABLED")
+if F:IsShown() then ns.Toggle() RUN_TIMERS() end
 SetGoCharDB.tourPending = true
 FIRE_EVENT("PLAYER_ENTERING_WORLD", false, true)
 RUN_TIMERS()
@@ -539,7 +509,10 @@ check(#TIPS == 3 and TIPS[3].hideArrow and TIPS[3].buttonStyle == HelpTip.Button
 TIPS[3].onAcknowledgeCallback()
 RUN_TIMERS()
 check(SetGoCharDB.tourPending == nil, "tour: done, not again")
-check(ns.StartTour() and #TIPS == 4, "tour: again from SetGo!'s page")
+-- build 10: Show the tour replays the first profile's tips
+check(ns.StartGuide() and ns.db.guideSeen, "tour: again from SetGo!'s page (the first profile's tips)")
+ns.Toggle()
+RUN_TIMERS()
 
 -- 0.27: the profile's layout: Edit Mode changes go back into it; another
 -- character asks before taking a newer one

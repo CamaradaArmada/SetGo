@@ -25,7 +25,7 @@ local U = ns.ui
 local form = {}
 ns.form = form
 
-local ALL_TABS = { "layout", "modules", "addons", "settings" }
+local ALL_TABS = { "layout", "settings", "modules", "addons" }
 
 -- the tabs shown: Addons only while there are other addons (Ace3 ones may
 -- load later, on demand: looked at each time)
@@ -134,11 +134,12 @@ local function GridLayouts()
 end
 
 --------------------------------------------------------------------------------
--- The presets menu: a new profile starts here (the form, and the guide's
--- second step). Blizzard's two layouts, side by side, then SetGo!'s presets,
--- one card each; Custom (the caller's button) goes on to the profile itself.
--- onPick(entry): entry from ns.BlizzardPresets() or ns.PresetList().
--- Returns the height used.
+-- The presets menu: a new profile starts here. Current configuration, then
+-- Blizzard's two layouts, side by side, then SetGo!'s presets, one card
+-- each. A card is picked; Apply (the bottom) makes it a profile at once,
+-- Customize opens the profile's tabs with it filled in.
+-- onPick(entry): entry from ns.CurrentPreset(), ns.BlizzardPresets() or
+-- ns.PresetList(). Returns the height used and the cards.
 --------------------------------------------------------------------------------
 
 function ns.BuildPresetMenu(parent, width, y, onPick)
@@ -148,6 +149,25 @@ function ns.BuildPresetMenu(parent, width, y, onPick)
 		return at + 16
 	end
 	local cards = {}
+	-- what is on now
+	do
+		local entry = ns.CurrentPreset()
+		local c = CreateFrame("Button", nil, parent)
+		c:SetSize(width, 34)
+		c:SetPoint("TOPLEFT", 0, -y)
+		U.Card(c)
+		c:Look(0.07, 0.35, false)
+		local t = W.Text(c, W.FONT_BODY, width - 20, entry.name)
+		t:SetPoint("LEFT", 10, 0)
+		Try(t.SetWordWrap, t, false)
+		c.entry = entry
+		c:SetScript("OnClick", function()
+			onPick(entry)
+		end)
+		W.TipScripts(c, entry.name, entry.desc)
+		cards[#cards + 1] = c
+		y = y + 34 + 12
+	end
 	local blizzard = ns.BlizzardPresets()
 	if #blizzard > 0 then
 		y = Label(y, L.PRESETS_BLIZZARD)
@@ -233,7 +253,6 @@ local function FormDefaults(edit)
 	form.OnChanged = OnChanged
 	form.edit = edit
 	form.tab = "layout"
-	form.visited = { layout = true }
 	-- a new profile starts on the presets menu (Custom: the tabs)
 	form.choosing = not edit
 	-- a profile of the list keeps its own layout (its text) until another is
@@ -306,15 +325,6 @@ local function Dirty()
 end
 ns.FormDirty = Dirty
 
--- every tab seen (a new profile)
-local function AllVisited()
-	for _, tab in ipairs(Tabs()) do
-		if not form.visited[tab] then
-			return false
-		end
-	end
-	return true
-end
 
 -- Opens the form: a new profile (edit nil) or one of the list, on a tab
 -- (else the one it was on)
@@ -338,7 +348,6 @@ function ns.ShowFormTab(tab)
 		tab = "settings"
 	end
 	form.tab = tab
-	form.visited[tab] = true
 	ns.Select("newpreset")
 end
 
@@ -1001,24 +1010,50 @@ function ns.FormSaveAndApply()
 	return ns.ProfileOf(name) ~= nil
 end
 
+-- Customize: the profile's tabs, filled in with the preset picked (the
+-- current configuration: the form as it starts)
+function ns.FormCustomize()
+	local entry = form.pick
+	if not entry then
+		return
+	end
+	local opts = ns.PresetOpts(entry)
+	if not opts then
+		ns.Print(L.MSG_LAYOUT_FAILED)
+		return
+	end
+	form.choosing = nil
+	if not entry.current then
+		form.layout = { new = true, template = opts.layout.template, imported = opts.layout.imported,
+			fromLabel = entry.name, data = opts.layout.data }
+		form.ui = Copy(opts.ui)
+		form.modules = Copy(opts.modules)
+		form.customModules = opts.customModules and true or false
+		form.moduleSettings = Copy(opts.moduleSettings)
+		form.icon = opts.icon
+		head.name:SetText(opts.name)
+	else
+		-- what is on now: the form as it starts, named and with an icon
+		head.name:SetText(opts.name)
+		form.icon = opts.icon
+	end
+	ns.ShowFormTab("layout")
+end
+
 -- the form's button
 function ns.FormButton()
 	if not form.edit and form.choosing then
-		-- Custom: the profile's own tabs
-		form.choosing = nil
-		ns.ShowFormTab("layout")
+		-- Apply: the preset picked, made a profile at once (after asking)
+		if form.pick then
+			ns.ApplyPreset(form.pick, function()
+				ns.LeaveForm()
+			end, function()
+				ns.SelectTab("presets")
+			end)
+		end
 		return
 	end
 	if not form.edit then
-		if not AllVisited() then
-			-- Next: the next tab not seen yet
-			for _, tab in ipairs(Tabs()) do
-				if not form.visited[tab] then
-					ns.ShowFormTab(tab)
-					return
-				end
-			end
-		end
 		local name = CheckName()
 		if not name then
 			return
@@ -1278,8 +1313,10 @@ local function CreateFoot(rightPage, width)
 	W.TipScripts(foot.main, function()
 		return foot.main:GetText()
 	end, function()
-		if not form.edit then
-			return AllVisited() and L.NP_SAVE_APPLY_DESC or L.NP_NEXT_DESC
+		if not form.edit and form.choosing then
+			return L.PRESET_APPLY_DESC
+		elseif not form.edit then
+			return L.NP_SAVE_APPLY_DESC
 		elseif Dirty() then
 			return form.layout and form.layout.new and L.NP_SAVE_NEWLAYOUT or L.NP_SAVE_DESC
 		end
@@ -1310,6 +1347,17 @@ local function CreateFoot(rightPage, width)
 	end, 22)
 	foot.back:SetPoint("BOTTOMLEFT", foot, "BOTTOMLEFT", 0, 18)
 	foot.back:Hide()
+	-- a new profile: the next tab (Save and Apply works from any tab)
+	foot.next = W.Button(foot, 90, L.GUIDE_NEXT, function()
+		local i = TabIndex(form.tab)
+		local tabs = Tabs()
+		if tabs[i + 1] then
+			ns.ShowFormTab(tabs[i + 1])
+		end
+	end, 22)
+	foot.next:SetPoint("BOTTOMRIGHT", foot, "BOTTOMRIGHT", 0, 18)
+	foot.next:Hide()
+	W.TipScripts(foot.next, L.GUIDE_NEXT, L.NP_NEXT_DESC)
 	W.TipScripts(foot.undo, L.NP_UNDO, L.NP_UNDO_DESC)
 	foot:Hide()
 end
@@ -1322,24 +1370,22 @@ function ns.RefreshFormButton()
 	local edit = form.edit
 	foot.main:SetEnabled(true)
 	foot.back:SetShown(not edit and not form.choosing)
-	foot.undo:SetShown(not form.choosing)
+	foot.undo:SetShown(edit ~= nil)
+	local tabs = Tabs()
+	foot.next:SetShown(not edit and not form.choosing and tabs[TabIndex(form.tab) + 1] ~= nil)
+	if np and np.customize then
+		np.customize:SetEnabled(form.pick ~= nil)
+	end
 	if not edit and form.choosing then
-		foot.main:SetText(L.WIZ_CUSTOM)
-		foot.pending:SetText("")
+		-- the presets menu: Apply the one picked
+		foot.main:SetText(L.PRESET_APPLY)
+		foot.main:SetEnabled(form.pick ~= nil)
+		foot.pending:SetText(form.pick and form.pick.name or L.PRESETS_PICK_NOTE)
 		return
 	end
 	if not edit then
-		local seen = 0
-		for _, tab in ipairs(Tabs()) do
-			seen = seen + (form.visited[tab] and 1 or 0)
-		end
-		if AllVisited() then
-			foot.main:SetText(L.SAVE_AND_APPLY)
-			foot.pending:SetText(L.FORM_NEW_READY)
-		else
-			foot.main:SetText(L.GUIDE_NEXT)
-			foot.pending:SetText(L.FORM_STEP:format(seen, #Tabs()))
-		end
+		foot.main:SetText(L.SAVE_AND_APPLY)
+		foot.pending:SetText(L.FORM_STEP:format(TabIndex(form.tab), #tabs))
 		return
 	end
 	if Dirty() then
@@ -1453,12 +1499,16 @@ end
 
 -- a checkbox and its label, on a row of its own (Change modules, Apply own
 -- settings)
-local function CustomRow(parent, label, tip, onClick)
+local function CustomRow(parent, label, tip, onClick, info)
 	local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
 	cb:SetSize(26, 26)
 	cb:SetPoint("TOPLEFT", parent, "TOPLEFT", -3, 0)
 	local text = W.Text(parent, W.FONT_BODY, nil, label)
 	text:SetPoint("LEFT", cb, "RIGHT", 2, 0)
+	-- the longer explanation
+	if info then
+		W.Info(parent, label, info):SetPoint("LEFT", text, "RIGHT", 4, 0)
+	end
 	W.TipScripts(cb, label, tip)
 	cb:SetScript("OnClick", function(self)
 		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
@@ -1533,13 +1583,17 @@ local function CreateChoiceBody(width)
 	local sub, h = W.Text(body, W.FONT_SMALL, width, L.WIZ_PRESETS_SUB, 0.85)
 	sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
 	local y = 22 + (tonumber(h) or 28) + 14
-	ns.BuildPresetMenu(body, width, y, function(entry)
-		ns.ApplyPreset(entry, function()
-			ns.LeaveForm()
-		end, function()
-			ns.SelectTab("presets")
-		end)
+	local _, cards = ns.BuildPresetMenu(body, width, y, function(entry)
+		form.pick = entry
+		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+		ns.Refresh()
 	end)
+	np.presetCards = cards
+	np.customize = W.Button(body, 150, L.WIZ_CUSTOM, function()
+		ns.FormCustomize()
+	end, 24)
+	np.customize:SetPoint("BOTTOM", body, "BOTTOM", 0, 6)
+	W.TipScripts(np.customize, L.WIZ_CUSTOM, L.CUSTOMIZE_DESC)
 	body:Hide()
 end
 
@@ -1751,14 +1805,13 @@ local function ModuleItems(key)
 	end
 	return out
 end
-ns.FormModuleItems = ModuleItems
 
 local function CreateModulesBody(width)
 	local body = CreateFrame("Frame", nil, np)
 	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
 	body:SetSize(width, BODY_H)
 	np.modulesBody = body
-	np.customModules = CustomRow(body, L.FORM_CUSTOM_MODULES, L.FORM_CUSTOM_MODULES_DESC, ns.SetFormModules)
+	np.customModules = CustomRow(body, L.FORM_CUSTOM_MODULES, L.FORM_CUSTOM_MODULES_DESC, ns.SetFormModules, L.INFO_MODULES)
 
 	local listW = width - 22
 	local scroll = CreateFrame("ScrollFrame", nil, body, ScrollTemplate())
@@ -2192,7 +2245,7 @@ local function CreateAddonsBody(width)
 	np.addonsBody = body
 	np.customAddons = CustomRow(body, L.FORM_CUSTOM_ADDONS, L.FORM_CUSTOM_ADDONS_DESC, function(on)
 		ns.SetFormAddons(on)
-	end)
+	end, L.INFO_ADDONS)
 	local listW = width - 22
 	local scroll = CreateFrame("ScrollFrame", nil, body, ScrollTemplate())
 	scroll:SetPoint("TOPLEFT", 0, -ROW_H)
@@ -2326,8 +2379,10 @@ local function CreateSettingsBody(width)
 	for _, f in ipairs(FIELDS) do
 		local row = {}
 		-- its title and rule
-		local title = W.Text(body, W.FONT_HEADER, width, L[f.title])
+		local title = W.Text(body, W.FONT_HEADER, nil, L[f.title])
 		title:SetPoint("TOPLEFT", 0, -(y + 4))
+		local info = W.Info(body, L[f.title], L["INFO_" .. f.key:upper()])
+		info:SetPoint("LEFT", title, "RIGHT", 4, 0)
 		local rule = body:CreateTexture(nil, "ARTWORK")
 		rule:SetHeight(1)
 		rule:SetColorTexture(r, g, bl, 0.35)
@@ -2423,6 +2478,17 @@ function ns.RefreshNewPreset()
 	np.addonsBody:SetShown(tab == "addons")
 	np.settingsBody:SetShown(tab == "settings")
 	if form.choosing then
+		for _, c in ipairs(np.presetCards or {}) do
+			local on = form.pick ~= nil and (form.pick == c.entry
+				or (form.pick.current and c.entry.current)
+				or (form.pick.blizzard and form.pick.blizzard == c.entry.blizzard)
+				or (form.pick.preset and form.pick.preset == c.entry.preset))
+			if on then
+				c:Look(0.22, 0.9, true)
+			else
+				c:Look(0.07, 0.35, false)
+			end
+		end
 		return
 	elseif tab == "modules" then
 		RefreshModulesBody()
@@ -2434,6 +2500,21 @@ function ns.RefreshNewPreset()
 		RefreshLayoutBody()
 	end
 end
+
+-- what the guide's tips point at (Tour.lua)
+function ns.FormFrames()
+	if not (np and head and foot) then
+		return {}
+	end
+	return {
+		name = head.name, customize = np.customize, next = foot.next,
+		layout = np.blizzard and np.blizzard[1], bars = np.bars and np.bars[1],
+		frames = np.elements and np.elements[1],
+		settings = np.fields and np.fields.settings and np.fields.settings.global,
+		modules = np.customModules, addons = np.customAddons,
+	}
+end
+ns.FormTabs = Tabs
 
 -- built with the window (UI.lua)
 function ns.CreateProfileForm()

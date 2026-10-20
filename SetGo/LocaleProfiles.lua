@@ -149,7 +149,7 @@ local EN17 = {
 	PICK_SPELLS = "Spells",
 	PICK_ITEMS = "Items",
 	WELCOME_START = "Make your first profile",
-	WELCOME_START_DESC = "Opens SetGo! on a guide: layout, modules and settings, then one reload and Edit Mode.",
+	WELCOME_START_DESC = "Opens SetGo! on a new profile, with tips that walk you through it.",
 	WELCOME_PICK = "Apply one of your profiles:",
 	WELCOME_CHOOSE = "Choose a profile",
 	HELLO_FULL_DESC = "Opens SetGo!.",
@@ -174,7 +174,7 @@ local PT17 = {
 	PICK_SPELLS = "Feitiços",
 	PICK_ITEMS = "Itens",
 	WELCOME_START = "Criar o primeiro perfil",
-	WELCOME_START_DESC = "Abre o SetGo! num guia: layout, módulos e definições, depois um reload e o Edit Mode.",
+	WELCOME_START_DESC = "Abre o SetGo! num perfil novo, com dicas que te levam passo a passo.",
 	WELCOME_PICK = "Aplica um dos teus perfis:",
 	WELCOME_CHOOSE = "Escolhe um perfil",
 	HELLO_FULL_DESC = "Abre o SetGo!.",
@@ -201,12 +201,11 @@ local EN18 = {
 	NP_COPY_OPTIONS_DESC = "Current: this character's settings as they are now. Or another profile's. Ticks Apply own settings. Nothing is kept until you save.",
 	NP_SAVE_APPLY_DESC = "Saves the profile and puts it on this character. The interface reloads when something needs it.",
 	FORM_STEP = "New profile: tab %d of %d",
-	FORM_NEW_READY = "Ready: Save and Apply puts it on this character.",
 	POPUP_NP_SAVE_APPLY = "Save the profile \"%s\" and apply it to this character? The interface reloads if something needs it.",
 	NP_NEW_FROM = "+ New: %s",
 	NP_LAYOUTS_FULL_CELL = "No room for another layout",
 	FORM_CUSTOM_MODULES = "Change modules",
-	FORM_CUSTOM_MODULES_DESC = "Ticked: the profile switches the modules on or off and sets their options when applied. Unticked: it leaves them as they are; what it had is kept.",
+	FORM_CUSTOM_MODULES_DESC = "This profile switches the modules on or off and sets their options.",
 	FORM_MODULES_OFF = "Tick Change modules to set them for this profile.",
 	SHORT_MODULE_OPTIONS = "%d module options",
 	MSG_PROFILES_FULL = "There is room for %d profiles. Delete one first.",
@@ -225,12 +224,11 @@ local PT18 = {
 	NP_COPY_OPTIONS_DESC = "Actual: as definições desta personagem como estão agora. Ou as de outro perfil. Marca Aplicar definições próprias. Nada fica guardado até guardares.",
 	NP_SAVE_APPLY_DESC = "Guarda o perfil e põe-no nesta personagem. A interface recarrega quando é preciso.",
 	FORM_STEP = "Perfil novo: aba %d de %d",
-	FORM_NEW_READY = "Pronto: Guardar e aplicar põe-no nesta personagem.",
 	POPUP_NP_SAVE_APPLY = "Guardar o perfil \"%s\" e aplicá-lo a esta personagem? A interface recarrega se for preciso.",
 	NP_NEW_FROM = "+ Novo: %s",
 	NP_LAYOUTS_FULL_CELL = "Não há espaço para mais layouts",
 	FORM_CUSTOM_MODULES = "Alterar módulos",
-	FORM_CUSTOM_MODULES_DESC = "Marcada: o perfil liga ou desliga os módulos e acerta as opções deles ao ser aplicado. Desmarcada: deixa-os como estão; o que tinha fica guardado.",
+	FORM_CUSTOM_MODULES_DESC = "Este perfil liga ou desliga os módulos e acerta as opções deles.",
 	FORM_MODULES_OFF = "Marca Alterar módulos para os definir neste perfil.",
 	SHORT_MODULE_OPTIONS = "%d opções de módulos",
 	MSG_PROFILES_FULL = "Há espaço para %d perfis. Apaga um primeiro.",
@@ -323,12 +321,12 @@ local EN22 = {
 	SCOPE_KEYS = "Keybinds",
 	SCOPE_GLOBAL = "Global",
 	SCOPE_PROFILE = "Profile",
-	SCOPE_GLOBAL_SETTINGS_DESC = "The shared settings: every profile set to Global uses the same ones, and a change made with any of them goes there.",
-	SCOPE_GLOBAL_KEYS_DESC = "The shared keybinds: every profile set to Global uses the same ones, and a change made with any of them goes there.",
-	SCOPE_GLOBAL_BARS_DESC = "Blizzard's own way: what sits on the action bars stays as it is when you switch profiles.",
-	SCOPE_PROFILE_SETTINGS_DESC = "Settings of its own: changes made while it is in use go into this profile only.",
-	SCOPE_PROFILE_KEYS_DESC = "Keybinds of its own: changes made while it is in use go into this profile only.",
-	SCOPE_PROFILE_BARS_DESC = "Action bars of its own, per character and specialization: applying it puts them back.",
+	SCOPE_GLOBAL_SETTINGS_DESC = "Uses the shared settings.",
+	SCOPE_GLOBAL_KEYS_DESC = "Uses the shared keybinds.",
+	SCOPE_GLOBAL_BARS_DESC = "Leaves your action bars as they are.",
+	SCOPE_PROFILE_SETTINGS_DESC = "Uses settings of its own.",
+	SCOPE_PROFILE_KEYS_DESC = "Uses keybinds of its own.",
+	SCOPE_PROFILE_BARS_DESC = "Remembers your action bars and puts them back.",
 	SCOPE_COPY_SETTINGS_DESC = "Current: this character's settings as they are now. Or what another profile applies. Nothing is kept until you save.",
 	SCOPE_COPY_KEYS_DESC = "Current: the keybinds as they are now. Or what another profile applies. Nothing is kept until you save.",
 	SCOPE_COPY_BARS_DESC = "Current: the action bars as they are when it is applied. Or another profile's, on this character. Nothing is kept until you save.",
@@ -343,7 +341,6 @@ local EN22 = {
 	MSG_SETTINGS_IN_PROFILE = "Settings saved into \"%s\".",
 	MSG_SETTINGS_SHARED = "Settings saved into the shared ones (\"%s\" uses them).",
 	MSG_KEYS_SHARED = "Keybinds saved into the shared ones (\"%s\" uses them).",
-	NP_NEXT_DESC = "The next tab. A new profile goes through all three before it is saved.",
 }
 
 local PT22 = {
@@ -352,12 +349,12 @@ local PT22 = {
 	SCOPE_KEYS = "Atalhos de teclado",
 	SCOPE_GLOBAL = "Global",
 	SCOPE_PROFILE = "Perfil",
-	SCOPE_GLOBAL_SETTINGS_DESC = "As definições partilhadas: todos os perfis em Global usam as mesmas, e uma alteração feita com qualquer um deles fica lá.",
-	SCOPE_GLOBAL_KEYS_DESC = "Os atalhos partilhados: todos os perfis em Global usam os mesmos, e uma alteração feita com qualquer um deles fica lá.",
-	SCOPE_GLOBAL_BARS_DESC = "Como a Blizzard faz: o que está nas barras de acção fica como está quando trocas de perfil.",
-	SCOPE_PROFILE_SETTINGS_DESC = "Definições próprias: as alterações feitas enquanto está em uso ficam só neste perfil.",
-	SCOPE_PROFILE_KEYS_DESC = "Atalhos próprios: as alterações feitas enquanto está em uso ficam só neste perfil.",
-	SCOPE_PROFILE_BARS_DESC = "Barras de acção próprias, por personagem e especialização: aplicá-lo volta a pô-las.",
+	SCOPE_GLOBAL_SETTINGS_DESC = "Usa as definições partilhadas.",
+	SCOPE_GLOBAL_KEYS_DESC = "Usa os atalhos partilhados.",
+	SCOPE_GLOBAL_BARS_DESC = "Deixa as barras de acção como estão.",
+	SCOPE_PROFILE_SETTINGS_DESC = "Usa definições próprias.",
+	SCOPE_PROFILE_KEYS_DESC = "Usa atalhos próprios.",
+	SCOPE_PROFILE_BARS_DESC = "Lembra-se das barras de acção e repõe-nas.",
 	SCOPE_COPY_SETTINGS_DESC = "Actual: as definições desta personagem como estão agora. Ou as que outro perfil aplica. Nada fica guardado até guardares.",
 	SCOPE_COPY_KEYS_DESC = "Actual: os atalhos como estão agora. Ou os que outro perfil aplica. Nada fica guardado até guardares.",
 	SCOPE_COPY_BARS_DESC = "Actual: as barras de acção como estiverem quando for aplicado. Ou as de outro perfil, nesta personagem. Nada fica guardado até guardares.",
@@ -373,7 +370,6 @@ local PT22 = {
 	MSG_SETTINGS_SHARED = "Definições guardadas nas partilhadas (\"%s\" usa-as).",
 	MSG_KEYS_SHARED = "Atalhos guardados nos partilhados (\"%s\" usa-os).",
 	MSG_KEYS_IN_PRESET = "Atalhos guardados no perfil \"%s\".",
-	NP_NEXT_DESC = "A aba seguinte. Um perfil novo passa pelas três antes de ser guardado.",
 }
 
 for key, value in pairs(EN22) do
@@ -426,45 +422,17 @@ end
 --------------------------------------------------------------------------------
 
 local EN24 = {
-	WIZ_CRUMB = "Your first profile",
-	WIZ_CREATE = "Create profile",
-	WIZ_SKIP = "Skip",
 	WIZ_BACK = "Back",
-	WIZ_STEP = "Step %d of %d",
-	WIZ_NAME_HINT = "Name your profile",
-	WIZ_NAME_NOTE = "Click the icon to choose another. You can change both later.",
 	WIZ_PRESET_TIP = "Click to apply this preset. You are asked first.",
-	WIZ_SCREEN_SUB = "Switch on what you want to see. It changes right away.",
-	WIZ_MODULES_TITLE = "Modules",
-	WIZ_MODULES_SUB = "Extras that come with SetGo!. Click one to see its options.",
-	WIZ_MODULE_SWITCH = "On or off in this profile.",
-	WIZ_MODULE_OPEN = "Click to show or hide its options.",
-	WIZ_POPUP_LEAVE = "Leave without saving? Your screen goes back to how it was.",
-	WIZ_LEAVE = "Leave",
 	RELOAD_LEGEND = "* These changes require a reload.",
 	IMPORT_PROFILE_DESC = "Paste a profile someone shared with you. It opens as a new profile; nothing is kept until you save.",
-	WIZ_POPUP_LEAVE_RELOAD = "Leave without saving? Your screen goes back to how it was and the game reloads.",
 }
 
 local PT24 = {
-	WIZ_CRUMB = "O teu primeiro perfil",
-	WIZ_CREATE = "Criar perfil",
-	WIZ_SKIP = "Saltar",
 	WIZ_BACK = "Voltar",
-	WIZ_STEP = "Passo %d de %d",
-	WIZ_NAME_HINT = "Dá um nome ao perfil",
-	WIZ_NAME_NOTE = "Clica no ícone para escolher outro. Podes mudar os dois depois.",
 	WIZ_PRESET_TIP = "Clica para aplicar este preset. Pergunta primeiro.",
-	WIZ_SCREEN_SUB = "Liga o que queres ver. Muda logo.",
-	WIZ_MODULES_TITLE = "Módulos",
-	WIZ_MODULES_SUB = "Extras que vêm com o SetGo!. Clica num para veres as opções.",
-	WIZ_MODULE_SWITCH = "Ligado ou desligado neste perfil.",
-	WIZ_MODULE_OPEN = "Clica para mostrar ou esconder as opções.",
-	WIZ_POPUP_LEAVE = "Sair sem guardar? O ecrã volta ao que estava.",
-	WIZ_LEAVE = "Sair",
 	RELOAD_LEGEND = "* Estas alterações obrigam a recarregar.",
 	IMPORT_PROFILE_DESC = "Cola um perfil que alguém partilhou contigo. Abre como um perfil novo; nada fica guardado até guardares.",
-	WIZ_POPUP_LEAVE_RELOAD = "Sair sem guardar? O ecrã volta ao que estava e o jogo recarrega.",
 }
 
 for key, value in pairs(EN24) do
@@ -481,68 +449,34 @@ end
 --------------------------------------------------------------------------------
 
 local EN25 = {
-	WIZ_INTRO_TITLE = "Welcome to Azeroth!",
-	WIZ_INTRO_SUB = "Let's get your UI set up and ready to go, starting with your first profile.",
-	WIZ_INTRO_BODY = "Create UI profiles and switch between them with one click, or share them with other characters or accounts. Here's what each one saves:",
-	WIZ_KEEP_LAYOUT = "Edit Mode layout",
-	WIZ_KEEP_LAYOUT_DESC = "Your Blizzard layout, plus which action bars and Blizzard frames show. One for questing, another for raids.",
-	WIZ_KEEP_SETTINGS = "Character settings",
-	WIZ_KEEP_SETTINGS_DESC = "One set for all your profiles, or one of its own. New characters start ready, without going through the menus.",
-	WIZ_KEEP_KEYS = "Keybinds",
-	WIZ_KEEP_KEYS_DESC = "Healing and tanking rarely want the same keys. Give a profile its own, and they load when you switch.",
-	WIZ_KEEP_BARS = "Bar Slots",
-	WIZ_KEEP_BARS_DESC = "Choose to save the configuration of your spells, items or macros in your action bars per profile.",
-	WIZ_KEEP_MODULES = "Modules",
-	WIZ_KEEP_MODULES_DESC = "Switch on, switch off and set up SetGo! modules to improve the look and feel of Blizzard's UI.",
 	WIZ_PRESETS_TITLE = "SetGo! Presets",
-	WIZ_PRESETS_SUB = "Get set up quickly with one of our custom made presets. You can switch to another preset at any time, or click Custom to make your own.",
-	WIZ_CUSTOM = "Custom",
-	PRESET_FOREVER_DESC = "SetGo!'s take on the Forever interface: clean bars along the bottom and a bordered chat.",
-	PRESET_BFA_DESC = "The bottom bar of Battle for Azeroth, with the experience bar right under your action bars.",
-	PRESET_RETAIL_DESC = "Blizzard's modern layout, tidied up, with a bordered chat and the extras out of the way.",
+	PRESET_FOREVER_DESC = "The classic UI we know and love, two bars wide, enhanced by the SetGo! modules.",
+	PRESET_BFA_DESC = "A familiar look, one and a half bars wide, with three bars centered and the bags and the micro menu pushed to the side. A good balance between a minimal look and bar space.",
+	PRESET_RETAIL_DESC = "A more minimal-looking UI, one bar wide, for a cleaner and more immersive gameplay experience.",
 	SCOPE_BARS = "Bar Slots",
 	SHORT_BARS_COPIED = "Copied bar slots",
 	POPUP_EXPORT_PROFILE = "The profile \"%s\" as text: name, icon, layout, the action bars and Blizzard frames it shows, and its modules. Character settings, keybinds and bar slots stay with you. Copy it with Ctrl+C:",
 	IMPORT_REPLACE_DESC = "Paste a profile someone shared with you. It replaces this profile's layout, what it shows and its modules (its name stays); nothing is kept until you save.",
 	POPUP_IMPORT_REPLACE = "The imported profile replaces the layout, what it shows and the modules of \"%s\". Nothing is kept until you save. Continue?",
 	MSG_OLD_QUICK = "Quick! is now part of SetGo! (the Quick Menu). The SetGo_Quick folder in your AddOns is no longer used: you can delete it.",
-	TOUR_QUICK = "This is SetGo!. Click it for the Quick Menu: nameplates, NPC names, volume and Quiet!, which hides the world channels. Shift+click opens SetGo!; right click, its menu.",
 	TOUR_STEP = "%d of %d",
 	TOUR_BUTTON = "Show the tour",
-	TOUR_BUTTON_DESC = "Blizzard's help tips over SetGo! and the modules that are on, one at a time.",
 	MSG_TOUR_NONE = "The tour can't show here.",
 }
 
 local PT25 = {
-	WIZ_INTRO_TITLE = "Bem-vindo a Azeroth!",
-	WIZ_INTRO_SUB = "Vamos preparar a tua interface, a começar pelo teu primeiro perfil.",
-	WIZ_INTRO_BODY = "Cria perfis de interface e troca entre eles com um clique, ou partilha-os com outras personagens e contas. Isto é o que cada um guarda:",
-	WIZ_KEEP_LAYOUT = "Layout do Edit Mode",
-	WIZ_KEEP_LAYOUT_DESC = "O teu layout da Blizzard e as barras de acção e janelas da Blizzard que aparecem. Um para missões, outro para raids.",
-	WIZ_KEEP_SETTINGS = "Definições da personagem",
-	WIZ_KEEP_SETTINGS_DESC = "Um conjunto para todos os perfis, ou um próprio. As personagens novas começam prontas, sem passar pelos menus.",
-	WIZ_KEEP_KEYS = "Atalhos de teclado",
-	WIZ_KEEP_KEYS_DESC = "Curar e tanquear raramente pedem as mesmas teclas. Dá a um perfil os seus, e carregam quando trocas.",
-	WIZ_KEEP_BARS = "Conteúdo das barras",
-	WIZ_KEEP_BARS_DESC = "Escolhe guardar, por perfil, onde estão os teus feitiços, itens ou macros nas barras de acção.",
-	WIZ_KEEP_MODULES = "Módulos",
-	WIZ_KEEP_MODULES_DESC = "Liga, desliga e configura os módulos do SetGo! para melhorar o aspecto e o uso da interface da Blizzard.",
 	WIZ_PRESETS_TITLE = "Presets do SetGo!",
-	WIZ_PRESETS_SUB = "Fica pronto depressa com um dos nossos presets. Podes trocar para outro preset quando quiseres, ou clicar em Personalizar para criares o teu.",
-	WIZ_CUSTOM = "Personalizar",
-	PRESET_FOREVER_DESC = "A versão do SetGo! da interface do Forever: barras limpas em baixo e um chat com moldura.",
-	PRESET_BFA_DESC = "A barra de baixo do Battle for Azeroth, com a barra de experiência mesmo por baixo das barras de acção.",
-	PRESET_RETAIL_DESC = "O layout moderno da Blizzard, arrumado, com um chat com moldura e os extras fora do caminho.",
+	PRESET_FOREVER_DESC = "A interface clássica que conhecemos e adoramos, com duas barras de largura, melhorada pelos módulos do SetGo!.",
+	PRESET_BFA_DESC = "Um visual familiar, com barra e meia de largura: três barras ao centro e os sacos e o micro menu encostados ao lado. Um bom equilíbrio entre um visual minimalista e espaço para barras.",
+	PRESET_RETAIL_DESC = "Uma interface mais minimalista, com uma barra de largura, para uma experiência de jogo mais limpa e imersiva.",
 	SCOPE_BARS = "Conteúdo das barras",
 	SHORT_BARS_COPIED = "Conteúdo das barras copiado",
 	POPUP_EXPORT_PROFILE = "O perfil \"%s\" em texto: nome, ícone, layout, as barras de acção e janelas da Blizzard que mostra, e os módulos. As definições da personagem, os atalhos e o conteúdo das barras ficam contigo. Copia com Ctrl+C:",
 	IMPORT_REPLACE_DESC = "Cola um perfil que alguém partilhou contigo. Substitui o layout, o que mostra e os módulos deste perfil (o nome fica); nada fica guardado até guardares.",
 	POPUP_IMPORT_REPLACE = "O perfil importado substitui o layout, o que mostra e os módulos de \"%s\". Nada fica guardado até guardares. Continuar?",
 	MSG_OLD_QUICK = "O Quick! faz agora parte do SetGo! (o Menu rápido). A pasta SetGo_Quick nos teus AddOns já não é usada: podes apagá-la.",
-	TOUR_QUICK = "Isto é o SetGo!. Clica para o Menu rápido: placas de nome, nomes dos NPCs, volume e o Quiet!, que esconde os canais do mundo. Shift+clique abre o SetGo!; clique direito, o menu.",
 	TOUR_STEP = "%d de %d",
 	TOUR_BUTTON = "Ver o tour",
-	TOUR_BUTTON_DESC = "As dicas da Blizzard sobre o SetGo! e os módulos que estão ligados, uma de cada vez.",
 	MSG_TOUR_NONE = "O tour não pode aparecer aqui.",
 }
 
@@ -567,9 +501,7 @@ local EN27 = {
 	POPUP_LAYOUT_UPDATE = "The Edit Mode layout of \"%s\" was changed on another character. Update it here? The interface reloads.",
 	LAYOUT_UPDATE_BUTTON = "Update",
 	POPUP_NEW_LAYOUT_NOTE = "The interface reloads and Edit Mode opens after it, to place everything.",
-	WIZ_POPUP_SAVE = "Save \"%s\" and apply it?\n\nThe interface reloads.",
 	WIZ_POPUP_PRESET = "Apply the preset \"%s\"?\n\nThe interface reloads.",
-	WIZ_SCREEN_NOTE = "To move them, open Edit Mode once the profile is applied: what you change there is saved in it. If you leave without saving, your screen goes back to how it was.",
 }
 
 local PT27 = {
@@ -580,9 +512,7 @@ local PT27 = {
 	POPUP_LAYOUT_UPDATE = "O layout do Edit Mode de \"%s\" foi alterado noutra personagem. Actualizar aqui? A interface recarrega.",
 	LAYOUT_UPDATE_BUTTON = "Actualizar",
 	POPUP_NEW_LAYOUT_NOTE = "A interface recarrega e depois abre o Edit Mode, para arrumares tudo.",
-	WIZ_POPUP_SAVE = "Guardar \"%s\" e aplicá-lo?\n\nA interface recarrega.",
 	WIZ_POPUP_PRESET = "Aplicar o preset \"%s\"?\n\nA interface recarrega.",
-	WIZ_SCREEN_NOTE = "Para os mudares de sítio, abre o Edit Mode depois de o perfil estar aplicado: o que mudares lá fica guardado nele. Se saíres sem guardar, o ecrã volta ao que estava.",
 }
 
 for key, value in pairs(EN27) do
@@ -656,7 +586,7 @@ end
 
 local EN32 = {
 	FORM_CUSTOM_ADDONS = "Change addons *",
-	FORM_CUSTOM_ADDONS_DESC = "Ticked, this profile switches the addons below on or off on this character. Addons installed later are left as they are. Unticked, it leaves them alone (the Ace3 profiles still apply).",
+	FORM_CUSTOM_ADDONS_DESC = "This profile switches your other addons on or off.",
 	ADDON_SWITCH_DESC = "On or off with this profile, on this character.",
 	ADDON_DEPS = "Dependencies: ",
 	ADDONS_NONE = "No other addons installed.",
@@ -673,7 +603,7 @@ local EN32 = {
 
 local PT32 = {
 	FORM_CUSTOM_ADDONS = "Alterar addons *",
-	FORM_CUSTOM_ADDONS_DESC = "Marcado, este perfil liga ou desliga os addons abaixo nesta personagem. Os addons instalados depois ficam como estão. Desmarcado, não lhes toca (os perfis Ace3 continuam a ser aplicados).",
+	FORM_CUSTOM_ADDONS_DESC = "Este perfil liga ou desliga os teus outros addons.",
 	ADDON_SWITCH_DESC = "Ligado ou desligado com este perfil, nesta personagem.",
 	ADDON_DEPS = "Dependências: ",
 	ADDONS_NONE = "Não há outros addons instalados.",
@@ -693,6 +623,84 @@ for key, value in pairs(EN32) do
 end
 if GetLocale() == "ptBR" then
 	for key, value in pairs(PT32) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- 0.11: the presets menu (Current configuration, Apply, Customize), the
+-- first profile's tips on the form itself, the info buttons
+--------------------------------------------------------------------------------
+
+local EN11 = {
+	PRESET_CURRENT = "Current configuration",
+	PRESET_CURRENT_DESC = "A profile of your interface as it is now: the layout in use, what shows and your modules. Your settings, keybinds and bars stay Global.",
+	MY_PROFILE = "My Profile %d",
+	PRESETS_PICK_NOTE = "Pick one, then Apply or Customize.",
+	PRESET_APPLY_DESC = "Makes the one picked into a profile and puts it on this character. You are asked first; the interface reloads.",
+	CUSTOMIZE_DESC = "Opens the profile's tabs with the one picked filled in, to change it before it is saved.",
+	WIZ_CUSTOM = "Customize",
+	WIZ_PRESETS_SUB = "Pick a preset, or Current configuration to start from what you have now. Apply makes it a profile at once; Customize lets you change it first.",
+	NP_NEXT_DESC = "The next tab. Save and Apply works from any tab.",
+	GUIDE_SLOT = "Click here to create a profile.",
+	GUIDE_PRESETS = "Choose a preset, then click Apply, or Customize to make it your own.",
+	GUIDE_NAME = "Give your profile a name and an icon.",
+	GUIDE_LAYOUT = "Choose a layout, or create a new one.",
+	GUIDE_BARS = "Choose which action bars are visible in this layout.",
+	GUIDE_FRAMES = "Choose which Blizzard frames are visible.",
+	GUIDE_TO_SETTINGS = "Click Next to set up your settings.",
+	GUIDE_SETTINGS = "For each part, choose Global, one set shared by every profile set to Global, or Profile, a set of this profile's own.",
+	GUIDE_TO_MODULES = "Click Next to set up your modules.",
+	GUIDE_MODULES = "Choose which modules are active in this profile and set up their options.",
+	GUIDE_TO_ADDONS = "Click Next to set up your addons.",
+	GUIDE_ADDONS = "Choose which addons are active in this profile and which profile each one uses.",
+	TOUR_QUICK = "Click to open the Quick Menu. Right-click to switch between your favorite profiles. Shift+click to open SetGo!.",
+	TOUR_BUTTON_DESC = "Blizzard's help tips that walk you through making a profile, one at a time.",
+	MSG_GUIDE_FULL = "There is no free profile slot to show the guide on: delete a profile first.",
+	INFO_SETTINGS = "Character settings are the options in Blizzard's Options window that belong to this character.\n\nGlobal: one set shared by every profile set to Global. What you change in Blizzard's Options goes into it.\n\nProfile: this profile keeps a set of its own. Applying the profile puts it on, and what you change while it is in use is saved into it.\n\nGoing back to Global doesn't delete the profile's own set.",
+	INFO_KEYS = "Keybinds are the keys set in Blizzard's Keybindings menu.\n\nGlobal: one set shared by every profile set to Global. What you save in the Keybindings menu goes into it.\n\nProfile: this profile keeps keys of its own. Applying the profile puts them on, and what you save while it is in use is saved into it.\n\nGoing back to Global doesn't delete the profile's own keys.",
+	INFO_BARS = "Bar slots are what sits on your action bars: spells, items and macros.\n\nGlobal: the game's usual way. SetGo! doesn't touch your bars.\n\nProfile: this profile remembers your bars, per character and specialization, and puts them back when it is applied. What you change on the bars while it is in use is saved into it.",
+	INFO_MODULES = "Ticked: applying this profile switches the modules on or off and sets their options as shown here.\n\nUnticked: applying it leaves the modules as they are. What the profile had is kept, not deleted.",
+	INFO_ADDONS = "Ticked: applying this profile switches your other addons on or off on this character, as the game's addon list does. It takes a reload. Addons installed later are left as they are.\n\nAddons made with Ace3 can also switch to one of their own profiles. Don't change leaves them as they are; this works even with the box unticked.",
+}
+
+local PT11 = {
+	PRESET_CURRENT = "Configuração actual",
+	PRESET_CURRENT_DESC = "Um perfil da tua interface tal como está agora: o layout em uso, o que aparece e os teus módulos. As definições, os atalhos e as barras ficam em Global.",
+	MY_PROFILE = "O meu perfil %d",
+	PRESETS_PICK_NOTE = "Escolhe um, e depois Aplicar ou Personalizar.",
+	PRESET_APPLY_DESC = "Faz do escolhido um perfil e põe-no nesta personagem. Pergunta primeiro; a interface recarrega.",
+	CUSTOMIZE_DESC = "Abre as abas do perfil já preenchidas com o escolhido, para o mudares antes de o guardar.",
+	WIZ_CUSTOM = "Personalizar",
+	WIZ_PRESETS_SUB = "Escolhe um preset, ou Configuração actual para começares do que tens agora. Aplicar faz logo dele um perfil; Personalizar deixa-te mudá-lo primeiro.",
+	NP_NEXT_DESC = "A aba seguinte. Guardar e aplicar funciona em qualquer aba.",
+	GUIDE_SLOT = "Clica aqui para criar um perfil.",
+	GUIDE_PRESETS = "Escolhe um preset e clica em Aplicar, ou em Personalizar para o fazeres teu.",
+	GUIDE_NAME = "Dá um nome e um ícone ao teu perfil.",
+	GUIDE_LAYOUT = "Escolhe um layout, ou cria um novo.",
+	GUIDE_BARS = "Escolhe que barras de acção aparecem neste layout.",
+	GUIDE_FRAMES = "Escolhe que janelas da Blizzard aparecem.",
+	GUIDE_TO_SETTINGS = "Clica em Seguinte para configurares as definições.",
+	GUIDE_SETTINGS = "Para cada parte, escolhe Global, um conjunto partilhado por todos os perfis em Global, ou Perfil, um conjunto só deste perfil.",
+	GUIDE_TO_MODULES = "Clica em Seguinte para configurares os módulos.",
+	GUIDE_MODULES = "Escolhe que módulos ficam activos neste perfil e configura as opções de cada um.",
+	GUIDE_TO_ADDONS = "Clica em Seguinte para configurares os addons.",
+	GUIDE_ADDONS = "Escolhe que addons ficam activos neste perfil e que perfil usa cada um.",
+	TOUR_QUICK = "Clica para abrir o Quick Menu. Clique direito para trocar entre os teus perfis favoritos. Shift+clique para abrir o SetGo!.",
+	TOUR_BUTTON_DESC = "As dicas da Blizzard que te levam, uma a uma, pela criação de um perfil.",
+	MSG_GUIDE_FULL = "Não há nenhum espaço livre para mostrar o guia: apaga primeiro um perfil.",
+	INFO_SETTINGS = "As definições da personagem são as opções da janela de Opções da Blizzard que pertencem a esta personagem.\n\nGlobal: um conjunto partilhado por todos os perfis em Global. O que mudas nas Opções da Blizzard vai para ele.\n\nPerfil: este perfil tem um conjunto só seu. Aplicar o perfil põe-no, e o que mudas enquanto está em uso fica gravado nele.\n\nVoltar a Global não apaga o conjunto próprio do perfil.",
+	INFO_KEYS = "Os atalhos são as teclas do menu de Atalhos de teclado da Blizzard.\n\nGlobal: um conjunto partilhado por todos os perfis em Global. O que guardas no menu de atalhos vai para ele.\n\nPerfil: este perfil tem teclas só suas. Aplicar o perfil põe-nas, e o que guardas enquanto está em uso fica gravado nele.\n\nVoltar a Global não apaga as teclas próprias do perfil.",
+	INFO_BARS = "O conteúdo das barras é o que está nas tuas barras de acção: feitiços, itens e macros.\n\nGlobal: o comportamento normal do jogo. O SetGo! não mexe nas tuas barras.\n\nPerfil: este perfil lembra-se das tuas barras, por personagem e especialização, e repõe-nas quando é aplicado. O que mudas nas barras enquanto está em uso fica gravado nele.",
+	INFO_MODULES = "Marcado: aplicar este perfil liga ou desliga os módulos e acerta as opções como estão aqui.\n\nDesmarcado: aplicá-lo deixa os módulos como estão. O que o perfil tinha fica guardado, não é apagado.",
+	INFO_ADDONS = "Marcado: aplicar este perfil liga ou desliga os outros addons nesta personagem, como a lista de addons do jogo. Obriga a recarregar. Os addons instalados depois ficam como estão.\n\nOs addons feitos com Ace3 também podem mudar para um dos seus perfis. Não mudar deixa-os como estão; isto funciona mesmo com a caixa desmarcada.",
+}
+
+for key, value in pairs(EN11) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PT11) do
 		L[key] = value
 	end
 end

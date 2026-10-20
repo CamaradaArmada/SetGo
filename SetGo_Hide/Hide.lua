@@ -2,7 +2,6 @@ local ADDON, ns = ...
 
 local L = {
 	TITLE = "Hide!",
-	TOUR = "Missing some bars? Press Alt, Shift or Ctrl to show them, and customize the visibility of Blizzard frames with the Hide! module.",
 	NOTE = "Each frame works like a macro. Pick one or more conditions (any of them is enough) and Show or Hide.\nShow: the frame is only seen while a condition is on. Hide: it is only seen while none is on.\nNone with Show leaves the frame to Blizzard. None with Hide always hides it.\nAction bars with a rule are always shown while the cursor holds something or the spellbook is open (out of combat).",
 	NOTE_BLIZZARD = "Blizzard's own visibility still counts: a frame shows only when Blizzard and Hide! both allow it. For action bars, keep Blizzard's visibility on Always in Edit Mode. In Edit Mode every frame is shown so you can move it.",
 	SEC_UNITS = "Unit frames",
@@ -59,7 +58,6 @@ local L = {
 	F_stance = "Stance bar",
 }
 if GetLocale() == "ptBR" then
-	L.TOUR = "Faltam barras? Carrega em Alt, Shift ou Ctrl para as mostrar, e escolhe quando aparecem as frames da Blizzard com o módulo Hide!."
 	L.NOTE = "Cada frame funciona como uma macro. Escolhe uma ou mais condições (basta uma delas) e Mostrar ou Esconder.\nMostrar: a frame só se vê enquanto uma condição estiver activa. Esconder: só se vê enquanto nenhuma estiver activa.\nNenhuma com Mostrar deixa a frame com a Blizzard. Nenhuma com Esconder esconde-a sempre.\nAs barras de acção com regra aparecem sempre que o cursor segura alguma coisa ou o livro de feitiços está aberto (fora de combate)."
 	L.NOTE_BLIZZARD = "A visibilidade da própria Blizzard continua a contar: uma frame só aparece quando a Blizzard e o Hide! deixam. Nas barras de acção, deixa a visibilidade da Blizzard em Sempre no Edit Mode. No Edit Mode todas as frames aparecem, para as poderes mover."
 	L.SEC_UNITS = "Unit frames"
@@ -703,9 +701,7 @@ local function Items()
 	return items
 end
 
-SetGo.RegisterModule({ key = "hide", title = L.TITLE, items = Items,
-	-- its tip in SetGo!'s tour: no frame of its own, in the middle of the screen
-	tour = { text = L.TOUR } })
+SetGo.RegisterModule({ key = "hide", title = L.TITLE, items = Items })
 
 -- Names out of combat and the hidden buffs icon were tried for a few builds
 -- and taken out: the names they hid for a while go back to the player's

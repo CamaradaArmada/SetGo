@@ -677,6 +677,9 @@ function ns.CreateProfile(opts)
 		return false
 	end
 	local layout = opts.layout or {}
+	-- the account's first profile: the minimap button's tip once it is on
+	-- (Tour.lua)
+	local first = not opts.replace and #ns.ProfileSlots() == 0
 	local p = opts.replace and PresetOf(opts.replace)
 	if not p then
 		p = NewProfile()
@@ -777,7 +780,14 @@ function ns.CreateProfile(opts)
 		end
 		return true
 	end
+	if first and ns.charDB then
+		ns.charDB.tourPending = true
+	end
 	ns.ApplyProfile(name)
+	-- no reload (nothing had to change): the tip a moment later
+	if first and ns.TourAfterFirst then
+		C_Timer.After(2, ns.TourAfterFirst)
+	end
 	return true
 end
 
@@ -1251,10 +1261,52 @@ local function BlizzardOpts(entry, baseUI)
 	}
 end
 
--- What CreateProfile needs to make a profile from a preset (ours or
--- Blizzard's). baseUI: what shows now (the guide passes the screen as it
+-- Current configuration: a profile of what is on now (the layout in use,
+-- what shows, the modules and their options), named My Profile N, with
+-- the character's class icon; settings, keybinds and bars Global
+function ns.CurrentPreset()
+	return { current = true, name = L.PRESET_CURRENT, desc = L.PRESET_CURRENT_DESC }
+end
+
+local function FreeOwnName()
+	local n = 1
+	while PresetOf(L.MY_PROFILE:format(n)) do
+		n = n + 1
+	end
+	return L.MY_PROFILE:format(n)
+end
+
+function ns.ClassIcon()
+	local _, class = UnitClass("player")
+	return class and ("Interface\\Icons\\ClassIcon_" .. class) or nil
+end
+
+local function CurrentOpts()
+	local ref = ns.CurrentLayoutRef and ns.CurrentLayoutRef()
+	local text = ref and ns.LayoutText(ref)
+	if not text then
+		return nil
+	end
+	local from = ns.LayoutName(ref)
+	return {
+		name = FreeOwnName(),
+		icon = ns.ClassIcon(),
+		ui = ns.UILive(),
+		modules = ns.ModuleStates(),
+		customModules = true,
+		moduleSettings = ns.ModuleSnapshot(),
+		scope = ns.SharedScope(),
+		layout = { template = text, from = from },
+	}
+end
+
+-- What CreateProfile needs to make a profile from a preset (ours,
+-- Blizzard's, or the current configuration). baseUI: what shows now (the guide passes the screen as it
 -- was before its preview).
 function ns.PresetOpts(entry, baseUI)
+	if entry.current then
+		return CurrentOpts()
+	end
 	if entry.blizzard then
 		return BlizzardOpts(entry, baseUI)
 	end

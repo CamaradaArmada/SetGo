@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.10.1
+
+SetGo! (builds 9 to 11)
+- Presets retuned (Retail UI's layout and module options), with
+  descriptions by width: two bars, one and a half, one.
+- The first profile's guide (Wizard.lua) is gone: Blizzard's help tips
+  walk through the profile form itself (Tour.lua, ns.StartGuide), and Show
+  the tour replays them.
+- Current configuration preset: a profile of the interface as it is now,
+  named My Profile 1 with the class icon.
+- Presets menu: pick one, then Apply (at once) or Customize (the form,
+  filled in from it).
+- Profile form: tabs Layout, Settings, Modules, Addons; Back and Next at
+  the bottom, Save and Apply always in the middle.
+- Info buttons next to the harder options, with a longer explanation; their
+  tooltips are one short line.
+- After the first profile, a tip on the minimap button: Quick Menu,
+  favourites, Shift+click.
+- Help tips inside the SetGo! window are no longer covered by its buttons.
+- The guide's strings and ns.FormModuleItems, used by nothing, gone.
+
+Fetch! (build 2)
+- Three tips the first time it is on: dragging onto a button, opening a
+  flyout, keys 1 to 6 in a flyout.
+
+Hide! (build 6), Speak! (build 2)
+- No tip in the tour any more.
+
 ## 0.10.0
 
 SetGo! (builds 4 to 8)

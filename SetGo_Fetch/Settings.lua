@@ -173,5 +173,16 @@ end
 
 SetGo.RegisterModule({ key = "fetch", title = L.ADDON, items = Items, CopyLayout = CopyLayout, DeleteLayout = DeleteLayout,
 	GetLayoutData = GetLayoutData, SetLayoutData = SetLayoutData,
-	-- its tip in SetGo!'s tour, at the bar
-	tour = { text = L.TOUR, frame = function() return _G.SetGoFetchBar end } })
+	-- its tips in SetGo!, once, the first time it is on: at the first
+	-- button, then at a flyout once one opens
+	tour = {
+		{ text = L.TOUR_DRAG, frame = function() return ns.mains and ns.mains[1] end },
+		{ text = L.TOUR_OPEN, frame = function() return ns.mains and ns.mains[1] end },
+		{ text = L.TOUR_KEYS, wait = function()
+			for _, main in ipairs(ns.mains or {}) do
+				if main.fpFlyout and main.fpFlyout:IsShown() then
+					return main.fpFlyout
+				end
+			end
+		end },
+	} })

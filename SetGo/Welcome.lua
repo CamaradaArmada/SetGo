@@ -98,12 +98,10 @@ local function ApplyChosen(name)
 	ns.ApplyProfile(name)
 end
 
--- SetGo! on a new profile (the guide when there is none)
+-- SetGo! on a new profile (the first one: with the guide's tips)
 local function NewProfile()
 	popup:Hide()
-	-- the first one: the guide
-	if #ns.ProfileSlots() == 0 and ns.ShowWizard then
-		ns.ShowWizard()
+	if #ns.ProfileSlots() == 0 and ns.StartGuide and ns.StartGuide() then
 		return
 	end
 	ns.Open(true)
@@ -180,11 +178,6 @@ local function Refresh()
 end
 
 function ns.ShowWelcome()
-	-- no profile yet: the guide to the first one
-	if #ns.ProfileSlots() == 0 and ns.ShowWizard and not ns.db.wizardSkipped then
-		ns.ShowWizard()
-		return
-	end
 	if not popup then
 		Create()
 	end

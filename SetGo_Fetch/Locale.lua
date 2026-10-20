@@ -2,7 +2,9 @@ local _, ns = ...
 
 local L = {
 	ADDON = "Fetch!",
-	TOUR = "Quickly access more items and abilities with bindable flyout menus with the Fetch! module.",
+	TOUR_DRAG = "Drag spells, items or macros onto a button to add them to its flyout.",
+	TOUR_OPEN = "Right-click a button, or hold its key, to open its flyout.",
+	TOUR_KEYS = "Press 1 to 6 to use the matching button in the flyout.",
 	BUTTON = "Fetch! %d",
 	NUM_BUTTONS = "Buttons",
 	ORIENTATION = "Orientation",
@@ -56,7 +58,9 @@ local L = {
 }
 
 if GetLocale() == "ptBR" then
-	L.TOUR = "Chega depressa a mais itens e habilidades com menus que abrem dos botões, com atalhos de teclado, no módulo Fetch!."
+	L.TOUR_DRAG = "Arrasta feitiços, itens ou macros para um botão para os juntares ao menu dele."
+	L.TOUR_OPEN = "Clique direito num botão, ou mantém a tecla dele carregada, para abrir o menu."
+	L.TOUR_KEYS = "Carrega de 1 a 6 para usar o botão correspondente do menu."
 	L.NUM_BUTTONS = "Botões"
 	L.ORIENTATION = "Orientação"
 	L.FLYOUT_DIR = "Direcção do menu"

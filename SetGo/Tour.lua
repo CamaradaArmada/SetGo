@@ -3,22 +3,25 @@ local L = ns.L
 local Try = ns.Try
 
 --------------------------------------------------------------------------------
--- The tour: Blizzard's own help tips (HelpTip, the yellow boxes with an
--- arrow the game's tutorials use), one at a time, pointing at what SetGo!
--- and its modules put on the screen. Next goes on; the last one is Got it.
--- It starts once, after the first profile is applied (when Edit Mode, which
--- opens after that reload, closes), and again from SetGo!'s page.
---
--- A module adds its own tips when it registers (SetGo.RegisterModule):
---   tour = { text = "...", frame = <frame> or function() return frame end,
---            point = "left" | "right" | "top" | "bottom" (optional) }
---   or a list of those, or a function that returns either. Only modules
---   that are on are shown. No frame (or one not on screen): the tip shows in
---   the middle of the screen, without an arrow.
+-- Blizzard's own help tips (HelpTip, the yellow boxes with an arrow the
+-- game's tutorials use), in three places:
+--   The guide: the first profile, made on the form itself. Each tip waits
+--     for what it points at; a tip on a button goes when it is clicked, the
+--     others have Next. The X stops the guide. It starts the first time
+--     SetGo! opens with no profile, and from Show the tour (SetGo!'s page).
+--   After the first profile is applied: the minimap button's tip.
+--   A module's tips, once, the first time it is on (after the first
+--     profile). A module adds them when it registers:
+--       tour = { text = "...", frame = <frame> or function() return frame end,
+--                point = "left" | "right" | "top" | "bottom" (optional),
+--                wait = function() return <frame shown> end (optional: the
+--                tip waits until it returns a frame on screen) }
+--       or a list of those. No frame (or one not on screen): the tip shows
+--       in the middle of the screen, without an arrow.
 --------------------------------------------------------------------------------
 
 local SYSTEM = "SetGoTour"
-local steps, index = nil, 0
+local GUIDE = "SetGoGuide"
 local centre -- the anchor for tips without a frame
 
 local function Resolve(v)
@@ -27,49 +30,6 @@ local function Resolve(v)
 		return ok and r or nil
 	end
 	return v
-end
-
--- one step, or a list of steps, as a list
-local function StepsOf(tour)
-	tour = Resolve(tour)
-	if type(tour) ~= "table" then
-		return {}
-	end
-	if tour.text then
-		return { tour }
-	end
-	local list = {}
-	for _, step in ipairs(tour) do
-		if type(step) == "table" and step.text then
-			list[#list + 1] = step
-		end
-	end
-	return list
-end
-
-local function ModuleDef(key)
-	for _, def in ipairs(ns.modules or {}) do
-		if def.key == key then
-			return def
-		end
-	end
-end
-
--- the tips, in order: the Quick Menu's (the minimap button), then each
--- module that is on, in the list's order
-local function Collect()
-	local list = {}
-	local button = _G.LibDBIcon10_SetGo
-	list[1] = { text = L.TOUR_QUICK, frame = button }
-	for _, m in ipairs(ns.KNOWN_MODULES) do
-		local def = ModuleDef(m.key)
-		if def and def.tour and ns.ModuleOn(m.key) then
-			for _, step in ipairs(StepsOf(def.tour)) do
-				list[#list + 1] = step
-			end
-		end
-	end
-	return list
 end
 
 local function Shown(frame)
@@ -155,48 +115,48 @@ local function Centre()
 	return centre
 end
 
-local ShowStep -- below
-
-local function Finish()
-	steps, index = nil, 0
-	if ns.charDB then
-		ns.charDB.tourPending = nil
-	end
-end
-
-function ShowStep(i)
-	local step = steps and steps[i]
-	if not step then
-		Finish()
-		return
-	end
-	index = i
-	local frame = Resolve(step.frame)
-	local target, point, arrow, align = frame, nil, true, nil
-	local side
+-- One tip at a frame (no frame on screen: the middle, no arrow).
+-- opts: { button = "next" | "gotit" | "close", step, of, onDone, onClose,
+-- system }
+local function ShowTip(frame, text, point, opts)
+	local target, tpoint, arrow, align, side = frame, nil, true, nil, nil
 	if not Shown(frame) then
 		target, arrow = Centre(), false
-		point = "TopEdgeCenter"
+		tpoint = "TopEdgeCenter"
 	else
-		side = POINTS[step.point] and step.point or AutoPoint(frame)
+		side = POINTS[point] and point or AutoPoint(frame)
 		side, align = FitSide(frame, side)
-		point = POINTS[side]
+		tpoint = POINTS[side]
 	end
-	local last = i == #steps
+	local style = HelpTip.ButtonStyle.Next
+	if opts.button == "gotit" then
+		style = HelpTip.ButtonStyle.GotIt
+	elseif opts.button == "close" then
+		style = HelpTip.ButtonStyle.Close
+	end
+	if opts.step then
+		-- the step number also keeps the text (the tip's key) unique
+		text = text .. "\n\n|cff9d9d9d" .. L.TOUR_STEP:format(opts.step, opts.of) .. "|r"
+	end
 	local info = {
-		-- the text is also the tip's key: the step number keeps it unique
-		text = step.text .. "\n\n|cff9d9d9d" .. L.TOUR_STEP:format(i, #steps) .. "|r",
-		buttonStyle = last and HelpTip.ButtonStyle.GotIt or HelpTip.ButtonStyle.Next,
-		targetPoint = HelpTip.Point[point],
+		text = text,
+		buttonStyle = style,
+		targetPoint = HelpTip.Point[tpoint],
 		alignment = align,
 		-- above or under a frame: slid sideways to stay on the screen
 		autoHorizontalSlide = (side == "top" or side == "bottom") or nil,
 		hideArrow = not arrow,
-		system = SYSTEM,
+		-- over everything in the window it points into (its buttons too)
+		useParentStrata = true,
+		system = opts.system or SYSTEM,
 		onAcknowledgeCallback = function()
 			C_Timer.After(0, function()
-				if steps then
-					ShowStep(index + 1)
+				if opts.button == "close" then
+					if opts.onClose then
+						opts.onClose()
+					end
+				elseif opts.onDone then
+					opts.onDone()
 				end
 			end)
 		end,
@@ -204,32 +164,146 @@ function ShowStep(i)
 	Try(HelpTip.Show, HelpTip, target, info, target)
 end
 
-local function Stop()
+local function HideSystem(system)
 	if HelpTip and HelpTip.HideAllSystem then
-		Try(HelpTip.HideAllSystem, HelpTip, SYSTEM)
+		Try(HelpTip.HideAllSystem, HelpTip, system)
 	end
-	steps, index = nil, 0
 end
 
--- the tour from its first tip (nothing to show without Blizzard's help tips)
-function ns.StartTour()
-	if not (HelpTip and HelpTip.Show) or InCombatLockdown() then
+local function CanShow()
+	return HelpTip and HelpTip.Show and not InCombatLockdown()
+end
+
+--------------------------------------------------------------------------------
+-- Tips one after another: the minimap button's, then the modules'
+--------------------------------------------------------------------------------
+
+local queue, playing, waiter = {}, false, nil
+
+local function StopQueue()
+	HideSystem(SYSTEM)
+	if waiter then
+		waiter:Cancel()
+		waiter = nil
+	end
+	wipe(queue)
+	playing = false
+end
+
+local PlayNext -- below
+
+local function ShowQueued(step)
+	local last = #queue == 0
+	ShowTip(Resolve(step.frame), step.text, step.point, {
+		button = last and "gotit" or "next",
+		onDone = function()
+			if step.onDone then
+				step.onDone()
+			end
+			PlayNext()
+		end,
+	})
+end
+
+function PlayNext()
+	local step = table.remove(queue, 1)
+	if not step then
+		playing = false
+		return
+	end
+	playing = true
+	if not step.wait then
+		ShowQueued(step)
+		return
+	end
+	-- waits for its frame (a flyout opened, say)
+	local ticker
+	ticker = C_Timer.NewTicker(0.5, function()
+		local frame = Resolve(step.wait)
+		if Shown(frame) then
+			ticker:Cancel()
+			waiter = nil
+			step.frame = frame
+			ShowQueued(step)
+		end
+	end)
+	waiter = ticker
+end
+
+local function Play(list)
+	if not CanShow() or #list == 0 then
 		return false
 	end
-	Stop()
-	steps = Collect()
-	if #steps == 0 then
-		Finish()
-		return false
+	for _, step in ipairs(list) do
+		queue[#queue + 1] = step
 	end
-	ShowStep(1)
+	if not playing then
+		PlayNext()
+	end
 	return true
 end
 
--- after the first profile's reload: once Edit Mode (which opens after it)
--- closes, else a moment after login
-local function StartWhenReady()
-	if not (ns.charDB and ns.charDB.tourPending) or InCombatLockdown() then
+-- one step, or a list of steps, as a list
+local function StepsOf(tour)
+	tour = Resolve(tour)
+	if type(tour) ~= "table" then
+		return {}
+	end
+	if tour.text then
+		return { tour }
+	end
+	local list = {}
+	for _, step in ipairs(tour) do
+		if type(step) == "table" and step.text then
+			list[#list + 1] = step
+		end
+	end
+	return list
+end
+
+local function ModuleDef(key)
+	for _, def in ipairs(ns.modules or {}) do
+		if def.key == key then
+			return def
+		end
+	end
+end
+
+-- the modules that are on and haven't shown their tips yet (once there is
+-- a profile)
+local function ModuleTips()
+	local list = {}
+	if #ns.ProfileSlots() == 0 then
+		return list
+	end
+	ns.db.tourSeen = ns.db.tourSeen or {}
+	for _, m in ipairs(ns.KNOWN_MODULES) do
+		local def = ModuleDef(m.key)
+		if def and def.tour and ns.ModuleOn(m.key) and not ns.db.tourSeen[m.key] then
+			local steps = StepsOf(def.tour)
+			if #steps > 0 then
+				local key = m.key
+				-- seen once its last tip is
+				local copy = {}
+				for i, step in ipairs(steps) do
+					copy[i] = setmetatable({}, { __index = step })
+				end
+				copy[#copy].onDone = function()
+					ns.db.tourSeen[key] = true
+				end
+				for _, step in ipairs(copy) do
+					list[#list + 1] = step
+				end
+			end
+		end
+	end
+	return list
+end
+
+-- After the first profile (its reload, then Edit Mode closing, if it
+-- opens): the minimap button's tip, then the modules'
+function ns.TourAfterFirst()
+	if not (ns.charDB and ns.charDB.tourPending) or not CanShow() then
 		return
 	end
 	local editMode = EditModeManagerFrame
@@ -238,13 +312,205 @@ local function StartWhenReady()
 			editMode.setgoTourHooked = true
 			editMode:HookScript("OnHide", function()
 				if ns.charDB and ns.charDB.tourPending then
-					C_Timer.After(1, StartWhenReady)
+					C_Timer.After(1, ns.TourAfterFirst)
 				end
 			end)
 		end
 		return
 	end
-	ns.StartTour()
+	ns.charDB.tourPending = nil
+	local list = { { text = L.TOUR_QUICK, frame = _G.LibDBIcon10_SetGo } }
+	for _, step in ipairs(ModuleTips()) do
+		list[#list + 1] = step
+	end
+	Play(list)
+end
+
+local function AfterLogin()
+	if ns.charDB and ns.charDB.tourPending then
+		ns.TourAfterFirst()
+	elseif not playing then
+		Play(ModuleTips())
+	end
+end
+
+--------------------------------------------------------------------------------
+-- The guide: the first profile, on the form
+--------------------------------------------------------------------------------
+
+local guide -- { i = step, shown = step shown }
+
+local function Form()
+	return ns.FormFrames and ns.FormFrames() or {}
+end
+
+local function OnForm()
+	return ns.creating ~= nil and ns.form and ns.form.layout ~= nil
+end
+
+local function Choosing()
+	return OnForm() and not ns.creating.edit and ns.form.choosing
+end
+
+local function OnTab(tab)
+	return OnForm() and not ns.creating.edit and not ns.form.choosing and ns.form.tab == tab
+end
+
+local function HasAddonsTab()
+	for _, tab in ipairs(ns.FormTabs and ns.FormTabs() or {}) do
+		if tab == "addons" then
+			return true
+		end
+	end
+	return false
+end
+
+-- kind: "click" (the tip goes when done() is true; X stops the guide) or
+-- "info" (Next)
+local STEPS = {
+	{ text = "GUIDE_SLOT", kind = "click", point = "right",
+		at = function() return ns.creating == nil or ns.creating.edit ~= nil end,
+		frame = function() return ns.NewProfileSlot and ns.NewProfileSlot() end,
+		done = Choosing },
+	{ text = "GUIDE_PRESETS", kind = "click", point = "left", at = Choosing,
+		frame = function() return Form().customize end,
+		done = function() return OnTab("layout") end },
+	{ text = "GUIDE_NAME", kind = "info", point = "bottom", at = function() return OnTab("layout") end,
+		frame = function() return Form().name end },
+	{ text = "GUIDE_LAYOUT", kind = "info", point = "left", at = function() return OnTab("layout") end,
+		frame = function() return Form().layout end },
+	{ text = "GUIDE_BARS", kind = "info", point = "left", at = function() return OnTab("layout") end,
+		frame = function() return Form().bars end },
+	{ text = "GUIDE_FRAMES", kind = "info", point = "left", at = function() return OnTab("layout") end,
+		frame = function() return Form().frames end },
+	{ text = "GUIDE_TO_SETTINGS", kind = "click", point = "bottom", at = function() return OnTab("layout") end,
+		frame = function() return Form().next end,
+		done = function() return OnTab("settings") end },
+	{ text = "GUIDE_SETTINGS", kind = "info", point = "left", at = function() return OnTab("settings") end,
+		frame = function() return Form().settings end },
+	{ text = "GUIDE_TO_MODULES", kind = "click", point = "bottom", at = function() return OnTab("settings") end,
+		frame = function() return Form().next end,
+		done = function() return OnTab("modules") end },
+	{ text = "GUIDE_MODULES", kind = "info", point = "left", at = function() return OnTab("modules") end,
+		frame = function() return Form().modules end },
+	{ text = "GUIDE_TO_ADDONS", kind = "click", point = "bottom", addons = true,
+		at = function() return OnTab("modules") end,
+		frame = function() return Form().next end,
+		done = function() return OnTab("addons") end },
+	{ text = "GUIDE_ADDONS", kind = "info", point = "left", addons = true,
+		at = function() return OnTab("addons") end,
+		frame = function() return Form().addons end },
+}
+
+local function GuideSteps()
+	local list = {}
+	local addons = HasAddonsTab()
+	for _, step in ipairs(STEPS) do
+		if addons or not step.addons then
+			list[#list + 1] = step
+		end
+	end
+	return list
+end
+
+local function StopGuide()
+	guide = nil
+	HideSystem(GUIDE)
+end
+
+local function GuideShow()
+	local steps = GuideSteps()
+	local step = steps[guide.i]
+	if not step then
+		StopGuide()
+		return
+	end
+	if guide.shown == guide.i then
+		return
+	end
+	-- not where it points yet (the form on another tab, say): later
+	if not step.at() then
+		return
+	end
+	local frame = Resolve(step.frame)
+	if not Shown(frame) then
+		return
+	end
+	HideSystem(GUIDE)
+	guide.shown = guide.i
+	local last = guide.i == #steps
+	ShowTip(frame, L[step.text], step.point, {
+		system = GUIDE,
+		step = guide.i, of = #steps,
+		button = step.kind == "click" and "close" or (last and "gotit" or "next"),
+		onDone = function()
+			if guide and guide.shown == guide.i then
+				guide.i, guide.shown = guide.i + 1, nil
+				ns.GuideUpdate()
+			end
+		end,
+		onClose = StopGuide,
+	})
+end
+
+-- after every refresh of the window: the step done goes on; the form left
+-- (or the window closed) ends it
+function ns.GuideUpdate()
+	if not guide then
+		return
+	end
+	if not CanShow() then
+		StopGuide()
+		return
+	end
+	local frame = _G.SetGoFrame
+	if not (frame and frame:IsShown()) then
+		StopGuide()
+		return
+	end
+	local steps = GuideSteps()
+	-- steps already done (or the first one, when the presets menu is open
+	-- already) go by
+	while steps[guide.i] do
+		local step = steps[guide.i]
+		if step.kind == "click" and step.done and step.done() then
+			guide.i, guide.shown = guide.i + 1, nil
+		elseif guide.i == 1 and not step.at() and Choosing() then
+			guide.i, guide.shown = 2, nil
+		else
+			break
+		end
+	end
+	-- past the presets menu, a new profile no longer on the form: made (Apply)
+	-- or left
+	if guide.i >= 2 and not (OnForm() and not ns.creating.edit) then
+		StopGuide()
+		return
+	end
+	GuideShow()
+end
+
+-- From the start: SetGo! on Profiles (the presets menu when there is no
+-- profile yet)
+function ns.StartGuide()
+	if not CanShow() then
+		ns.Print(L.MSG_TOUR_NONE)
+		return false
+	end
+	if ns.ProfilesFull() then
+		ns.Print(L.MSG_GUIDE_FULL)
+		return false
+	end
+	StopQueue()
+	ns.db.guideSeen = true
+	ns.Open()
+	ns.LeaveForm()
+	if ns.SelectTab then
+		ns.SelectTab("presets")
+	end
+	guide = { i = 1 }
+	ns.GuideUpdate()
+	return true
 end
 
 local events = CreateFrame("Frame")
@@ -253,9 +519,10 @@ events:RegisterEvent("PLAYER_REGEN_DISABLED")
 events:SetScript("OnEvent", function(_, event)
 	if event == "PLAYER_ENTERING_WORLD" then
 		-- Edit Mode opens 1.5 s after a reload that asks for it
-		C_Timer.After(3, StartWhenReady)
-	elseif steps then
-		-- combat: the tips go; the tour comes back on the next login
-		Stop()
+		C_Timer.After(3, AfterLogin)
+	else
+		-- combat: the tips go (the modules' come back on the next login)
+		StopQueue()
+		StopGuide()
 	end
 end)

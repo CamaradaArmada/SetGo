@@ -27,14 +27,14 @@ function ns.DefaultTab()
 end
 
 --------------------------------------------------------------------------------
--- The size of SetGo!'s windows (the book, the guide, the Quick Menu; not the
+-- The size of SetGo!'s windows (the book, the Quick Menu; not the
 -- welcome a new character gets): the account's, at once, as a scale
 --------------------------------------------------------------------------------
 
 ns.SCALE_MIN, ns.SCALE_MAX, ns.SCALE_STEP = 0.75, 1.5, 0.05
-ns.SCALED = { "SetGoFrame", "SetGoWizard", "SetGoQuickFrame", "SetGoIconPicker" }
+ns.SCALED = { "SetGoFrame", "SetGoQuickFrame", "SetGoIconPicker" }
 -- the ones the player moves: they keep their centre where it is
-local KEEP_CENTRE = { SetGoFrame = true, SetGoWizard = true }
+local KEEP_CENTRE = { SetGoFrame = true }
 
 function ns.UIScale()
 	local db = ns.db
@@ -198,10 +198,8 @@ function ns.SetGoItems()
 				ns.Print(L.MSG_COMBAT)
 				return
 			end
-			ns.HideKeep()
-			if not ns.StartTour() then
-				ns.Print(L.MSG_TOUR_NONE)
-			end
+			-- the guide, from the Profiles page
+			ns.StartGuide()
 		end, 24)
 		tour:SetPoint("TOPLEFT", page, "TOPLEFT", math.floor(width / 2 - bw - gap / 2), -(y + 4))
 		W.TipScripts(tour, L.TOUR_BUTTON, L.TOUR_BUTTON_DESC)

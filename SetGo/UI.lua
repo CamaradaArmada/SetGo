@@ -1220,6 +1220,10 @@ function ns.Refresh()
 	end
 	book.crumb:SetText(Crumb())
 	UpdateChrome()
+	-- the guide's tips follow (Tour.lua)
+	if ns.GuideUpdate then
+		ns.GuideUpdate()
+	end
 end
 
 local function ShowMode(mode, quiet)
@@ -1366,6 +1370,15 @@ local function FreeName(store, name, retry)
 		return false
 	end
 	return true
+end
+
+-- the card that makes a new profile (the guide points at it), if shown
+function ns.NewProfileSlot()
+	for _, b in ipairs(slots.options) do
+		if b:IsShown() and b.profile == nil and b.new:IsShown() then
+			return b
+		end
+	end
 end
 
 -- a card: a profile's form (nil: a new one)
@@ -1575,10 +1588,13 @@ local function CreateWindow()
 	frame = CreateFrame("Frame", "SetGoFrame", UIParent, "ButtonFrameTemplate")
 	frame:SetSize(FRAME_W, FRAME_H)
 	ns.ScaleFrame(frame)
-	-- closed: a window size not applied is dropped
+	-- closed: a window size not applied is dropped, the guide ends
 	frame:HookScript("OnHide", function()
 		if ns.DiscardScale then
 			ns.DiscardScale()
+		end
+		if ns.GuideUpdate then
+			ns.GuideUpdate()
 		end
 	end)
 	frame:SetPoint("CENTER")
@@ -1667,11 +1683,8 @@ end
 -- The book always opens on its first page (the tab SetGo! opens on; on
 -- Profiles, the profile in use). Already open: it stays where it is.
 function ns.Open()
-	-- no profile yet: the guide to the first one (until skipped)
-	if ns.ShowWizard and #ns.ProfileSlots() == 0 and not ns.db.wizardSkipped then
-		ns.ShowWizard()
-		return
-	end
+	-- no profile yet, the first time: the guide's tips over the form
+	local guide = #ns.ProfileSlots() == 0 and not ns.db.guideSeen
 	if not frame then
 		CreateWindow()
 	end
@@ -1684,6 +1697,9 @@ function ns.Open()
 	keeping = false
 	ns.LeaveForm()
 	ns.GoHome(true)
+	if guide and ns.StartGuide then
+		ns.StartGuide()
+	end
 end
 
 -- Back where it was (after combat, or a Blizzard window it waited on)

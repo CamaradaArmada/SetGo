@@ -436,6 +436,30 @@ function W.PageArrow(parent, dir, onClick)
 	return b
 end
 
+-- Blizzard's "i" button: a longer explanation of what is next to it, shown
+-- on a click (again, or the mouse leaving it: gone)
+function W.Info(parent, title, text)
+	local b = CreateFrame("Button", nil, parent)
+	b:SetSize(20, 20)
+	local tex = b:CreateTexture(nil, "ARTWORK")
+	tex:SetAllPoints()
+	tex:SetTexture("Interface\\common\\help-i")
+	local hl = b:CreateTexture(nil, "HIGHLIGHT")
+	hl:SetAllPoints()
+	hl:SetTexture("Interface\\common\\help-i")
+	hl:SetBlendMode("ADD")
+	hl:SetAlpha(0.4)
+	b:SetScript("OnClick", function(self)
+		if GameTooltip:IsOwned(self) and GameTooltip:IsShown() then
+			HideTip()
+		else
+			ShowTip(self, title, text)
+		end
+	end)
+	b:SetScript("OnLeave", HideTip)
+	return b
+end
+
 function W.Button(parent, width, text, onClick, height)
 	local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
 	b:SetSize(width, height or 22)

@@ -9,11 +9,9 @@ SlashCmdList.SETGO = function(msg)
 	msg = raw:lower()
 	if msg == "hello" then
 		ns.ShowWelcome()
-	elseif msg == "tour" then
-		ns.StartTour()
-	elseif msg == "guide" then
-		-- the first profile's guide, even with profiles (to try it)
-		ns.ShowWizard()
+	elseif msg == "tour" or msg == "guide" then
+		-- the guide's tips over the form (Tour.lua)
+		ns.StartGuide()
 	else
 		ns.Toggle()
 	end
