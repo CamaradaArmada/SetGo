@@ -361,7 +361,8 @@ local function Entries(tab)
 		end
 		return list
 	end
-	return { { label = L.SETGO_TITLE, group = "setgo" } }
+	-- SetGo!'s page, then the Backup page (Backup.lua)
+	return { { label = L.SETGO_TITLE, group = "setgo", index = 1 }, { label = L.BACKUP_TITLE, group = "setgo", index = 2 } }
 end
 
 -- the tab a group lives in
@@ -1087,14 +1088,19 @@ end
 -- pages of a group: the game's options, the modules, or ours
 local function PagesOf(group)
 	if group == "setgo" then
-		return { { key = "setgo", title = L.SETGO_TITLE, items = ns.SetGoItems(), own = true } }
+		return {
+			{ key = "setgo", title = L.SETGO_TITLE, items = ns.SetGoItems(), own = true },
+			{ key = "backup", title = L.BACKUP_TITLE, items = ns.BackupItems(), own = true },
+		}
 	end
 	return ns.BuildPath(group)
 end
 
 -- the header of a module's page, or SetGo!'s
 local function PageHead(page)
-	if page.own then
+	if page.own and page.key == "backup" then
+		return { icon = ns.ICON, name = L.BACKUP_TITLE, desc = L.BACKUP_NOTE }
+	elseif page.own then
 		return { icon = ns.ICON, name = L.SETGO_TITLE, desc = L.SETGO_PAGE_DESC }
 	end
 	local key = type(page.key) == "string" and page.key:match("^module_(.+)$")

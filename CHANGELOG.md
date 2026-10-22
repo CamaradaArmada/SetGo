@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.0
+
+SetGo! (build 14)
+- Backup page (Backup.lua), second page of the SetGo! tab: a backup holds
+  the profiles (with their order and the Global set), SetGo!'s and the
+  Quick Menu's options, Blizzard's account settings, the account's Edit
+  Mode layouts and the macros (account and this character's). The game
+  keeps the last five (SetGoDB.backups). Each can be applied part by part
+  (after asking; the interface reloads), exported as a code (SGB1:, with
+  Blizzard's CBOR, Deflate and Base64) to keep in a file, or deleted; a
+  code can be imported. What sits on the action bars and other addons'
+  data aren't in it.
+- Tests: backups kept, read back from their code, deleted.
+
 ## 0.10.2
 
 SetGo! (build 12)

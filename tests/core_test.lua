@@ -152,7 +152,7 @@ local function LastPopup() return POPUPS[#POPUPS] end
 local ns = {}
 LOAD(B .. "/SetGo", { "Libs/LibStub/LibStub.lua", "Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua", "Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua" }, "SetGo", ns)
 LOAD(B .. "/SetGo", { "Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua" }, "SetGo", ns)
-LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
+LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Backup.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
 -- a module with one option (Chat)
 local chatDB = { font = "A" }
 local chatS = ns.Pseudo("SETGO_CHAT_font", "Font", "", "A", function() return chatDB.font end, function(v) chatDB.font = v end)
@@ -580,4 +580,24 @@ check(#bp == 2 and bp[1].blizzard ~= nil, "Blizzard's two layouts in the presets
 local bo = ns.PresetOpts(bp[1])
 check(bo and bo.layout.template and bo.customModules and bo.modules.fetch == false, "a Blizzard preset: its layout, the modules off")
 check(bo.scope.settings == "global" and bo.scope.keys == "global" and bo.scope.bars == "global", "a Blizzard preset: all Global")
+-- build 14: backups (the game keeps five; export and import as a code)
+local STORE = {}
+C_EncodingUtil = {
+	SerializeCBOR = function(t) STORE[#STORE + 1] = t return "T" .. #STORE end,
+	DeserializeCBOR = function(s) return STORE[tonumber(s:sub(2))] end,
+	CompressString = function(s) return s end, DecompressString = function(s) return s end,
+	EncodeBase64 = function(s) return s end, DecodeBase64 = function(s) return s end,
+}
+GetNumMacros = function() return 1, 0 end
+GetMacroInfo = function(i) if i == 1 then return "Heal", 134400, "/cast Heal" end end
+ns.db.backups = {}
+for i = 1, 6 do ns.CreateBackup() end
+check(#ns.Backups() == 5, "backups: the game keeps the last five")
+local backup = ns.Backups()[1]
+check(backup.profiles and backup.profiles.profiles and backup.profiles.profiles.First ~= nil and backup.macros.account[1].name == "Heal", "a backup holds the profiles and the macros")
+local backupCode = ns.PackBackup(backup)
+check(backupCode and backupCode:find("^SGB1:") and ns.UnpackBackup(backupCode) == backup, "export and import: the code read back")
+check(ns.UnpackBackup("SGP1;rubbish") == nil, "a code that isn't a backup: refused")
+check(ns.DeleteBackup(backup) and #ns.Backups() == 4, "delete one")
+C_EncodingUtil = nil
 print("ALL PASSED")

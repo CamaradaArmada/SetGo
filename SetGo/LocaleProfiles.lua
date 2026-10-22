@@ -704,3 +704,90 @@ if GetLocale() == "ptBR" then
 		L[key] = value
 	end
 end
+
+--------------------------------------------------------------------------------
+-- 0.11: backup
+--------------------------------------------------------------------------------
+
+local ENB = {
+	BACKUP_CREATE_DESC = "Keeps a backup of your setup in the game: profiles, SetGo!'s options, account settings, Edit Mode layouts and macros. The game keeps the last five. Your action bars and other addons aren't in it.",
+	BACKUP_ENTRY = "%s (%s)",
+	BACKUP_LAST = "Last backup: %s",
+	BACKUP_NONE = "No backups yet",
+	BACKUP_APPLY = "Apply backup",
+	BACKUP_APPLY_DESC = "Brings back the ticked parts of the backup picked, in place of what you have now. You are asked first; the interface reloads.",
+	BACKUP_EXPORT = "Export backup",
+	BACKUP_EXPORT_DESC = "Shows the code of the backup picked, to copy and keep in a file.",
+	BACKUP_IMPORT = "Import code",
+	BACKUP_IMPORT_DESC = "Paste a backup code: it joins the backups kept in the game, to apply from there.",
+	BACKUP_DELETE = "Delete backup",
+	BACKUP_DELETE_DESC = "Deletes the backup picked from the game. A code you exported still works.",
+	POPUP_BACKUP_DELETE = "Delete the backup %s?",
+	MSG_BACKUP_CREATED = "Backup made: %s.",
+	MSG_BACKUP_IMPORTED = "Backup imported: %s.",
+	BACKUP_TITLE = "Backup",
+	BACKUP_NOTE = "Backups of your whole setup, kept in the game: profiles, SetGo!'s options, account settings, Edit Mode layouts and macros. Export one to keep its code in a file.",
+	BACKUP_CREATE = "Create backup",
+	BACKUP_PART_PROFILES = "Profiles",
+	BACKUP_PART_OPTIONS = "SetGo! and Quick Menu options",
+	BACKUP_PART_ACCOUNT = "Account settings",
+	BACKUP_PART_LAYOUTS = "Account Edit Mode layouts",
+	BACKUP_PART_MACROS = "Macros",
+	BACKUP_HAS_PROFILES = "%d profiles (they replace yours)",
+	BACKUP_HAS_ACCOUNT = "%d account settings",
+	BACKUP_HAS_LAYOUTS = "%d account Edit Mode layouts (they replace yours)",
+	BACKUP_HAS_MACROS = "%d macros (they replace yours)",
+	POPUP_BACKUP_CODE = "SetGo! backup %s. Copy it with Ctrl+C and keep it in a file.",
+	POPUP_BACKUP_PASTE = "Paste the backup code:",
+	POPUP_BACKUP_RESTORE = "Restore the backup of %s (%s)?\n\n%s\n\nThis affects every character on the account. The interface reloads.",
+	MSG_BACKUP_FAILED = "The backup couldn't be made on this version of the game.",
+	MSG_BACKUP_BAD = "That isn't a SetGo! backup code.",
+	MSG_BACKUP_RESTORED = "Backup restored.",
+	MSG_BACKUP_MACROS_SKIPPED = "%d macros didn't fit and were left out.",
+}
+
+local PTB = {
+	BACKUP_CREATE_DESC = "Guarda no jogo um backup da tua configuração: perfis, opções do SetGo!, definições da conta, layouts do Edit Mode e macros. O jogo guarda os últimos cinco. As tuas barras de acção e os outros addons não vão nele.",
+	BACKUP_ENTRY = "%s (%s)",
+	BACKUP_LAST = "Último backup: %s",
+	BACKUP_NONE = "Ainda não há backups",
+	BACKUP_APPLY = "Aplicar backup",
+	BACKUP_APPLY_DESC = "Traz de volta as partes marcadas do backup escolhido, em vez do que tens agora. Pergunta primeiro; a interface recarrega.",
+	BACKUP_EXPORT = "Exportar backup",
+	BACKUP_EXPORT_DESC = "Mostra o código do backup escolhido, para copiares e guardares num ficheiro.",
+	BACKUP_IMPORT = "Importar código",
+	BACKUP_IMPORT_DESC = "Cola um código de backup: junta-se aos backups guardados no jogo, para o aplicares a partir daí.",
+	BACKUP_DELETE = "Apagar backup",
+	BACKUP_DELETE_DESC = "Apaga do jogo o backup escolhido. Um código que tenhas exportado continua a funcionar.",
+	POPUP_BACKUP_DELETE = "Apagar o backup %s?",
+	MSG_BACKUP_CREATED = "Backup feito: %s.",
+	MSG_BACKUP_IMPORTED = "Backup importado: %s.",
+	BACKUP_TITLE = "Backup",
+	BACKUP_NOTE = "Backups de toda a tua configuração, guardados no jogo: perfis, opções do SetGo!, definições da conta, layouts do Edit Mode e macros. Exporta um para guardares o código num ficheiro.",
+	BACKUP_CREATE = "Criar backup",
+	BACKUP_PART_PROFILES = "Perfis",
+	BACKUP_PART_OPTIONS = "Opções do SetGo! e do Quick Menu",
+	BACKUP_PART_ACCOUNT = "Definições da conta",
+	BACKUP_PART_LAYOUTS = "Layouts de conta do Edit Mode",
+	BACKUP_PART_MACROS = "Macros",
+	BACKUP_HAS_PROFILES = "%d perfis (substituem os teus)",
+	BACKUP_HAS_ACCOUNT = "%d definições da conta",
+	BACKUP_HAS_LAYOUTS = "%d layouts de conta do Edit Mode (substituem os teus)",
+	BACKUP_HAS_MACROS = "%d macros (substituem as tuas)",
+	POPUP_BACKUP_CODE = "Backup do SetGo! %s. Copia-o com Ctrl+C e guarda-o num ficheiro.",
+	POPUP_BACKUP_PASTE = "Cola o código do backup:",
+	POPUP_BACKUP_RESTORE = "Restaurar o backup de %s (%s)?\n\n%s\n\nIsto afecta todas as personagens da conta. A interface recarrega.",
+	MSG_BACKUP_FAILED = "Não foi possível fazer o backup nesta versão do jogo.",
+	MSG_BACKUP_BAD = "Isso não é um código de backup do SetGo!.",
+	MSG_BACKUP_RESTORED = "Backup restaurado.",
+	MSG_BACKUP_MACROS_SKIPPED = "%d macros não couberam e ficaram de fora.",
+}
+
+for key, value in pairs(ENB) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PTB) do
+		L[key] = value
+	end
+end
