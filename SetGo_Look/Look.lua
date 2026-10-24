@@ -3,6 +3,8 @@ local ADDON, ns = ...
 local L = {
 	TITLE = "Look!",
 	SEC_CONTROLS = "Controls",
+	COMBAT = "Free the mouse in combat",
+	COMBAT_DESC = "Lets go of the mouse when combat starts and takes it back a second after combat ends, so you can click the interface while you fight. The camera doesn't move.",
 	KEY = "Look! key",
 	KEY_DESC = "Turns Look! on and off. Click, then press a key; right click clears it.",
 	RELEASE_KEY = "Hold to free the mouse",
@@ -19,12 +21,14 @@ local L = {
 	SEC_CAMERA = "Camera",
 	CAMERA = "Over the shoulder camera",
 	CAMERA_DESC = "Moves the camera over the shoulder while Look! is on. Uses the game's experimental camera settings; the game's warning about them is not shown.",
-	HOW = "Left click targets the enemy nearest the middle of the view. Right click talks to, loots or uses what the game highlights in front of you. The mouse is freed while a window is open, a spell waits for a ground target or an item is on the cursor.",
+	HOW = "Left click targets the enemy nearest the middle of the view. Right click talks to, loots or uses what the game highlights in front of you. The mouse is freed while a window is open (quick keybind mode too), a spell waits for a ground target or an item is on the cursor.",
 	BINDING = "Toggle Look!",
 	OFF_IN_SETGO = "Look! is switched off for this character. Switch it on in SetGo!, Modules.",
 }
 if GetLocale() == "ptBR" then
 	L.SEC_CONTROLS = "Controlos"
+	L.COMBAT = "Soltar o rato em combate"
+	L.COMBAT_DESC = "Larga o rato quando o combate começa e volta a prendê-lo um segundo depois de o combate acabar, para poderes clicar na interface enquanto lutas. A câmara não se mexe."
 	L.KEY = "Tecla do Look!"
 	L.KEY_DESC = "Liga e desliga o Look!. Clica e carrega numa tecla; clique direito para a limpar."
 	L.RELEASE_KEY = "Manter para soltar o rato"
@@ -41,7 +45,7 @@ if GetLocale() == "ptBR" then
 	L.SEC_CAMERA = "Câmara"
 	L.CAMERA = "Câmara por cima do ombro"
 	L.CAMERA_DESC = "Põe a câmara por cima do ombro enquanto o Look! está ligado. Usa as opções experimentais de câmara do jogo; o aviso do jogo sobre elas não aparece."
-	L.HOW = "O clique esquerdo selecciona o inimigo mais perto do centro da vista. O clique direito fala, apanha o saque ou usa o que o jogo destaca à tua frente. O rato fica solto enquanto há uma janela aberta, um feitiço à espera de alvo no chão ou um item no cursor."
+	L.HOW = "O clique esquerdo selecciona o inimigo mais perto do centro da vista. O clique direito fala, apanha o saque ou usa o que o jogo destaca à tua frente. O rato fica solto enquanto há uma janela aberta (também no modo de atalhos rápidos), um feitiço à espera de alvo no chão ou um item no cursor."
 	L.BINDING = "Ligar ou desligar o Look!"
 	L.OFF_IN_SETGO = "O Look! está desligado nesta personagem. Liga-o no SetGo!, em Módulos."
 end
@@ -61,9 +65,10 @@ local db, charDB -- SetGoLookDB (account), SetGoLookCharDB (character)
 -- own. (The gamepad's free look hover, C_GamePad.SetAllowHoverEventsWithFreeLook,
 -- would let the dot aim, but tested on Forever the mouseover stays empty while
 -- the mouse turns the camera.)
--- It lets go of the mouse while a window is open, a spell waits for a ground
--- target, an item is on the cursor or the release key is held (the loot
--- window doesn't count while auto loot is taking the loot).
+-- It lets go of the mouse in combat (an option), while a window is open (quick
+-- keybind mode too), a spell waits for a ground target, an item is on the cursor or
+-- the release key is held (the loot window doesn't count while auto loot is
+-- taking the loot).
 -- Nothing polls the interface: Blizzard's windows report showing and hiding
 -- through hooks, the keys, cursor and loot through events. Only one call runs
 -- ten times a second, to notice the game ending mouselook by itself, and a
@@ -122,8 +127,8 @@ end
 -- windows that need the cursor, on top of every window the game itself
 -- manages (UIPanelWindows) or closes with Escape (UISpecialFrames)
 local WINDOWS = {
-	-- game menu, options, popups
-	"GameMenuFrame", "SettingsPanel", "SetGoFrame", "SetGoWelcome", "StaticPopup1", "StaticPopup2", "StaticPopup3",
+	-- game menu, options, popups, quick keybind mode
+	"QuickKeybindFrame", "GameMenuFrame", "SettingsPanel", "SetGoFrame", "SetGoWelcome", "StaticPopup1", "StaticPopup2", "StaticPopup3",
 	-- micro menu
 	"CharacterFrame", "PlayerSpellsFrame", "SpellBookFrame", "ProfessionsBookFrame", "ProfessionsFrame",
 	"TalentFrame", "ClassTalentFrame", "PlayerTalentFrame", "AchievementFrame", "QuestLogFrame",
@@ -181,7 +186,19 @@ local function Needs(name)
 	return Visible(name)
 end
 
+-- With the combat option, combat frees the mouse, so the interface can be
+-- clicked while fighting. The events say it (InCombatLockdown can lag them); a second after combat ends
+-- the mouse stays free, so a short gap between two fights doesn't grab it in
+-- the middle of a click
+local COMBAT_HOLD = 1
+local inCombat = false
+local combatHold = false
+local holdId = 0
+
 local function Windowed()
+	if db.combatFree and (inCombat or combatHold) then
+		return true
+	end
 	-- the release key, held down
 	local held = HELD[db.releaseKey or "NONE"]
 	if held and held() then
@@ -589,6 +606,8 @@ local function Start()
 		return
 	end
 	active = true
+	inCombat = InCombatLockdown() or (UnitAffectingCombat and UnitAffectingCombat("player")) or false
+	combatHold = false
 	Engage()
 	Reticle()
 	PlaceReticle()
@@ -667,6 +686,12 @@ local function Items()
 	end, function(key)
 		db.releaseKey = key
 	end)
+	local combat = Pseudo("SETGO_ADV_COMBAT", L.COMBAT, L.COMBAT_DESC, false, function()
+		return db.combatFree == true
+	end, function(on)
+		db.combatFree = on or nil
+		Request()
+	end)
 	local soft = Pseudo("SETGO_ADV_SOFT", L.SOFT, L.SOFT_DESC, SOFT_ALL, function()
 		return tonumber(db.soft) or SOFT_ALL
 	end, function(value)
@@ -713,6 +738,7 @@ local function Items()
 		{ kind = "header", name = L.SEC_CONTROLS },
 		{ kind = "keybind", action = "SETGO_LOOK", name = L.KEY, tooltip = L.KEY_DESC },
 		{ kind = "dropdown", setting = release, settings = { release }, name = L.RELEASE_KEY, tooltip = L.RELEASE_KEY_DESC, options = ReleaseOptions },
+		{ kind = "checkbox", setting = combat, settings = { combat }, name = L.COMBAT, tooltip = L.COMBAT_DESC },
 		{ kind = "header", name = L.SEC_TARGETING },
 		{ kind = "dropdown", setting = soft, settings = { soft }, name = L.SOFT, tooltip = L.SOFT_DESC, options = SoftOptions },
 		{ kind = "checkbox", setting = icons, settings = { icons }, name = L.ICONS, tooltip = L.ICONS_DESC },
@@ -767,11 +793,28 @@ events:SetScript("OnEvent", function(_, event, arg1)
 			Stop()
 		end
 	elseif event == "PLAYER_REGEN_DISABLED" then
+		inCombat = true
+		combatHold = false
+		holdId = holdId + 1
+		Request()
 		-- friends are soft targeted out of combat only
 		if active and Soft(SOFT_FRIEND) and C_CVar.GetCVar("SoftTargetFriend") ~= nil then
 			C_CVar.SetCVar("SoftTargetFriend", "0")
 		end
 	elseif event == "PLAYER_REGEN_ENABLED" then
+		inCombat = false
+		if db and db.combatFree and active then
+			combatHold = true
+			holdId = holdId + 1
+			local id = holdId
+			C_Timer.After(COMBAT_HOLD, function()
+				if id == holdId then
+					combatHold = false
+					Request()
+				end
+			end)
+		end
+		Request()
 		-- CVars that were protected during combat
 		FlushPending()
 		if active and Soft(SOFT_FRIEND) and C_CVar.GetCVar("SoftTargetFriend") ~= nil then

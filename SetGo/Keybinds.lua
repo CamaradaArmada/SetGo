@@ -8,15 +8,68 @@ local Try = ns.Try
 -- be applied in combat anyway).
 --------------------------------------------------------------------------------
 
--- every key bound to a command in Blizzard's key binding list, and the
--- commands this client has
+-- Keys addons bind to their own buttons (CLICK Button:LeftButton: Bartender,
+-- Dominos) aren't in Blizzard's list: looked for key by key, with each
+-- modifier
+local KEYS
+local function AllKeys()
+	if KEYS then
+		return KEYS
+	end
+	local base = {}
+	for c in ("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"):gmatch(".") do
+		base[#base + 1] = c
+	end
+	for i = 1, 12 do
+		base[#base + 1] = "F" .. i
+	end
+	for i = 0, 9 do
+		base[#base + 1] = "NUMPAD" .. i
+	end
+	for i = 3, 15 do
+		base[#base + 1] = "BUTTON" .. i
+	end
+	for _, k in ipairs({ "NUMPADDIVIDE", "NUMPADMULTIPLY", "NUMPADMINUS", "NUMPADPLUS", "NUMPADDECIMAL",
+		"`", "-", "=", "[", "]", "\\", ";", "'", ",", ".", "/", "TAB", "SPACE", "ENTER", "BACKSPACE",
+		"INSERT", "DELETE", "HOME", "END", "PAGEUP", "PAGEDOWN", "UP", "DOWN", "LEFT", "RIGHT",
+		"MOUSEWHEELUP", "MOUSEWHEELDOWN", "CAPSLOCK" }) do
+		base[#base + 1] = k
+	end
+	KEYS = {}
+	for _, mod in ipairs({ "", "SHIFT-", "CTRL-", "ALT-", "CTRL-SHIFT-", "ALT-SHIFT-", "ALT-CTRL-", "ALT-CTRL-SHIFT-" }) do
+		for _, k in ipairs(base) do
+			KEYS[#KEYS + 1] = mod .. k
+		end
+	end
+	return KEYS
+end
+
+-- an addon's command: a click on one of its buttons, or one it declared
+-- (the AddOns part of Blizzard's list; its name is the addon's, not one of
+-- Blizzard's own strings)
+local function IsAddonCommand(command, category)
+	if type(command) ~= "string" then
+		return false
+	end
+	if command:find("^CLICK ") or category == "ADDONS" then
+		return true
+	end
+	local var = "BINDING_NAME_" .. command
+	return _G[var] ~= nil and issecurevariable and not issecurevariable(var) or false
+end
+
+-- every key bound to a command in Blizzard's key binding list (and to an
+-- addon's button), the commands this client has, and which are addons'
 local function Current()
-	local keys, commands = {}, {}
+	local keys, commands, addon = {}, {}, {}
 	for i = 1, GetNumBindings() do
 		local binding = { GetBinding(i) }
 		local command = binding[1]
 		if type(command) == "string" then
 			commands[command] = true
+			if IsAddonCommand(command, binding[2]) then
+				addon[command] = true
+			end
 			for j = 3, #binding do
 				local key = binding[j]
 				if type(key) == "string" and key ~= "" then
@@ -25,7 +78,31 @@ local function Current()
 			end
 		end
 	end
-	return keys, commands
+	if GetBindingAction then
+		for _, key in ipairs(AllKeys()) do
+			local action = keys[key] == nil and GetBindingAction(key)
+			if type(action) == "string" and action:find("^CLICK ") then
+				keys[key] = action
+				commands[action] = true
+				addon[action] = true
+			end
+		end
+	end
+	return keys, commands, addon
+end
+
+-- a command this client can bind: in Blizzard's list, or a click on a button
+-- that is there
+local function Known(command, commands)
+	if commands[command] then
+		return true
+	end
+	local button = type(command) == "string" and command:match("^CLICK ([^:]+)")
+	return button ~= nil and _G[button] ~= nil
+end
+
+local function IsClick(command)
+	return type(command) == "string" and command:find("^CLICK ") ~= nil
 end
 
 ns.CurrentKeybinds = Current
@@ -48,12 +125,14 @@ function ns.KeysDiff(keys)
 	local current, commands = Current()
 	local n = 0
 	for key, command in pairs(keys) do
-		if commands[command] and current[key] ~= command then
+		if Known(command, commands) and current[key] ~= command then
 			n = n + 1
 		end
 	end
-	for key in pairs(current) do
-		if keys[key] == nil then
+	-- an addon's button keys the set doesn't hold (saved before they were
+	-- read) are left as they are
+	for key, command in pairs(current) do
+		if keys[key] == nil and not IsClick(command) then
 			n = n + 1
 		end
 	end
@@ -69,7 +148,7 @@ function ns.KeepUnknownKeys(old, keys)
 	end
 	local _, commands = Current()
 	for key, command in pairs(old) do
-		if not commands[command] and keys[key] == nil then
+		if not Known(command, commands) and keys[key] == nil then
 			keys[key] = command
 		end
 	end
@@ -112,12 +191,15 @@ function ns.ApplyKeys(keys)
 		return 0
 	end
 	local current, commands = Current()
-	for key in pairs(current) do
-		SetBinding(key)
+	for key, command in pairs(current) do
+		-- an addon's button keys stay unless the set says otherwise
+		if not IsClick(command) or keys[key] ~= nil then
+			SetBinding(key)
+		end
 	end
 	local skipped = 0
 	for key, command in pairs(keys) do
-		if commands[command] then
+		if Known(command, commands) then
 			SetBinding(key, command)
 		else
 			skipped = skipped + 1
@@ -133,17 +215,19 @@ function ns.ApplyKeys(keys)
 	return skipped
 end
 
--- The player saved key bindings (Blizzard's menu, Quick Keybind Mode):
--- what changed goes into the set the profile in use takes its keys from
--- (its own, or the shared one). Only the changes: a key changed on another
--- character using the shared set stays.
-local function OnSaveBindings()
+-- Key bindings saved: what changed goes into the set the profile in use
+-- takes its keys from (its own, or the shared one). Only the changes: a key
+-- changed on another character using the shared set stays. Saved from
+-- Blizzard's menus (Key Bindings, Quick Keybind Mode): every change. Saved
+-- by another addon (its own menu): only its own keys (its buttons, its
+-- commands), not Blizzard's.
+local function OnSaveBindings(byAddon)
 	if ns.applyingKeys or not ns.db then
 		return
 	end
 	local name = ns.ActivePreset and ns.ActivePreset()
 	local p = name and ns.db.profiles[name]
-	local keys = Current()
+	local keys, _, addon = Current()
 	if not baseline then
 		-- before login finished: nothing to compare with yet
 		baseline = keys
@@ -157,17 +241,34 @@ local function OnSaveBindings()
 	if type(p) ~= "table" then
 		return
 	end
+	local function Counts(key)
+		return not byAddon or addon[keys[key]] or addon[before[key]] or IsClick(before[key])
+	end
+	local any = false
+	for key, command in pairs(keys) do
+		if before[key] ~= command and Counts(key) then
+			any = true
+		end
+	end
+	for key in pairs(before) do
+		if keys[key] == nil and Counts(key) then
+			any = true
+		end
+	end
+	if not any then
+		return
+	end
 	local holder = ns.KeysHolder(p)
 	if type(holder.keys) ~= "table" then
 		holder.keys = ns.CopyKeys(keys)
 	else
 		for key, command in pairs(keys) do
-			if before[key] ~= command then
+			if before[key] ~= command and Counts(key) then
 				holder.keys[key] = command
 			end
 		end
 		for key in pairs(before) do
-			if keys[key] == nil then
+			if keys[key] == nil and Counts(key) then
 				holder.keys[key] = nil
 			end
 		end
@@ -180,6 +281,18 @@ local function OnSaveBindings()
 	end
 end
 
+-- the first addon file in the call stack that isn't SetGo!'s: one of
+-- Blizzard's (Blizzard_...) or another addon's
+function ns.SavedByAddon()
+	local stack = debugstack and debugstack(2) or ""
+	for folder in stack:gmatch("Interface[/\\]AddOns[/\\]([^/\\]+)") do
+		if folder ~= "SetGo" then
+			return folder:find("^Blizzard_") == nil
+		end
+	end
+	return false
+end
+
 -- at login, once the bindings are loaded
 function ns.WatchKeys()
 	baseline = Current()
@@ -189,8 +302,12 @@ function ns.WatchKeys()
 	if SaveBindings and hooksecurefunc and not ns.keysHooked then
 		ns.keysHooked = true
 		hooksecurefunc("SaveBindings", function()
+			-- who saved: Blizzard's code, or another addon's
+			local byAddon = ns.SavedByAddon()
 			-- after the call, outside Blizzard's own code path
-			C_Timer.After(0, OnSaveBindings)
+			C_Timer.After(0, function()
+				OnSaveBindings(byAddon)
+			end)
 		end)
 	end
 end

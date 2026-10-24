@@ -3,7 +3,7 @@ local ADDON, ns = ...
 local L = {
 	TITLE = "Hide!",
 	NOTE = "Each frame works like a macro. Pick one or more conditions (any of them is enough) and Show or Hide.\nShow: the frame is only seen while a condition is on. Hide: it is only seen while none is on.\nNone with Show leaves the frame to Blizzard. None with Hide always hides it.\nAction bars with a rule are always shown while the cursor holds something or the spellbook is open (out of combat).",
-	NOTE_BLIZZARD = "Blizzard's own visibility still counts: a frame shows only when Blizzard and Hide! both allow it. For action bars, keep Blizzard's visibility on Always in Edit Mode. In Edit Mode every frame is shown so you can move it.",
+	NOTE_BLIZZARD = "Blizzard's own visibility still counts: a frame shows only when Blizzard and Hide! both allow it. For action bars, keep Blizzard's visibility on Always in Edit Mode. In Edit Mode and in Quick Keybind mode every frame is shown.",
 	SEC_UNITS = "Unit frames",
 	SEC_HUD = "Interface",
 	SEC_BARS = "Action bars",
@@ -59,7 +59,7 @@ local L = {
 }
 if GetLocale() == "ptBR" then
 	L.NOTE = "Cada frame funciona como uma macro. Escolhe uma ou mais condições (basta uma delas) e Mostrar ou Esconder.\nMostrar: a frame só se vê enquanto uma condição estiver activa. Esconder: só se vê enquanto nenhuma estiver activa.\nNenhuma com Mostrar deixa a frame com a Blizzard. Nenhuma com Esconder esconde-a sempre.\nAs barras de acção com regra aparecem sempre que o cursor segura alguma coisa ou o livro de feitiços está aberto (fora de combate)."
-	L.NOTE_BLIZZARD = "A visibilidade da própria Blizzard continua a contar: uma frame só aparece quando a Blizzard e o Hide! deixam. Nas barras de acção, deixa a visibilidade da Blizzard em Sempre no Edit Mode. No Edit Mode todas as frames aparecem, para as poderes mover."
+	L.NOTE_BLIZZARD = "A visibilidade da própria Blizzard continua a contar: uma frame só aparece quando a Blizzard e o Hide! deixam. Nas barras de acção, deixa a visibilidade da Blizzard em Sempre no Edit Mode. No Edit Mode e no modo de atalhos rápidos (Quick Keybind) todas as frames aparecem."
 	L.SEC_UNITS = "Unit frames"
 	L.SEC_HUD = "Interface"
 	L.SEC_BARS = "Barras de acção"
@@ -124,7 +124,8 @@ end
 --   Frames with the same rule share one parent, so one driver. A frame with
 --   no rule (None + Show) is never touched; None + Hide is a parent that is
 --   simply hidden, with no driver.
---   Nothing changes in combat: changes wait for it to end. In Edit Mode every
+--   Nothing changes in combat: changes wait for it to end. In Edit Mode (and
+--   Blizzard's Quick Keybind mode) every
 --   parent is shown so the frames can be moved.
 -- SetGoHideDB: [frame key] = { when = bitmask of CONDS, mode = "show"/"hide" }
 --------------------------------------------------------------------------------
@@ -278,6 +279,8 @@ end
 --------------------------------------------------------------------------------
 
 local started, editing = false, false
+-- Blizzard's Quick Keybind mode is open: everything shows, as in Edit Mode
+local keybinding = false
 local containers = {} -- [driver] = our parent frame
 local moved = {} -- [Blizzard frame] = its own parent
 
@@ -410,7 +413,7 @@ function Apply()
 	end
 	for driver, c in pairs(containers) do
 		-- an empty parent, or Edit Mode: shown, no driver
-		local want = (used[c] and not editing) and driver or false
+		local want = (used[c] and not editing and not keybinding) and driver or false
 		if want ~= c.driven then
 			if c.driven and c.driven ~= "hide" and c.driven ~= "show" then
 				UnregisterStateDriver(c, "visibility")
@@ -438,8 +441,32 @@ local function Changed()
 	end
 end
 
+-- Quick Keybind mode: only listening to its window opening and closing (it
+-- opens out of combat only). It can come with an addon of Blizzard's that
+-- loads later, so this is tried again as addons load.
+local keybindHooked = false
+local function HookQuickKeybind()
+	local f = _G.QuickKeybindFrame
+	if keybindHooked or type(f) ~= "table" or not f.HookScript then
+		return
+	end
+	keybindHooked = true
+	f:HookScript("OnShow", function()
+		keybinding = true
+		Apply()
+	end)
+	f:HookScript("OnHide", function()
+		keybinding = false
+		Apply()
+	end)
+	if f:IsShown() then
+		keybinding = true
+	end
+end
+
 local function Start()
 	started = true
+	HookQuickKeybind()
 	if EventRegistry and EventRegistry.RegisterCallback then
 		local owner = {}
 		EventRegistry:RegisterCallback("EditMode.Enter", function()
@@ -736,9 +763,14 @@ events:SetScript("OnEvent", function(self, event, arg1)
 			db = SetGoHideDB
 			-- the action bar art copy is gone (0.6.0)
 			db._art = nil
-		elseif revealing then
-			-- the spellbook can be an addon of Blizzard's that loads later
-			HookSpellbooks()
+		else
+			if revealing then
+				-- the spellbook can be an addon of Blizzard's that loads later
+				HookSpellbooks()
+			end
+			if started then
+				HookQuickKeybind()
+			end
 		end
 	elseif event == "PLAYER_LOGIN" then
 		DropOldOptions()

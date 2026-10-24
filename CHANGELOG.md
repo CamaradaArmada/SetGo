@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.1
+
+SetGo! (build 15)
+- Profiles keep the keybinds other addons set from their own menus
+  (Bartender, Dominos and the like), not only the ones set in Blizzard's
+  Key Bindings menu (Keybinds.lua). A Blizzard keybind changed by another
+  addon is still not saved.
+
+Hide! (build 7)
+- While Blizzard's Quick Keybind mode is open, every frame Hide! hides is
+  shown, as in Edit Mode, so hidden action bars can be given keys.
+
+Look! (build 4)
+- While Blizzard's Quick Keybind mode is open, the camera lets go of the
+  mouse, so the buttons can be clicked to give them keys.
+
 ## 0.11.0
 
 SetGo! (build 14)

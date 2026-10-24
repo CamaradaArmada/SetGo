@@ -3,8 +3,8 @@
 ## Notes: Mouse camera with a dot in the middle of the screen and soft targeting, like an action game. A SetGo! module.
 ## Notes-ptBR: Câmara controlada pelo rato, com um ponto no centro do ecrã e soft targeting, como num jogo de acção. Um módulo do SetGo!.
 ## Author: Armada
-## Version: 0.11.0
-## X-Build: 1
+## Version: 0.11.1
+## X-Build: 4
 ## Dependencies: SetGo
 ## DefaultState: enabled
 ## SavedVariables: SetGoLookDB
