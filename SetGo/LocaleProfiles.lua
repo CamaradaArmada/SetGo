@@ -134,7 +134,6 @@ local EN17 = {
 	PANEL_DESC = "Quick setup for the Blizzard UI: profiles with an Edit Mode layout, what it switches on, modules, keys, action bars and, if you want, their own character settings, to use on all your characters.",
 	FORM_TAB_LAYOUT = "Layout",
 	FORM_TAB_MODULES = "Modules",
-	FORM_TAB_OPTIONS = "Options",
 	NP_COPY_PROFILE = "Copy from",
 	NP_NAME_DESC = "The profile's name.",
 	NEW_PRESET_DESC = "A new profile: its layout, what it switches on, its modules and, if you want, its own settings. Save keeps it; Apply puts it on this character.",
@@ -159,7 +158,6 @@ local PT17 = {
 	PANEL_DESC = "Configuração rápida da interface da Blizzard: perfis com um layout do Edit Mode, o que ligam, módulos, teclas, barras de acção e, se quiseres, definições próprias da personagem, para usares em todas as tuas personagens.",
 	FORM_TAB_LAYOUT = "Layout",
 	FORM_TAB_MODULES = "Módulos",
-	FORM_TAB_OPTIONS = "Opções",
 	NP_COPY_PROFILE = "Copiar de",
 	NP_NAME_DESC = "O nome do perfil.",
 	NEW_PRESET_DESC = "Um perfil novo: o layout, o que liga, os módulos e, se quiseres, definições próprias. Guardar fica com ele; Aplicar põe-no nesta personagem.",
@@ -198,7 +196,6 @@ local EN18 = {
 	COPY_CURRENT = "Current",
 	NP_COPY_LAYOUT_DESC = "Current: the layout in use and what the game shows now. Or another profile's layout and what it switches on. Nothing is kept until you save.",
 	NP_COPY_MODULES_DESC = "Current: the modules and their options as they are now. Or another profile's. Ticks Change modules. Nothing is kept until you save.",
-	NP_COPY_OPTIONS_DESC = "Current: this character's settings as they are now. Or another profile's. Ticks Apply own settings. Nothing is kept until you save.",
 	NP_SAVE_APPLY_DESC = "Saves the profile and puts it on this character. The interface reloads when something needs it.",
 	FORM_STEP = "New profile: tab %d of %d",
 	POPUP_NP_SAVE_APPLY = "Save the profile \"%s\" and apply it to this character? The interface reloads if something needs it.",
@@ -221,7 +218,6 @@ local PT18 = {
 	COPY_CURRENT = "Actual",
 	NP_COPY_LAYOUT_DESC = "Actual: o layout em uso e o que o jogo mostra agora. Ou o layout de outro perfil e o que ele liga. Nada fica guardado até guardares.",
 	NP_COPY_MODULES_DESC = "Actual: os módulos e as suas opções como estão agora. Ou os de outro perfil. Marca Alterar módulos. Nada fica guardado até guardares.",
-	NP_COPY_OPTIONS_DESC = "Actual: as definições desta personagem como estão agora. Ou as de outro perfil. Marca Aplicar definições próprias. Nada fica guardado até guardares.",
 	NP_SAVE_APPLY_DESC = "Guarda o perfil e põe-no nesta personagem. A interface recarrega quando é preciso.",
 	FORM_STEP = "Perfil novo: aba %d de %d",
 	POPUP_NP_SAVE_APPLY = "Guardar o perfil \"%s\" e aplicá-lo a esta personagem? A interface recarrega se for preciso.",
@@ -254,7 +250,6 @@ end
 --------------------------------------------------------------------------------
 
 local EN19 = {
-	TAB_GAME = "Settings",
 	MODULE_SWITCH_DESC = "On or off. The interface reloads to follow.",
 	IMPORT_PROFILE = "Import profile",
 	POPUP_IMPORT_PROFILE = "Paste a SetGo! profile:",
@@ -267,7 +262,6 @@ local EN19 = {
 }
 
 local PT19 = {
-	TAB_GAME = "Definições",
 	MODULE_SWITCH_DESC = "Ligado ou desligado. A interface recarrega para acompanhar.",
 	IMPORT_PROFILE = "Importar perfil",
 	POPUP_IMPORT_PROFILE = "Cola um perfil do SetGo!:",
@@ -340,6 +334,8 @@ local EN22 = {
 	SCOPE_PROFILE_BARS_NEW = "Its own: they start as the bars are when it is applied.",
 	MSG_SETTINGS_IN_PROFILE = "Settings saved into \"%s\".",
 	MSG_SETTINGS_SHARED = "Settings saved into the shared ones (\"%s\" uses them).",
+	MSG_SETTINGS_NO_PROFILE = "Settings changed, but not saved: this character has no profile in use.",
+	MSG_ADDONS_IN_PROFILE = "Addons saved into \"%s\".",
 	MSG_KEYS_SHARED = "Keybinds saved into the shared ones (\"%s\" uses them).",
 }
 
@@ -368,6 +364,8 @@ local PT22 = {
 	SCOPE_PROFILE_BARS_NEW = "Próprias: começam como as barras estiverem quando for aplicado.",
 	MSG_SETTINGS_IN_PROFILE = "Definições guardadas em \"%s\".",
 	MSG_SETTINGS_SHARED = "Definições guardadas nas partilhadas (\"%s\" usa-as).",
+	MSG_SETTINGS_NO_PROFILE = "Definições alteradas, mas não guardadas: esta personagem não tem um perfil em uso.",
+	MSG_ADDONS_IN_PROFILE = "Addons guardados em \"%s\".",
 	MSG_KEYS_SHARED = "Atalhos guardados nos partilhados (\"%s\" usa-os).",
 	MSG_KEYS_IN_PRESET = "Atalhos guardados no perfil \"%s\".",
 }
@@ -788,6 +786,29 @@ for key, value in pairs(ENB) do
 end
 if GetLocale() == "ptBR" then
 	for key, value in pairs(PTB) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- a module's key on the profile form (Look!)
+--------------------------------------------------------------------------------
+
+local ENK = {
+	FORM_KEY_NOTE = "It goes into the keybinds this profile uses (Settings tab) and changes in the game when you apply the profile.",
+	MSG_KEY_REPLACED = "%s was the key for %s: now it isn't, once the profile is applied.",
+}
+
+local PTK = {
+	FORM_KEY_NOTE = "Fica nos atalhos que este perfil usa (aba Definições) e muda no jogo quando aplicares o perfil.",
+	MSG_KEY_REPLACED = "%s era a tecla de %s: deixa de ser quando aplicares o perfil.",
+}
+
+for key, value in pairs(ENK) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PTK) do
 		L[key] = value
 	end
 end

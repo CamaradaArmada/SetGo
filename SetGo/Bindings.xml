@@ -1,8 +1,8 @@
 <Bindings>
-	<Binding name="SETGO_TOGGLE" header="SETGO" category="ADDONS">
+	<Binding name="SETGO_TOGGLE" header="SETGO" category="BINDING_HEADER_SETGO">
 		SetGo_Toggle()
 	</Binding>
-	<Binding name="SETGO_QUICK" category="ADDONS">
+	<Binding name="SETGO_QUICK" category="BINDING_HEADER_SETGO">
 		SetGo_ToggleQuick()
 	</Binding>
 </Bindings>

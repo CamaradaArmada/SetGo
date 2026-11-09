@@ -314,3 +314,67 @@ pending:SetScript("OnEvent", function(self)
 		end
 	end)
 end)
+
+--------------------------------------------------------------------------------
+-- The game's addon list: what the player switches there goes into the
+-- profile in use, when it keeps the addons (Change addons ticked; else
+-- nothing is saved). Read when the list opens, compared when it closes:
+-- Okay saves and reloads right after (so this can't wait), Cancel puts the
+-- list back first (so there's nothing to save).
+--------------------------------------------------------------------------------
+
+local addonBase
+
+local function RecordAddons()
+	local base = addonBase
+	addonBase = nil
+	if not (ns.db and type(base) == "table") then
+		return
+	end
+	local name = ns.ActivePreset and ns.ActivePreset()
+	local p = name and ns.ProfileOf(name)
+	if not (p and p.customAddons) then
+		return
+	end
+	local changed = false
+	for addon, on in pairs(ns.AddonStates()) do
+		if base[addon] ~= nil and base[addon] ~= on then
+			if type(p.addonStates) ~= "table" then
+				p.addonStates = {}
+			end
+			p.addonStates[addon] = on
+			changed = true
+		end
+	end
+	if changed then
+		ns.Print(L.MSG_ADDONS_IN_PROFILE:format(name))
+		if ns.Refresh then
+			Try(ns.Refresh)
+		end
+	end
+end
+
+local listHooked = false
+local function HookAddonList()
+	if listHooked or not (AddonList and AddonList.HookScript) then
+		return
+	end
+	listHooked = true
+	AddonList:HookScript("OnShow", function()
+		addonBase = Try(ns.AddonStates)
+	end)
+	AddonList:HookScript("OnHide", function()
+		Try(RecordAddons)
+	end)
+end
+
+-- the list may load later than SetGo! (Blizzard_AddOnList)
+local listWatch = CreateFrame("Frame")
+listWatch:RegisterEvent("ADDON_LOADED")
+listWatch:RegisterEvent("PLAYER_LOGIN")
+listWatch:SetScript("OnEvent", function(self)
+	HookAddonList()
+	if listHooked then
+		self:UnregisterAllEvents()
+	end
+end)

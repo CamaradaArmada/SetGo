@@ -229,34 +229,74 @@ function ns.EnsureShared()
 	end
 end
 
-local function RecordSettings()
-	if not (ns.db and ns.SettingsReady()) then
-		return
-	end
-	local now = ns.OptionSnapshot()
-	local base = settingsBase
-	settingsBase = now
-	local name = ns.ActivePreset()
-	local p = PresetOf(name)
-	if not (base and p) then
-		return
-	end
+-- the elements a profile switches on (action bars 2 to 8 and the rest of
+-- ns.UI_ELEMENTS) as they were when last read: they aren't settings, so the
+-- profile keeps them in p.ui, never in the shared set
+local uiBase
+
+-- what changed in the elements since uiBase: { [key] = true/false }
+local function UIChanges()
+	local now = ns.UILive()
+	local base = uiBase
+	uiBase = now
 	local changed = {}
-	for var, value in pairs(now) do
-		if base[var] == nil or not ns.Same(base[var], value) then
-			changed[var] = value
+	if type(base) == "table" then
+		for key, on in pairs(now) do
+			if base[key] ~= nil and base[key] ~= on then
+				changed[key] = on
+			end
 		end
 	end
-	if not next(changed) then
+	return changed
+end
+
+local function RecordSettings()
+	if not ns.db then
 		return
 	end
-	local own = ns.ScopeOf(p, "settings") == "profile"
-	local holder = own and p or ns.db.shared
-	if type(holder.settings) ~= "table" then
-		holder.settings = Copy(now)
+	local ui = UIChanges()
+	local changed = {}
+	local now
+	if ns.SettingsReady() then
+		now = ns.OptionSnapshot()
+		local base = settingsBase
+		settingsBase = now
+		if base then
+			for var, value in pairs(now) do
+				if base[var] == nil or not ns.Same(base[var], value) then
+					changed[var] = value
+				end
+			end
+		end
 	end
-	for var, value in pairs(changed) do
-		holder.settings[var] = value
+	if not (next(changed) or next(ui)) then
+		return
+	end
+	local name = ns.ActivePreset()
+	local p = PresetOf(name)
+	if not p then
+		-- no profile in use here: nowhere to save them
+		ns.Print(L.MSG_SETTINGS_NO_PROFILE)
+		return
+	end
+	if next(ui) then
+		if type(p.ui) ~= "table" then
+			p.ui = {}
+		end
+		for key, on in pairs(ui) do
+			p.ui[key] = on
+		end
+	end
+	local own = true
+	if next(changed) then
+		own = ns.ScopeOf(p, "settings") == "profile"
+		local holder = own and p or ns.db.shared
+		if type(holder.settings) ~= "table" then
+			holder.settings = Copy(now)
+		end
+		for var, value in pairs(changed) do
+			holder.settings[var] = value
+		end
 	end
 	ns.Print((own and L.MSG_SETTINGS_IN_PROFILE or L.MSG_SETTINGS_SHARED):format(name))
 	if ns.Refresh then
@@ -264,19 +304,40 @@ local function RecordSettings()
 	end
 end
 
--- at login, once the game's settings are ready
+-- Blizzard's Options window opening: the settings as they are now, read
+-- again from the window (the lists are rebuilt, everything is loaded by now)
+local function TakeBase()
+	if not ns.db then
+		return
+	end
+	uiBase = ns.UILive()
+	if not ns.SettingsReady() then
+		return
+	end
+	ns.ResetSettingLists()
+	settingsBase = ns.OptionSnapshot()
+end
+
+-- at login. The hooks go first, so nothing below can keep them from being
+-- set; the window opening takes the base again anyway.
 function ns.WatchSettings()
+	if SettingsPanel and not ns.settingsHooked then
+		ns.settingsHooked = true
+		SettingsPanel:HookScript("OnShow", function()
+			Try(TakeBase)
+		end)
+		SettingsPanel:HookScript("OnHide", function()
+			C_Timer.After(0, function()
+				Try(RecordSettings)
+			end)
+		end)
+	end
 	if not ns.SettingsReady() then
 		return false
 	end
-	ns.EnsureShared()
+	Try(ns.EnsureShared)
 	settingsBase = ns.OptionSnapshot()
-	if SettingsPanel and not ns.settingsHooked then
-		ns.settingsHooked = true
-		SettingsPanel:HookScript("OnHide", function()
-			C_Timer.After(0, RecordSettings)
-		end)
-	end
+	uiBase = ns.UILive()
 	return true
 end
 

@@ -116,7 +116,7 @@ events:RegisterEvent("PLAYER_LOGIN")
 if not C_EventUtils or not C_EventUtils.IsEventValid or C_EventUtils.IsEventValid("SETTINGS_LOADED") then
 	pcall(events.RegisterEvent, events, "SETTINGS_LOADED")
 end
-events:SetScript("OnEvent", function(self, event, arg1)
+events:SetScript("OnEvent", function(self, event, arg1, arg2)
 	if event == "ADDON_LOADED" and arg1 == ADDON then
 		ns.InitDB()
 		ns.Try(ns.RetireQuickModule)
@@ -136,8 +136,9 @@ events:SetScript("OnEvent", function(self, event, arg1)
 			ns.Try(ns.ReapplyAccountUI)
 		end
 	end
-	if event == "PLAYER_ENTERING_WORLD" and arg1 then
-		-- fallback if the settings event never comes
+	if event == "PLAYER_ENTERING_WORLD" and (arg1 or arg2) then
+		-- fallback if the settings event never comes (at login and after a
+		-- reload)
 		C_Timer.After(5, function()
 			WatchSettings()
 			if ns.SettingsReady() then

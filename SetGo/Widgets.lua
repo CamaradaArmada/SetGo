@@ -300,7 +300,10 @@ end
 local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true, RALT = true, UNKNOWN = true }
 local MOUSE_KEYS = { MiddleButton = "BUTTON3", Button4 = "BUTTON4", Button5 = "BUTTON5" }
 
-function W.Keybind(page, y, width, indent, label, tip, action)
+-- store (optional): { get = function(action) return key end, set =
+-- function(action, key) } (key "" clears it). With it, the key goes there
+-- (a profile's set on the form) and not into the game.
+function W.Keybind(page, y, width, indent, label, tip, action, store)
 	local x = indent and INDENT or 0
 	local h = Label(page, x, y, width - x, label, tip)
 	y = y + h + 5
@@ -316,7 +319,12 @@ function W.Keybind(page, y, width, indent, label, tip, action)
 			b:SetText(L.PRESS_KEY)
 			return
 		end
-		local key = GetBindingKey(action)
+		local key
+		if store then
+			key = store.get(action)
+		else
+			key = GetBindingKey(action)
+		end
 		b:SetText(key and (GetBindingText and GetBindingText(key) or key) or L.NOT_BOUND)
 	end
 	local function Bind(key)
@@ -325,7 +333,11 @@ function W.Keybind(page, y, width, indent, label, tip, action)
 		if b.SetPropagateKeyboardInput and not InCombatLockdown() then
 			pcall(b.SetPropagateKeyboardInput, b, true)
 		end
-		if InCombatLockdown() then
+		if store then
+			if key then
+				store.set(action, key)
+			end
+		elseif InCombatLockdown() then
 			ns.Print(L.MSG_COMBAT)
 		elseif key then
 			for _, old in ipairs({ GetBindingKey(action) }) do

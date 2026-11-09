@@ -418,6 +418,14 @@ end
 
 local built = {}
 
+-- The character and account lists are built again the next time they are
+-- read (Blizzard's Options window opening: everything is loaded by then, so
+-- a list built too early, with settings missing, doesn't stay that way)
+function ns.ResetSettingLists()
+	built.char = nil
+	built.account = nil
+end
+
 local function BuildPage(def, scope)
 	local items = {}
 	for i, cat in ipairs(def.cats) do
@@ -448,8 +456,11 @@ local function BuildPage(def, scope)
 		end
 	end
 	if def.module then
+		-- rows only meant for the profile form (profileOnly) stay off the page
 		for _, item in ipairs(def.module.items and def.module.items() or {}) do
-			items[#items + 1] = item
+			if not item.profileOnly then
+				items[#items + 1] = item
+			end
 		end
 	end
 	local count = 0

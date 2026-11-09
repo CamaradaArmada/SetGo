@@ -344,9 +344,6 @@ function ns.OpenForm(edit, tab)
 end
 
 function ns.ShowFormTab(tab)
-	if tab == "options" then
-		tab = "settings"
-	end
 	form.tab = tab
 	ns.Select("newpreset")
 end
@@ -1792,14 +1789,87 @@ local function ModuleDef(key)
 	end
 end
 
+-- A module's key on the form (a keybind row marked profileOnly): read from
+-- and written into the keys the profile uses (Settings tab), its own or the
+-- shared ones, until saved. The game gets it when the profile is applied.
+local function FormKeys(write)
+	if form.scope.keys == "profile" then
+		if write and not form.keys then
+			form.keys = ns.CopyKeys(ns.CurrentKeybinds())
+		end
+		return form.keys or ns.CurrentKeybinds()
+	end
+	if form.shared and form.shared.keys then
+		return form.shared.keys
+	end
+	local shared = ns.db.shared and ns.db.shared.keys
+	if write then
+		form.shared = form.shared or {}
+		form.shared.keys = shared and Copy(shared) or ns.CopyKeys(ns.CurrentKeybinds())
+		return form.shared.keys
+	end
+	return shared or ns.CurrentKeybinds()
+end
+
+local KeyStore = {}
+
+-- its key (the first, as Blizzard's list shows one)
+function KeyStore.get(action)
+	local found
+	for key, command in pairs(FormKeys(false)) do
+		if command == action and (not found or key < found) then
+			found = key
+		end
+	end
+	return found
+end
+
+-- key "": none
+function KeyStore.set(action, key)
+	local function Put()
+		local keys = FormKeys(true)
+		local before = key ~= "" and keys[key]
+		for k, command in pairs(keys) do
+			if command == action then
+				keys[k] = nil
+			end
+		end
+		if key ~= "" then
+			keys[key] = action
+		end
+		if before and before ~= action then
+			local name = GetBindingName and GetBindingName(before) or before
+			ns.Print(L.MSG_KEY_REPLACED:format(GetBindingText and GetBindingText(key) or key, name))
+		end
+		ns.Refresh()
+	end
+	-- the shared set, the first time on this form: every profile on Global
+	if form.scope.keys ~= "profile" and not (form.shared and form.shared.keys) then
+		U.Confirm(L.POPUP_COPY_GLOBAL, Put)
+		return
+	end
+	Put()
+end
+
 -- a module's options for a profile: keybinds are left out (they change the
--- game at once), and so are rows only meant for the module's page (pageOnly)
+-- game at once), and so are rows only meant for the module's page (pageOnly).
+-- A keybind marked profileOnly stays, into the profile's keys (KeyStore).
 local function ModuleItems(key)
 	local def = ModuleDef(key)
 	local ok, items = pcall(def and def.items or function() end)
 	local out = {}
 	for _, item in ipairs(ok and type(items) == "table" and items or {}) do
-		if item.kind ~= "keybind" and not item.pageOnly then
+		if item.kind == "keybind" then
+			if item.profileOnly then
+				local row = {}
+				for k, v in pairs(item) do
+					row[k] = v
+				end
+				row.store = KeyStore
+				row.tooltip = (item.tooltip and item.tooltip .. "\n\n" or "") .. L.FORM_KEY_NOTE
+				out[#out + 1] = row
+			end
+		elseif not item.pageOnly then
 			out[#out + 1] = item
 		end
 	end

@@ -295,7 +295,7 @@ local function RenderItems(pf, items, y, width)
 			W.TipScripts(b, item.name, item.tooltip)
 			y = y + 24 + 6
 		elseif kind == "keybind" then
-			y = W.Keybind(pf, y, CW, item.indent, Label(item), item.tooltip, item.action)
+			y = W.Keybind(pf, y, CW, item.indent, Label(item), item.tooltip, item.action, item.store)
 		elseif kind == "custom" and type(item.build) == "function" then
 			-- a module's own rows (Hide!): build(page, y, width) returns the new y
 			local ok, newY = pcall(item.build, pf, y, CW)
@@ -361,8 +361,13 @@ local function Entries(tab)
 		end
 		return list
 	end
-	-- SetGo!'s page, then the Backup page (Backup.lua)
-	return { { label = L.SETGO_TITLE, group = "setgo", index = 1 }, { label = L.BACKUP_TITLE, group = "setgo", index = 2 } }
+	-- SetGo!'s page, the UI Tweaks (Tweaks.lua), then the Backup page
+	-- (Backup.lua)
+	return {
+		{ label = L.SETGO_TITLE, group = "setgo", index = 1 },
+		{ label = L.TWEAKS_TITLE, group = "setgo", index = 2 },
+		{ label = L.BACKUP_TITLE, group = "setgo", index = 3 },
+	}
 end
 
 -- the tab a group lives in
@@ -1090,6 +1095,7 @@ local function PagesOf(group)
 	if group == "setgo" then
 		return {
 			{ key = "setgo", title = L.SETGO_TITLE, items = ns.SetGoItems(), own = true },
+			{ key = "tweaks", title = L.TWEAKS_TITLE, items = ns.TweaksItems(), own = true },
 			{ key = "backup", title = L.BACKUP_TITLE, items = ns.BackupItems(), own = true },
 		}
 	end
@@ -1098,7 +1104,9 @@ end
 
 -- the header of a module's page, or SetGo!'s
 local function PageHead(page)
-	if page.own and page.key == "backup" then
+	if page.own and page.key == "tweaks" then
+		return { icon = ns.TWEAKS_ICON, name = L.TWEAKS_TITLE, desc = L.TWEAKS_DESC }
+	elseif page.own and page.key == "backup" then
 		return { icon = ns.ICON, name = L.BACKUP_TITLE, desc = L.BACKUP_NOTE }
 	elseif page.own then
 		return { icon = ns.ICON, name = L.SETGO_TITLE, desc = L.SETGO_PAGE_DESC }
