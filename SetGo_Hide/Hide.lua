@@ -15,6 +15,15 @@ local L = {
 	MODE_HIDE = "Hide",
 	MISSING = "not found",
 	MSG_COMBAT = "Hide! changes apply when combat ends.",
+	ANCHORS = "Anchored frames follow visibility rules",
+	ANCHORS_DESC = "Frames anchored to another in Edit Mode use that frame's visibility rules. Each frame can opt out.",
+	FOLLOW = "Use anchor's visibility rules",
+	FOLLOW_ON = "Use the visibility rules of %s. Your own rules are kept.",
+	FOLLOW_OFF = "Turn on \"Anchored frames follow visibility rules\" to use this.",
+	FOLLOW_NONE = "This frame isn't anchored to another frame from this list.",
+	FOLLOWS = "Follows: %s",
+	DELAY = "Out of combat delay",
+	DELAY_DESC = "Frames shown in combat stay visible for this long after combat ends.",
 
 	C_none = "None",
 	C_combat = "In combat",
@@ -42,6 +51,8 @@ local L = {
 	F_focus = "Focus",
 	F_focustot = "Focus target",
 	F_minimap = "Minimap",
+	F_buffs = "Buffs",
+	F_debuffs = "Debuffs",
 	F_objectives = "Quest tracker",
 	F_micro = "Micro menu",
 	F_bags = "Bag bar",
@@ -71,6 +82,15 @@ if GetLocale() == "ptBR" then
 	L.MODE_HIDE = "Esconder"
 	L.MISSING = "não encontrada"
 	L.MSG_COMBAT = "As alterações do Hide! aplicam-se quando o combate acabar."
+	L.ANCHORS = "As frames ancoradas seguem as regras de visibilidade"
+	L.ANCHORS_DESC = "As frames ancoradas a outra no Edit Mode usam as regras de visibilidade dessa frame. Cada frame pode sair."
+	L.FOLLOW = "Usar as regras de visibilidade da âncora"
+	L.FOLLOW_ON = "Usar as regras de visibilidade de %s. As tuas regras ficam guardadas."
+	L.FOLLOW_OFF = "Liga \"As frames ancoradas seguem as regras de visibilidade\" para usar esta opção."
+	L.FOLLOW_NONE = "Esta frame não está ancorada a nenhuma frame desta lista."
+	L.FOLLOWS = "Segue: %s"
+	L.DELAY = "Atraso depois do combate"
+	L.DELAY_DESC = "As frames que aparecem em combate ficam visíveis durante este tempo depois do combate."
 
 	L.C_none = "Nenhuma"
 	L.C_combat = "Em combate"
@@ -98,6 +118,8 @@ if GetLocale() == "ptBR" then
 	L.F_focus = "Foco"
 	L.F_focustot = "Alvo do foco"
 	L.F_minimap = "Minimapa"
+	L.F_buffs = "Buffs"
+	L.F_debuffs = "Debuffs"
 	L.F_objectives = "Quest tracker"
 	L.F_micro = "Micro menu"
 	L.F_bags = "Barra dos sacos"
@@ -127,7 +149,10 @@ end
 --   Nothing changes in combat: changes wait for it to end. In Edit Mode (and
 --   Blizzard's Quick Keybind mode) every
 --   parent is shown so the frames can be moved.
--- SetGoHideDB: [frame key] = { when = bitmask of CONDS, mode = "show"/"hide" }
+--   A frame anchored to another of the list can use its rule (Anchors below),
+--   and frames shown in combat can stay a while after it (the delay).
+-- SetGoHideDB: [frame key] = { when = bitmask of CONDS, mode = "show"/"hide" },
+--   anchors = true, nofollow = { [frame key] = true }, delay = seconds
 --------------------------------------------------------------------------------
 
 -- the conditions, in the order they are listed; bit i - 1 of "when"
@@ -169,6 +194,8 @@ local FRAMES = {
 	{ group = "units", key = "focus", names = { "FocusFrame" } },
 	{ group = "units", key = "focustot", names = { "FocusFrameToT" } },
 	{ group = "hud", key = "minimap", names = { "MinimapCluster" }, alt = { "Minimap" } },
+	{ group = "hud", key = "buffs", names = { "BuffFrame" } },
+	{ group = "hud", key = "debuffs", names = { "DebuffFrame" } },
 	{ group = "hud", key = "objectives", names = { "ObjectiveTrackerFrame" } },
 	{ group = "hud", key = "micro", names = { "MicroMenu" }, alt = { "MicroMenuContainer" } },
 	{ group = "hud", key = "bags", names = { "BagsBar" } },
@@ -232,28 +259,6 @@ local function Toggle(current, bitValue)
 	return value
 end
 
--- the state driver of a rule; nil = leave the frame alone, "hide" = always
-local function Driver(key)
-	local when, mode = Rule(key)
-	if bit.band(when, NONE) ~= 0 then
-		return mode == "hide" and "hide" or nil
-	end
-	local parts = {}
-	for i, c in ipairs(CONDS) do
-		if c.macro and bit.band(when, Bit(i)) ~= 0 then
-			parts[#parts + 1] = "[" .. c.macro .. "]"
-		end
-	end
-	if #parts == 0 then
-		return mode == "hide" and "hide" or nil
-	end
-	local conds = table.concat(parts)
-	if mode == "show" then
-		return conds .. " show; hide"
-	end
-	return conds .. " hide; show"
-end
-
 -- the Blizzard frames of an entry that exist
 local function Resolve(e)
 	local list = {}
@@ -272,6 +277,121 @@ local function Resolve(e)
 		end
 	end
 	return list
+end
+
+--------------------------------------------------------------------------------
+-- Anchors: a frame anchored in Edit Mode to another frame of this list can
+--   use that frame's rule (in a chain: the anchor's own anchor counts too).
+--   The anchor is read from the frame itself (GetPoint), so it is always the
+--   current layout's. A frame anchored to something that is not on the list
+--   (or to a child of it) counts as not anchored.
+--   SetGoHideDB.anchors = the option is on; .nofollow[key] = this frame keeps
+--   its own rule (following is the default).
+--------------------------------------------------------------------------------
+
+local anchorCache, anchorStamp = nil, nil
+
+local function ReadAnchors()
+	local owner = {} -- [Blizzard frame] = frame key
+	for _, e in ipairs(FRAMES) do
+		for _, f in ipairs(Resolve(e)) do
+			owner[f] = e.key
+		end
+	end
+	local anchors = {}
+	for _, e in ipairs(FRAMES) do
+		local f = Resolve(e)[1]
+		local n = f and f.GetNumPoints and f:GetNumPoints() or 0
+		for i = 1, n do
+			local ok, _, rel = pcall(f.GetPoint, f, i)
+			-- the frame anchored to, or the first of its parents on the list
+			local hops = 0
+			while ok and type(rel) == "table" and rel ~= UIParent and hops < 8 do
+				local k = owner[rel]
+				if k then
+					if k ~= e.key then
+						anchors[e.key] = k
+					end
+					break
+				end
+				local okp, p = pcall(rel.GetParent, rel)
+				rel = okp and p or nil
+				hops = hops + 1
+			end
+			if anchors[e.key] then
+				break
+			end
+		end
+	end
+	return anchors
+end
+
+-- read once per frame drawn at most
+local function Anchors()
+	local now = GetTime()
+	if not anchorCache or anchorStamp ~= now then
+		anchorCache, anchorStamp = ReadAnchors(), now
+	end
+	return anchorCache
+end
+
+local function AnchorKey(key)
+	return Anchors()[key]
+end
+
+local function Follows(key)
+	return not (type(db and db.nofollow) == "table" and db.nofollow[key])
+end
+
+-- the rule a frame uses: its anchor's (in a chain) when it follows it
+local function Effective(key)
+	if db and db.anchors then
+		local anchors = Anchors()
+		local seen = { [key] = true }
+		local k = key
+		while Follows(k) and anchors[k] and not seen[anchors[k]] do
+			k = anchors[k]
+			seen[k] = true
+		end
+		return Rule(k)
+	end
+	return Rule(key)
+end
+
+-- Out of combat delay: while "holding" (from the start of combat until the
+-- delay after it is over), rules that show a frame in combat show it always.
+-- In combat that is the same thing; after it, the frame stays a while.
+local holding = false
+local COMBAT_BIT = 2 -- CONDS[2]
+
+local function DelaySeconds()
+	local d = tonumber(db and db.delay) or 0
+	return d > 0 and d or 0
+end
+
+-- the state driver of a rule; nil = leave the frame alone, "hide" = always
+local function Driver(key)
+	local when, mode = Effective(key)
+	if holding and mode == "show" and bit.band(when, NONE) == 0 and bit.band(when, bit.lshift(1, COMBAT_BIT - 1)) ~= 0 then
+		return "show"
+	end
+	if bit.band(when, NONE) ~= 0 then
+		return mode == "hide" and "hide" or nil
+	end
+	local parts = {}
+	for i, c in ipairs(CONDS) do
+		if c.macro and bit.band(when, Bit(i)) ~= 0 then
+			parts[#parts + 1] = "[" .. c.macro .. "]"
+		end
+	end
+	if #parts == 0 then
+		return mode == "hide" and "hide" or nil
+	end
+	local conds = table.concat(parts)
+	if mode == "show" then
+		return conds .. " show; hide"
+	end
+	return conds .. " hide; show"
 end
 
 --------------------------------------------------------------------------------
@@ -387,6 +507,8 @@ function Apply()
 		events:RegisterEvent("PLAYER_REGEN_ENABLED")
 		return false
 	end
+	-- the anchors as they are now
+	anchorCache = nil
 	local bars = UsesBars()
 	reveal = bars and ReadReveal() or false
 	local used = {}
@@ -478,7 +600,38 @@ local function Start()
 			Apply()
 		end, owner)
 	end
+	-- combat start and end: the out of combat delay (and changes waiting)
+	events:RegisterEvent("PLAYER_REGEN_DISABLED")
+	events:RegisterEvent("PLAYER_REGEN_ENABLED")
+	-- Blizzard places the frames of a layout (at login, or a new layout):
+	-- the anchors are read again
+	pcall(events.RegisterEvent, events, "EDIT_MODE_LAYOUTS_UPDATED")
 	Apply()
+end
+
+-- the delay: begun at the start of combat (before the lockdown, so nothing
+-- flickers when combat ends), counted from its end; a new combat starts over
+local holdGen = 0
+
+local function HoldStart()
+	if DelaySeconds() > 0 then
+		holding = true
+		holdGen = holdGen + 1
+		Apply()
+	end
+end
+
+local function HoldEnd()
+	if not holding then
+		return
+	end
+	local gen = holdGen
+	C_Timer.After(DelaySeconds(), function()
+		if gen == holdGen and holding then
+			holding = false
+			Apply()
+		end
+	end)
 end
 
 --------------------------------------------------------------------------------
@@ -493,12 +646,16 @@ local function FrameLabel(e)
 	return text
 end
 
--- the frame's name, then its conditions and Show/Hide side by side
-local function RowBuilder(e, when, mode)
+-- the frame's name, then its conditions and Show/Hide side by side, then
+-- whether it uses its anchor's rule
+local function RowBuilder(e, pair, global)
+	local when, mode, follow = pair.when, pair.mode, pair.follow
 	return function(page, y, width)
 		local W = SetGo.Widgets
 		local fs, h = W.Text(page, W.FONT_BODY, width, FrameLabel(e))
 		fs:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -y)
+		-- one line: "Follows: ..." may make it longer
+		fs:SetWordWrap(false)
 		y = y + h + 5
 
 		local MODE_W = 110
@@ -537,11 +694,55 @@ local function RowBuilder(e, when, mode)
 			end
 		end)
 
+		y = y + 26 + 6
+
+		-- use the anchor's rule: greyed while the option is off or the frame
+		-- isn't anchored to another of the list
+		local cb = CreateFrame("CheckButton", nil, page, "UICheckButtonTemplate")
+		cb:SetSize(24, 24)
+		cb:SetPoint("TOPLEFT", page, "TOPLEFT", -2, -(y - 4))
+		if cb.SetMotionScriptsWhileDisabled then
+			cb:SetMotionScriptsWhileDisabled(true)
+		end
+		local lbl = W.Text(page, W.FONT_SMALL, width - 28, L.FOLLOW)
+		lbl:SetPoint("LEFT", cb, "RIGHT", 2, 0)
+		local function Usable()
+			return SetGo.Get(global) and AnchorKey(e.key) or nil
+		end
+		W.TipScripts(cb, L.FOLLOW, function()
+			if not SetGo.Get(global) then
+				return L.FOLLOW_OFF
+			end
+			local anchor = AnchorKey(e.key)
+			if not anchor then
+				return L.FOLLOW_NONE
+			end
+			return L.FOLLOW_ON:format(L["F_" .. anchor] or anchor)
+		end)
+		cb:SetScript("OnClick", function(self)
+			SetGo.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+			SetGo.Set(follow, self:GetChecked() and true or false)
+		end)
+
 		table.insert(page.refreshers, function()
 			dd:GenerateMenu()
 			md:GenerateMenu()
+			local anchor = Usable()
+			local on = SetGo.Get(follow) ~= false
+			cb:SetChecked(on)
+			cb:SetEnabled(anchor ~= nil)
+			lbl:SetAlpha(anchor and 1 or 0.5)
+			-- following: its own rule is kept, greyed
+			local following = anchor and on
+			local text = FrameLabel(e)
+			if following then
+				text = text .. "  |cff8c7a5b(" .. L.FOLLOWS:format(L["F_" .. anchor] or anchor) .. ")|r"
+			end
+			fs:SetText(text)
+			pcall(dd.SetEnabled, dd, not following)
+			pcall(md.SetEnabled, md, not following)
 		end)
-		return y + 26 + 10
+		return y + 20 + 10
 	end
 end
 
@@ -639,8 +840,7 @@ local function SectionsBuilder(settings)
 			end
 			for _, e in ipairs(FRAMES) do
 				if e.group == grp.key then
-					local pair = settings[e.key]
-					by = RowBuilder(e, pair.when, pair.mode)(body, by, width)
+					by = RowBuilder(e, settings[e.key], settings._anchors)(body, by, width)
 				end
 			end
 			body:SetHeight(by)
@@ -703,9 +903,50 @@ local function Items()
 			Store(e.key, "mode", value == "hide" and "hide" or "show")
 			Changed()
 		end)
-		settings[e.key] = { when = when, mode = mode }
+		local follow = Pseudo(var .. "_FOLLOW", L["F_" .. e.key] .. ": " .. L.FOLLOW, L.ANCHORS_DESC, true, function()
+			return Follows(e.key)
+		end, function(value)
+			local keep = value == false or value == 0 or value == "0"
+			db.nofollow = type(db.nofollow) == "table" and db.nofollow or {}
+			db.nofollow[e.key] = keep or nil
+			if not next(db.nofollow) then
+				db.nofollow = nil
+			end
+			Changed()
+		end)
+		settings[e.key] = { when = when, mode = mode, follow = follow }
 		all[#all + 1] = when
 		all[#all + 1] = mode
+		all[#all + 1] = follow
+	end
+	-- anchored frames use their anchor's rule (off by default)
+	local anchors = Pseudo("SETGO_HIDE_ANCHORS", L.ANCHORS, L.ANCHORS_DESC, false, function()
+		return db and db.anchors == true
+	end, function(value)
+		db.anchors = (value and value ~= 0 and value ~= "0") and true or nil
+		Changed()
+	end)
+	settings._anchors = anchors
+	-- seconds frames shown in combat stay after it (0 = none)
+	local delay = Pseudo("SETGO_HIDE_DELAY", L.DELAY, L.DELAY_DESC, 0, function()
+		return DelaySeconds()
+	end, function(value)
+		local d = math.floor((tonumber(value) or 0) * 2 + 0.5) / 2
+		d = math.max(0, math.min(10, d))
+		db.delay = d > 0 and d or nil
+		-- turned off while waiting: the frames go back now
+		if d == 0 and holding then
+			holding = false
+			Changed()
+		end
+	end)
+	local function Seconds(v)
+		return ("%.1f s"):format(math.floor(v * 2 + 0.5) / 2)
+	end
+	local formatters
+	if MinimalSliderWithSteppersMixin and CreateMinimalSliderFormatter then
+		local right = MinimalSliderWithSteppersMixin.Label.Right
+		formatters = { [right] = CreateMinimalSliderFormatter(right, Seconds) }
 	end
 	-- cooldown icons over hidden action bars (Cooldowns.lua), in profiles
 	local CL = ns.CooldownL
@@ -722,6 +963,9 @@ local function Items()
 	items = {
 		{ kind = "note", name = L.NOTE },
 		{ kind = "note", name = L.NOTE_BLIZZARD },
+		{ kind = "checkbox", setting = anchors, settings = { anchors }, name = L.ANCHORS, tooltip = L.ANCHORS_DESC },
+		{ kind = "slider", setting = delay, settings = { delay }, name = L.DELAY, tooltip = L.DELAY_DESC,
+			options = { minValue = 0, maxValue = 10, steps = 20, formatters = formatters } },
 		-- every frame's two settings, so profiles keep them
 		{ kind = "custom", name = L.TITLE, settings = all, build = SectionsBuilder(settings) },
 	}
@@ -780,9 +1024,18 @@ events:SetScript("OnEvent", function(self, event, arg1)
 		end
 	elseif event == CURSOR_EVENT then
 		RevealChanged()
+	elseif event == "PLAYER_REGEN_DISABLED" then
+		HoldStart()
 	elseif event == "PLAYER_REGEN_ENABLED" then
-		self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+		-- kept while Hide! runs (the delay); otherwise only for the clean-up
+		if not started then
+			self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+		end
 		DropOldOptions()
+		HoldEnd()
 		Apply()
+	elseif event == "EDIT_MODE_LAYOUTS_UPDATED" then
+		-- after Blizzard has placed the frames
+		C_Timer.After(0, Apply)
 	end
 end)
