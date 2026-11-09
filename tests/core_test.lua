@@ -152,7 +152,7 @@ local function LastPopup() return POPUPS[#POPUPS] end
 local ns = {}
 LOAD(B .. "/SetGo", { "Libs/LibStub/LibStub.lua", "Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua", "Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua" }, "SetGo", ns)
 LOAD(B .. "/SetGo", { "Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua" }, "SetGo", ns)
-LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Backup.lua", "Skills.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
+LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Art.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Backup.lua", "Skills.lua", "Tweaks.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
 -- a module with one option (Chat)
 local chatDB = { font = "A" }
 local chatS = ns.Pseudo("SETGO_CHAT_font", "Font", "", "A", function() return chatDB.font end, function(v) chatDB.font = v end)
