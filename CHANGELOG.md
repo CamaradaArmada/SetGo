@@ -1,8 +1,44 @@
 # Changelog
 
+## 1.1.0
+
+SetGo! (builds 29 to 41)
+- UI Tweaks, SetGo! Tracker (build 29, named so in build 31): a round
+  button on the minimap, under the day and night button, for the tracking
+  skills (herbs, minerals, treasure, beasts and others). In colour while
+  one is on, grey while off, and not there without a tracking skill. Left
+  click turns it on or off, in combat too, on mouse up (build 37); right
+  click opens a menu to choose which one (kept per character) and Unlock
+  frame to drag it elsewhere (build 41, kept for the account). Default
+  place and size set in build 40. Fixes: the clicks work whichever way
+  "cast on key down" is set (31); minimap button collectors such as
+  Leatrix Plus's no longer take and hide it (32).
+- UI Tweaks, Open All Bags with Right Click (build 31): a right click on
+  the backpack button opens or closes all the bags; a left click still
+  opens only the backpack. Build 36: decides from the bags as they were
+  before the click (any open: close all; none: open all).
+- UI Tweaks, Quest filter button (build 38): next to the objective
+  tracker's minimize button. Left click tracks only the quests of the
+  current zone; right click opens a menu with All, each zone of the quest
+  log and Untrack High Level (build 39: stops tracking quests 3 or more
+  levels above yours). Each click filters once; the last filter shows in
+  its tooltip (kept per character).
+- UI Tweaks, Simplified Minimized Tracker (build 39): while the objective
+  tracker is minimized, only its minimize button shows.
+- UI Tweaks, action bar art (build 31): the bars are chosen in one
+  dropdown with a box per bar, instead of a checkbox each.
+
+Hide! (build 17)
+- The time on the cooldown icons uses the font and size of Blizzard's
+  buttons, instead of a much larger one.
+
+Speak! (build 5)
+- Copy chat keeps the chat's own colours, with a blank line between
+  messages.
+
 ## 1.0.0
 
-SetGo! (builds 18 to 41)
+SetGo! (builds 18 to 28)
 - Addons switched on or off in the game's addon list are saved to the
   profile in use when the list closes with Okay, if the profile has Change
   addons ticked (Addons.lua). Changing them there wasn't kept by the
@@ -17,8 +53,8 @@ SetGo! (builds 18 to 41)
   - Quest item sparkles: quest items on the ground always show the game's
     loot sparkle, even after a graphics preset turns it off.
   - Action bar art: action bar 1's art (the frame, the slot behind each
-    button and the dividers) on any of action bars 2 to 8, chosen in one
-    dropdown with a box per bar (build 31).
+    button and the dividers) on any of action bars 2 to 8, each with its
+    own switch.
   - Better XP bar (build 23): the experience and reputation bars can be
     made narrower than Blizzard allows, from 25% to 100% of their width in
     1% steps. Unified Bar: while you track a reputation, one bar instead of
@@ -31,28 +67,6 @@ SetGo! (builds 18 to 41)
     one), the right click is caught over the bar even where the bars don't
     take the mouse, and the second bar's dividers no longer show while it
     is hidden.
-  - SetGo! Tracker (build 29, named so in build 31): a round button on the
-    minimap, under the day and night button, for the tracking skills
-    (herbs, minerals, treasure, beasts and others). In colour while one is
-    on, grey while off, and not there without a tracking skill. Left click
-    turns it on or off, in combat too, on mouse up (build 37); right click
-    opens a menu to choose which one (kept per character) and Unlock frame
-    to drag it elsewhere (build 41, kept for the account). Default place and
-    size set in build 40. Fixes: the clicks work whichever way "cast on key
-    down" is set (31); minimap button collectors such as Leatrix Plus's no
-    longer take and hide it (32).
-  - Open All Bags with Right Click (build 31): a right click on the backpack
-    button opens or closes all the bags; a left click still opens only the
-    backpack. Build 36: decides from the bags as they were before the click
-    (any open: close all; none: open all).
-  - Quest filter button (build 38): next to the objective tracker's
-    minimize button. Left click tracks only the quests of the current zone;
-    right click opens a menu with All, each zone of the quest log and
-    Untrack High Level (build 39: stops tracking quests 3 or more levels
-    above yours). Each click filters once; the last filter shows in its
-    tooltip (kept per character).
-  - Simplified Minimized Tracker (build 39): while the objective tracker is
-    minimized, only its minimize button shows.
 - Art.lua: the action bar art pieces, shared by the UI Tweaks and Fetch!.
 - Module rows marked profileOnly show only on the profile form, not on the
   module's page (Data.lua).
@@ -66,7 +80,7 @@ Fetch! (builds 3 to 5)
   Bindings list; its buttons are in the "SetGo!" section.
 - The bar art uses SetGo!'s Art.lua; it looks the same.
 
-Hide! (builds 8 to 17)
+Hide! (builds 8 to 16)
 - Buffs and Debuffs: the player's buffs and debuffs can be shown or hidden
   with conditions, each with its own rule.
 - Cooldown icons over hidden bars have the action buttons' frame and
@@ -74,14 +88,12 @@ Hide! (builds 8 to 17)
   art sits as on Blizzard's buttons, with the icon a little larger to fill
   the frame, so it is no longer cut and lines up, also on bars hidden since
   login. Build 16: the art's sizes and positions are gathered in one place
-  in Cooldowns.lua. Build 17: the time on the icons uses the font and size
-  of Blizzard's buttons.
+  in Cooldowns.lua.
 
-Speak! (builds 3 to 5)
+Speak! (builds 3 and 4)
 - Copy chat, in the settings button's menu: opens the selected chat
-  window's text in a large window in the middle of the screen, in the
-  chat's own colours with a blank line between messages, already selected
-  and ready for Ctrl+C.
+  window's text in a large window in the middle of the screen, as plain
+  text and already selected, ready for Ctrl+C.
 
 Look! (build 5)
 - Its keybind is in the "SetGo!" section of Key Bindings.
