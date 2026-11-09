@@ -86,6 +86,8 @@ local L = {
 	MENU_TTS = "Text to speech",
 	MENU_MUTE = "Mute microphone",
 	MENU_DEAFEN = "Mute voice chat",
+	MENU_COPY = "Copy chat",
+	COPY_HINT = "Ctrl+C to copy, Esc to close.",
 	POPUP_RELOAD = "Reload the interface to put Blizzard's chat buttons back?",
 	OLD_CHAT = "SetGo! Speak!: the old SetGo_Chat is still installed. Its settings were copied. Delete the SetGo_Chat folder and reload; until then Speak! stays off.",
 }
@@ -123,6 +125,8 @@ if GetLocale() == "ptBR" then
 	L.MENU_TTS = "Texto para fala"
 	L.MENU_MUTE = "Silenciar o microfone"
 	L.MENU_DEAFEN = "Silenciar o chat de voz"
+	L.MENU_COPY = "Copiar chat"
+	L.COPY_HINT = "Ctrl+C para copiar, Esc para fechar."
 	L.POPUP_RELOAD = "Recarregar a interface para repor os botões do chat da Blizzard?"
 	L.OLD_CHAT = "SetGo! Speak!: o antigo SetGo_Chat ainda está instalado. As definições dele foram copiadas. Apaga a pasta SetGo_Chat e recarrega; até lá o Speak! fica desligado."
 end
@@ -141,6 +145,9 @@ end
 --     through a font object on the tab, so Blizzard sizes the tab itself.
 --   Buttons: Blizzard's chat menu button becomes a settings cog, and the other
 --     buttons move into its menu through Blizzard's menu API.
+--   Copy chat: in the cog's menu. Addons can't reach the clipboard, so the
+--     selected window's text opens in a box, in its colours and all selected,
+--     for Ctrl+C.
 -- SetGoSpeakDB: look, font, spacing, bgAlpha, tabSelected, tabOther,
 --   tabSize, glow, buttons, buttonAlpha
 --------------------------------------------------------------------------------
@@ -847,6 +854,149 @@ local function Alert(chatFrame, on)
 end
 
 --------------------------------------------------------------------------------
+-- Copy chat: the selected window's messages in a box, in Blizzard's colours
+-- and already selected, for Ctrl+C (addons can't write to the clipboard)
+--------------------------------------------------------------------------------
+
+local Copy = {}
+
+-- Blizzard's colours stay: each message in its chat colour, and the colours
+-- inside it (names, items). Links keep their text; icons and Battle.net names
+-- come out (the box can't show them).
+local function ColoredText(text, r, g, b)
+	local line = ("|cff%02x%02x%02x"):format((r or 1) * 255, (g or 1) * 255, (b or 1) * 255)
+	text = text:gsub("|cn[^:|]*:", "")
+	text = text:gsub("|H.-|h(.-)|h", "%1")
+	text = text:gsub("|T.-|t", "")
+	text = text:gsub("|A.-|a", "")
+	text = text:gsub("|K.-|k", "?")
+	text = text:gsub("|n", " ")
+	-- in the box |r goes back to white, not to the message's colour
+	text = text:gsub("|r", "|r" .. line)
+	return line .. text .. "|r"
+end
+
+-- the window the cog's menu belongs to: the selected tab of the dock
+local function CopySource()
+	local frame = FCFDock_GetSelectedWindow and GENERAL_CHAT_DOCK and FCFDock_GetSelectedWindow(GENERAL_CHAT_DOCK)
+	return frame or SELECTED_CHAT_FRAME or ChatFrame1
+end
+
+-- one empty line between messages
+local function ChatText(chatFrame)
+	local lines = {}
+	if not (chatFrame and chatFrame.GetNumMessages and chatFrame.GetMessageInfo) then
+		return ""
+	end
+	local secret = issecretvalue
+	for i = 1, chatFrame:GetNumMessages() do
+		local text, r, g, b = chatFrame:GetMessageInfo(i)
+		if type(text) == "string" and not (secret and secret(text)) then
+			lines[#lines + 1] = ColoredText(text, r, g, b)
+		end
+	end
+	return table.concat(lines, "\n\n")
+end
+
+function Copy.Frame()
+	if Copy.frame then
+		return Copy.frame
+	end
+	local f = CreateFrame("Frame", "SetGoSpeakCopyFrame", UIParent)
+	f:SetFrameStrata("DIALOG")
+	f:EnableMouse(true)
+	f:Hide()
+	tinsert(UISpecialFrames, f:GetName())
+	f.skin = Skin.New(f, "BACKGROUND", -8)
+	f.skin:SetColor(0, 0, 0)
+	f.skin:SetBorderColor(1, 1, 1)
+	f.skin:Place(f, { 0, 0, 0, 0 }, { 0, 0, 0, 0 })
+	f.skin:Show(f.skin.tip and "bordered" or "soft")
+	f.skin:FadeTo(0.9, 0, 1)
+
+	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOPLEFT", 10, -8)
+	title:SetText(L.MENU_COPY)
+	local hint = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	hint:SetPoint("LEFT", title, "RIGHT", 8, 0)
+	hint:SetText(L.COPY_HINT)
+	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+	close:SetPoint("TOPRIGHT", 2, 2)
+
+	local scroll = CreateFrame("ScrollFrame", nil, f)
+	scroll:SetPoint("TOPLEFT", 10, -28)
+	scroll:SetPoint("BOTTOMRIGHT", -24, 8)
+	local box = CreateFrame("EditBox", nil, scroll)
+	box:SetMultiLine(true)
+	box:SetAutoFocus(false)
+	box:SetFontObject(ChatFontNormal)
+	box:SetWidth(200)
+	scroll:SetScrollChild(box)
+	scroll:SetScript("OnSizeChanged", function(_, w)
+		box:SetWidth(w)
+	end)
+	-- Blizzard's thin scroll bar, the chat's own, when the game has it
+	local ok, bar = pcall(CreateFrame, "EventFrame", nil, f, "MinimalScrollBar")
+	if ok and bar and bar.SetScrollPercentage and ScrollUtil and ScrollUtil.InitScrollFrameWithScrollBar then
+		bar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", 6, 0)
+		bar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", 6, 0)
+		ScrollUtil.InitScrollFrameWithScrollBar(scroll, bar)
+	else
+		if ok and bar then
+			bar:Hide()
+		end
+		scroll:EnableMouseWheel(true)
+		scroll:SetScript("OnMouseWheel", function(self, delta)
+			local v = self:GetVerticalScroll() - delta * 40
+			self:SetVerticalScroll(math.max(0, math.min(v, self:GetVerticalScrollRange())))
+		end)
+	end
+	-- read only: typing puts the text back, still all selected
+	box:SetScript("OnTextChanged", function(self, user)
+		if user then
+			self:SetText(f.text or "")
+			self:HighlightText()
+		end
+	end)
+	box:SetScript("OnEscapePressed", function()
+		f:Hide()
+	end)
+	box:SetScript("OnEditFocusLost", function(self)
+		self:HighlightText(0, 0)
+	end)
+	box:SetScript("OnEditFocusGained", function(self)
+		self:HighlightText()
+	end)
+	f.scroll, f.box = scroll, box
+	Copy.frame = f
+	return f
+end
+
+function Copy.Show()
+	local chatFrame = CopySource()
+	local f = Copy.Frame()
+	-- a big window in the middle of the screen
+	local w, h = UIParent:GetSize()
+	f:ClearAllPoints()
+	f:SetSize(math.min(900, math.floor(w * 0.6)), math.min(700, math.floor(h * 0.7)))
+	f:SetPoint("CENTER")
+	local font = FontFile()
+	local file, size, flags = ChatFontNormal:GetFont()
+	local _, chatSize = chatFrame:GetFont()
+	f.box:SetFont(font or file, chatSize or size, flags)
+	f.text = ChatText(chatFrame)
+	f:Show()
+	f.box:SetWidth(f.scroll:GetWidth())
+	f.box:SetText(f.text)
+	f.box:SetFocus()
+	f.box:HighlightText()
+	-- the newest messages, at the bottom, once the box has its height
+	C_Timer.After(0, function()
+		f.scroll:SetVerticalScroll(f.scroll:GetVerticalScrollRange())
+	end)
+end
+
+--------------------------------------------------------------------------------
 -- Buttons: the cog and its menu
 --------------------------------------------------------------------------------
 
@@ -940,6 +1090,7 @@ local function SetupButtons()
 					ToggleTextToSpeechFrame()
 				end)
 			end
+			root:CreateButton(L.MENU_COPY, Copy.Show)
 			local voice = C_VoiceChat
 			if voice and voice.GetActiveChannelID and voice.GetActiveChannelID() then
 				root:CreateCheckbox(L.MENU_MUTE, function()
