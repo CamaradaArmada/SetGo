@@ -736,7 +736,7 @@ local function Items()
 	items = {
 		{ kind = "note", name = L.HOW },
 		{ kind = "header", name = L.SEC_CONTROLS },
-		{ kind = "keybind", action = "SETGO_LOOK", name = L.KEY, tooltip = L.KEY_DESC },
+		{ kind = "keybind", action = "SETGO_LOOK", name = L.KEY, tooltip = L.KEY_DESC, profileOnly = true },
 		{ kind = "dropdown", setting = release, settings = { release }, name = L.RELEASE_KEY, tooltip = L.RELEASE_KEY_DESC, options = ReleaseOptions },
 		{ kind = "checkbox", setting = combat, settings = { combat }, name = L.COMBAT, tooltip = L.COMBAT_DESC },
 		{ kind = "header", name = L.SEC_TARGETING },
