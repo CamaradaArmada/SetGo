@@ -1,5 +1,107 @@
 # Changelog
 
+## 1.0.0
+
+SetGo! (builds 18 to 41)
+- Addons switched on or off in the game's addon list are saved to the
+  profile in use when the list closes with Okay, if the profile has Change
+  addons ticked (Addons.lua). Changing them there wasn't kept by the
+  profile, and applying it later switched them back.
+- Key bindings: SetGo!, Fetch! and Look! share one "SetGo!" section of
+  Blizzard's Key Bindings (Bindings.xml of each), instead of being split
+  between AddOns and Other.
+- UI Tweaks (Tweaks.lua), a page in the SetGo! tab: experimental changes to
+  Blizzard's interface. Each profile keeps its own set, saved at once and
+  switched with the profile, but they aren't part of it (not copied,
+  exported or in presets); a new profile starts with all of them off.
+  - Quest item sparkles: quest items on the ground always show the game's
+    loot sparkle, even after a graphics preset turns it off.
+  - Action bar art: action bar 1's art (the frame, the slot behind each
+    button and the dividers) on any of action bars 2 to 8, chosen in one
+    dropdown with a box per bar (build 31).
+  - Better XP bar (build 23): the experience and reputation bars can be
+    made narrower than Blizzard allows, from 25% to 100% of their width in
+    1% steps. Unified Bar: while you track a reputation, one bar instead of
+    two; a right click switches between experience and reputation (it
+    starts on experience at every login). Builds 24 to 28: the frame art
+    keeps Blizzard's anchor, the bars keep the place this client gives them
+    and line up with the art, the bar each container shows is told in a
+    way that works on this client, either of Blizzard's two bars can hold
+    experience or reputation (this client puts reputation in the main
+    one), the right click is caught over the bar even where the bars don't
+    take the mouse, and the second bar's dividers no longer show while it
+    is hidden.
+  - SetGo! Tracker (build 29, named so in build 31): a round button on the
+    minimap, under the day and night button, for the tracking skills
+    (herbs, minerals, treasure, beasts and others). In colour while one is
+    on, grey while off, and not there without a tracking skill. Left click
+    turns it on or off, in combat too, on mouse up (build 37); right click
+    opens a menu to choose which one (kept per character) and Unlock frame
+    to drag it elsewhere (build 41, kept for the account). Default place and
+    size set in build 40. Fixes: the clicks work whichever way "cast on key
+    down" is set (31); minimap button collectors such as Leatrix Plus's no
+    longer take and hide it (32).
+  - Open All Bags with Right Click (build 31): a right click on the backpack
+    button opens or closes all the bags; a left click still opens only the
+    backpack. Build 36: decides from the bags as they were before the click
+    (any open: close all; none: open all).
+  - Quest filter button (build 38): next to the objective tracker's
+    minimize button. Left click tracks only the quests of the current zone;
+    right click opens a menu with All, each zone of the quest log and
+    Untrack High Level (build 39: stops tracking quests 3 or more levels
+    above yours). Each click filters once; the last filter shows in its
+    tooltip (kept per character).
+  - Simplified Minimized Tracker (build 39): while the objective tracker is
+    minimized, only its minimize button shows.
+- Art.lua: the action bar art pieces, shared by the UI Tweaks and Fetch!.
+- Module rows marked profileOnly show only on the profile form, not on the
+  module's page (Data.lua).
+- Cleanup: the Switch! module is not part of the package (it was dropped
+  before release), with its entry in the module list, its strings and
+  Hide!'s check for it.
+- Tests: Art.lua and Tweaks.lua in the load list.
+
+Fetch! (builds 3 to 5)
+- The "Fetch!" heading no longer shows up as a stray entry in the Key
+  Bindings list; its buttons are in the "SetGo!" section.
+- The bar art uses SetGo!'s Art.lua; it looks the same.
+
+Hide! (builds 8 to 17)
+- Buffs and Debuffs: the player's buffs and debuffs can be shown or hidden
+  with conditions, each with its own rule.
+- Cooldown icons over hidden bars have the action buttons' frame and
+  rounded corners, with the swipe inside the frame. Builds 11 to 15: the
+  art sits as on Blizzard's buttons, with the icon a little larger to fill
+  the frame, so it is no longer cut and lines up, also on bars hidden since
+  login. Build 16: the art's sizes and positions are gathered in one place
+  in Cooldowns.lua. Build 17: the time on the icons uses the font and size
+  of Blizzard's buttons.
+
+Speak! (builds 3 to 5)
+- Copy chat, in the settings button's menu: opens the selected chat
+  window's text in a large window in the middle of the screen, in the
+  chat's own colours with a blank line between messages, already selected
+  and ready for Ctrl+C.
+
+Look! (build 5)
+- Its keybind is in the "SetGo!" section of Key Bindings.
+
+## 0.11.2
+
+SetGo! (builds 16 and 17)
+- Settings are read again each time Blizzard's Options window opens (and
+  also after a reload, not only at login), so a change made there is never
+  missed (Profiles.lua, Data.lua: ns.ResetSettingLists, Init.lua).
+- A message in chat when settings change on a character with no profile in
+  use, instead of nothing (MSG_SETTINGS_NO_PROFILE).
+- Action bars 2 to 8 and the other elements a profile switches on
+  (Personal Resource Display, Cooldown Manager, External Defensives, Damage
+  Meter, Swing Timer) are saved to the profile in use (p.ui, never the
+  shared set) when Blizzard's Options window closes. Switching them there
+  wasn't kept by the profile, and applying it later switched them back.
+- Cleanup: unused strings (TAB_GAME, FORM_TAB_OPTIONS, NP_COPY_OPTIONS_DESC)
+  and the old "options" alias of the form's Settings tab.
+
 ## 0.11.1
 
 SetGo! (build 15)
