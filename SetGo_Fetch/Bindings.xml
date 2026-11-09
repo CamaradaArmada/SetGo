@@ -1,14 +1,14 @@
 <Bindings>
-	<Binding name="CLICK SetGoFetchButton1:LeftButton" header="SETGO_FETCH"/>
-	<Binding name="CLICK SetGoFetchButton2:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton3:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton4:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton5:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton6:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton7:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton8:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton9:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton10:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton11:LeftButton"/>
-	<Binding name="CLICK SetGoFetchButton12:LeftButton"/>
+	<Binding name="CLICK SetGoFetchButton1:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton2:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton3:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton4:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton5:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton6:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton7:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton8:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton9:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton10:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton11:LeftButton" category="BINDING_HEADER_SETGO"/>
+	<Binding name="CLICK SetGoFetchButton12:LeftButton" category="BINDING_HEADER_SETGO"/>
 </Bindings>

@@ -5,7 +5,6 @@ ns.MAX_BUTTONS = 12
 ns.MAX_FLY = 6
 ns.QUESTION_MARK = 134400
 
-BINDING_HEADER_SETGO_FETCH = L.ADDON
 for i = 1, ns.MAX_BUTTONS do
 	_G["BINDING_NAME_CLICK SetGoFetchButton" .. i .. ":LeftButton"] = L.BUTTON:format(i)
 end
