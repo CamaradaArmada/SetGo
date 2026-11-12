@@ -1,5 +1,73 @@
 # Changelog
 
+## 1.2.0
+
+SetGo! (builds 42 to 70)
+- New window (build 55): Blizzard's portrait frame with the collections'
+  background and white text; a narrow column of profiles drawn as the
+  character select's cards, dragged or moved with their arrows to reorder
+  them; + New opens a new profile at once; the last backup at the bottom;
+  a gear for SetGo!'s settings. Each profile has three tabs: Layout (one
+  Edit Mode dropdown with the profile's own layout, New layout, Blizzard's
+  layouts, SetGo! presets, your layouts and Copy from; bars and frames as
+  checkboxes; character settings and keybinds each Global, Profile or Copy
+  from, bar slots Global or Profile), Addons (the modules and the other
+  addons in one list, as the game's addon list, options opening in place)
+  and Interface Tweaks. The window opens where Blizzard's windows open, or
+  beside the one already there (build 66).
+- Settings page (build 65, the gear, Settings.lua and Changelog.lua), in
+  place of SetGo!'s and the modules' pages: General (minimap icon, addon
+  compartment, mute SetGo!'s sounds, window size, keybinds), Chat messages,
+  Modules (switch them all off, each module's keys), Errors (the last 20 of
+  SetGo! and its modules, ready to copy; works alongside BugGrabber) and
+  About (version, GitHub, the tour), with a Changelog tab.
+- A character without a profile gets one at once, nothing applied: the
+  account's first character a profile of the game as it is, named after it;
+  others the favourite (or the first). The welcome window (Welcome.lua) and
+  the first profile's guide are gone (build 66).
+- New features are marked as Blizzard does: "New" on the Interface Tweaks
+  tab and a blue dot on each new option, gone once seen; a one-time tip for
+  players who knew the old window (build 66).
+- Interface Tweaks, Hidden Buffs Icon (build 45): while the buffs' arrow
+  hides the long buffs, an icon next to it shows how many there are; mouse
+  over it for the list with the time left on each.
+- Interface Tweaks, Sort quests by proximity (build 66): the tracked quests
+  are sorted nearest first as you move.
+- Quest filter button (build 51): the right click menu combines Current
+  Zone or one zone, Untrack High Level and Track Shared Quests (the quests
+  your group is on), with Completed or Not Completed over all of them; the
+  left click applies the kept filter again. A filter that matches nothing
+  leaves the tracker as it was.
+- SetGo! Tracker (builds 60 to 67): drawn as the minimap's day and night
+  indicator and placed opposite it, at a fixed spot (a spot it was moved
+  to before is forgotten).
+- Fixes: Open All Bags with Right Click opens every bag (42) and no longer
+  blocks using items from them (44, 46); the Tracker switches to another
+  skill on the next left click without turning the first one off (46);
+  the Better XP bar's dividers move with its width (67), and with Unified
+  Bar the bar shown over the first keeps its size and place when Status
+  Bar 2 has another size in Edit Mode (70).
+- Cleanup: the old form's pieces (the icon picker, the old tabs' cards and
+  helpers), the old window's leftovers, importing over an open profile
+  (Import always makes a new profile) and about 50 strings nothing used.
+- Tests: the new tabs (Layout, Addons, Interface Tweaks), Import from the
+  profiles' menus, no first profile guide; Changelog.lua and Settings.lua
+  in the load list; the mock frames have a scale.
+
+Hide! (builds 18 to 24)
+- Cards (builds 19 to 24): the page shows a card for each frame you hide
+  and a "Hide frame" card that picks another one by kind; the X takes it
+  out. Each card has the conditions, Show or Hide, an "Anchored frames"
+  dropdown (the frames anchored to it in Edit Mode that follow its rule;
+  none by default; it replaces the general anchors switch), its own out of
+  combat delay and, on action bars, its own "Show abilities on cooldown".
+  Existing rules, anchors, delay and cooldown icons carry over.
+- "In an instance" condition: dungeons, raids, battlegrounds, arenas and
+  scenarios. "In a party" and "In a raid" are now one condition, "In a
+  group" (build 19).
+- Cooldown icons no longer show in the middle of the screen for buttons a
+  bar doesn't use (build 18).
+
 ## 1.1.0
 
 SetGo! (builds 29 to 41)
