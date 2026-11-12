@@ -32,7 +32,8 @@ UnitGUID = function() return "Player-1" end
 UnitFullName = function() return "Arthas", "Realm" end
 UnitName = function() return "Arthas" end
 C_AddOns = { DoesAddOnExist = function() return true end, IsAddOnLoaded = function() return true end,
-	GetAddOnEnableState = function() return 2 end, EnableAddOn = function() end }
+	GetAddOnEnableState = function() return 2 end, EnableAddOn = function() end,
+	GetAddOnMetadata = function(_, field) return field == "Version" and "1.1.0" or "66" end }
 
 -- Edit Mode
 C_EditMode = {
@@ -152,7 +153,7 @@ local function LastPopup() return POPUPS[#POPUPS] end
 local ns = {}
 LOAD(B .. "/SetGo", { "Libs/LibStub/LibStub.lua", "Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua", "Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua" }, "SetGo", ns)
 LOAD(B .. "/SetGo", { "Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua" }, "SetGo", ns)
-LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Art.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Backup.lua", "Skills.lua", "Tweaks.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Welcome.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
+LOAD(B .. "/SetGo", { "Locale.lua", "LocaleProfiles.lua", "Core.lua", "Data.lua", "Art.lua", "Pages.lua", "Profiles.lua", "Layouts.lua", "Addons.lua", "Backup.lua", "Skills.lua", "Tweaks.lua", "PresetData.lua", "Widgets.lua", "UI.lua", "ProfileForm.lua", "Changelog.lua", "Settings.lua", "Keybinds.lua", "Minimap.lua", "Quick.lua", "Tour.lua", "Init.lua" }, "SetGo", ns)
 -- a module with one option (Chat)
 local chatDB = { font = "A" }
 local chatS = ns.Pseudo("SETGO_CHAT_font", "Font", "", "A", function() return chatDB.font end, function(v) chatDB.font = v end)
@@ -212,7 +213,7 @@ check(ns.state.group == "newpreset", "old group: back to profiles")
 
 -- Settings tab
 ns.ShowFormTab("settings")
-check(ns.state.group == "newpreset" and ns.form.tab == "settings", "settings tab on the form")
+check(ns.state.group == "newpreset" and ns.form.tab == "layout", "settings: now on the Layout tab")
 check(ns.form.scope.settings == "profile" and ns.form.scope.keys == "profile", "shows the profile's scopes")
 ns.SetFormScope("keys", "global")
 check(ns.FormDirty(), "scope change: dirty")
@@ -264,9 +265,9 @@ ns.FormCustomize()
 check(not ns.form.choosing and ns.form.tab == "layout", "Customize: the Layout tab")
 local nextButton = ns.FormFrames().next
 nextButton._scripts.OnClick(nextButton)
-check(ns.form.tab == "settings", "Next: settings (tabs: Layout, Settings, Modules)")
+check(ns.form.tab == "addons", "Next: addons (tabs: Layout, Addons, Interface Tweaks)")
 nextButton._scripts.OnClick(nextButton)
-check(ns.form.tab == "modules", "Next: modules")
+check(ns.form.tab == "tweaks", "Next: Interface Tweaks")
 ns.ShowFormTab("settings")
 ns.SetFormScope("keys", "profile")
 check(ns.form.keys and ns.form.keys.Q == "JUMP", "Profile keys start from the game")
@@ -279,10 +280,7 @@ ns.SetFormScope("bars", "profile")
 ns.FormCopyField("bars", nil, ns.L.COPY_CURRENT)
 check(ns.form.skillsFrom == "current", "bars: current")
 ns.Refresh()
-local box
-for _, f in ipairs(FRAMES) do
-	if f._scripts.OnEditFocusGained then box = f end
-end
+local box = ns.FormFrames().name
 box:SetText("Healer")
 RELOADED = 0
 ns.FormButton()
@@ -414,25 +412,16 @@ ns.SelectTab("modules")
 ns.SelectTab("settings")
 check(ns.state.group == "setgo", "SetGo! page")
 
--- 0.24: Import on the profile's header
+-- 1.2: Import is on the profiles' menus and makes a new profile
 ns.Open()
-local importButton
-for _, f in ipairs(FRAMES) do
-	if f._text == ns.L.IMPORT_PROFILE and f._scripts.OnClick then importButton = f end
-end
-check(importButton ~= nil, "Import on the header")
-importButton._scripts.OnClick(importButton)
--- build 8: a menu, as Export (settings and keybindings, then Import)
-Click(RunCtx(), ns.L.IMPORT_PROFILE .. "...")
-check(LastPopup().which == "SETGO_CONFIRM", "Import on a profile: asked first")
-LastPopup().data.onAccept()
-RUN_TIMERS()
-check(LastPopup().which == "SETGO_IMPORT_PROFILE" and LastPopup().data.into == ns.creating.edit, "Import asks for the text, into the profile open")
 local openName = ns.creating.edit
+ns.AskImportProfile({})
+RUN_TIMERS()
+check(LastPopup().which == "SETGO_IMPORT_PROFILE", "Import asks for the text, for a new profile")
 local healerCode = ns.ExportProfile("Healer")
 StaticPopupDialogs.SETGO_IMPORT_PROFILE.OnAccept({ editBox = { GetText = function() return healerCode end } }, LastPopup().data)
 RUN_TIMERS()
-check(ns.creating.edit == openName and ns.form.layout.new and ns.FormDirty(), "imported into the open profile, waiting for Save")
+check(ns.creating and ns.creating.edit == nil and ns.form.layout.new and ns.FormDirty(), "imported into a new profile, waiting for Save")
 ns.LeaveForm(function() ns.OpenForm(openName) end)
 ns.Toggle()
 RUN_TIMERS()
@@ -447,7 +436,7 @@ SetGoDB.profiles = {}
 ns.db.guideSeen = nil
 ns.Open()
 check(F:IsShown() and ns.creating and ns.form.choosing, "no profile: SetGo! on the presets menu")
-check(ns.db.guideSeen and #TIPS >= 1, "the first profile's tips start, once")
+check(not ns.db.guideSeen, "build 66: the first profile's guide no longer starts by itself")
 -- the current configuration, customized, saved and applied
 ns.form.pick = ns.CurrentPreset()
 ns.FormCustomize()

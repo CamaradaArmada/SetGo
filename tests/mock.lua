@@ -48,6 +48,8 @@ local function NewFrame(kind, name, parent)
 	f.GetNumChildren = function() return 0 end
 	f.GetWidth = function() return 45 end
 	f.GetFrameLevel = function() return 1 end
+	f.GetScale = function() return 1 end
+	f.GetEffectiveScale = function() return 1 end
 	f._enabled = true
 	f.SetEnabled = function(self, v) self._enabled = v and true or false end
 	f.IsEnabled = function(self) return self._enabled end
