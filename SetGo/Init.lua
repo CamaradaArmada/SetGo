@@ -7,11 +7,9 @@ SLASH_SETGO2 = "/sgo"
 SlashCmdList.SETGO = function(msg)
 	local raw = strtrim(msg or "")
 	msg = raw:lower()
-	if msg == "hello" then
-		ns.ShowWelcome()
-	elseif msg == "tour" or msg == "guide" then
-		-- the guide's tips over the form (Tour.lua)
-		ns.StartGuide()
+	if msg == "tour" then
+		-- the minimap button's and the modules' tips (Tour.lua)
+		ns.PlayTour()
 	else
 		ns.Toggle()
 	end
@@ -46,6 +44,61 @@ end
 -- the welcome, when the game's settings are ready. Not during the intro
 -- movie or a cinematic (the interface is hidden then), nor in combat: it
 -- waits for them to end, and only counts as seen once it is on screen.
+-- A character without a profile in use gets one, nothing applied (nothing
+-- changes in the game): on an account without profiles, one of the game as
+-- it is now, named after the character; else the favourite (or the first),
+-- only marked as in use
+local function AutoProfile()
+	if ns.ActivePreset() then
+		return
+	end
+	local names = ns.ProfileSlots()
+	local name
+	if #names == 0 then
+		local opts = ns.PresetOpts(ns.CurrentPreset())
+		if not opts then
+			return
+		end
+		local base = UnitName("player") or opts.name
+		name = base
+		local n = 2
+		while ns.ProfileOf(name) do
+			name = base .. " " .. n
+			n = n + 1
+		end
+		opts.name = name
+		opts.noApply = true
+		if not ns.CreateProfile(opts) then
+			return
+		end
+		-- the tweaks kept without a profile go with it
+		local p = ns.ProfileOf(name)
+		local key = p and (p.id or name)
+		if key and type(ns.db.tweaks) == "table" and ns.db.tweaks.none and not ns.db.tweaks[key] then
+			ns.db.tweaks[key] = ns.db.tweaks.none
+		end
+		ns.charDB.tourPending = true
+		C_Timer.After(3, function()
+			ns.Try(ns.TourAfterFirst)
+		end)
+	else
+		for _, n in ipairs(names) do
+			local p = ns.ProfileOf(n)
+			if not name and p and p.favorite then
+				name = n
+			end
+		end
+		name = name or names[1]
+	end
+	ns.charDB.profile = name
+	if ns.ApplyTweaks then
+		ns.Try(ns.ApplyTweaks)
+	end
+	if ns.Refresh then
+		ns.Try(ns.Refresh)
+	end
+end
+
 local pending = false
 local retries = 0
 local waiter = CreateFrame("Frame")
@@ -64,7 +117,7 @@ local function Blocked()
 end
 
 local function TryShow()
-	if not pending or ns.charDB.seen then
+	if not pending then
 		return
 	end
 	if Blocked() then
@@ -78,8 +131,7 @@ local function TryShow()
 	end
 	pending = false
 	waiter:UnregisterAllEvents()
-	ns.ShowWelcome()
-	ns.charDB.seen = true
+	ns.Try(AutoProfile)
 end
 
 waiter:SetScript("OnEvent", function()
@@ -89,7 +141,7 @@ waiter:SetScript("OnEvent", function()
 end)
 
 local function FirstTimePopup()
-	if pending or ns.charDB.seen then
+	if pending or ns.ActivePreset() then
 		return
 	end
 	pending = true

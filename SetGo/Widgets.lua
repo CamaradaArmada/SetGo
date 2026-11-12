@@ -12,12 +12,12 @@ ns.Widgets = W
 local ROW_GAP = 10
 local INDENT = 22
 
--- dark ink on the parchment, like the spellbook
+-- white on the window's dark panels (the title bar keeps Blizzard's gold)
 local function Ink()
-	if SPELLBOOK_FONT_COLOR and SPELLBOOK_FONT_COLOR.GetRGB then
-		return SPELLBOOK_FONT_COLOR:GetRGB()
+	if HIGHLIGHT_FONT_COLOR and HIGHLIGHT_FONT_COLOR.GetRGB then
+		return HIGHLIGHT_FONT_COLOR:GetRGB()
 	end
-	return 0.23, 0.13, 0.05
+	return 1, 1, 1
 end
 W.Ink = Ink
 
@@ -35,7 +35,8 @@ function W.Text(parent, font, width, text, alpha)
 	fs:SetText(text or "")
 	local r, g, b = Ink()
 	fs:SetTextColor(r, g, b, alpha or 1)
-	fs:SetShadowColor(0, 0, 0, 0)
+	fs:SetShadowColor(0, 0, 0, 1)
+	fs:SetShadowOffset(1, -1)
 	return fs, (text and text ~= "") and fs:GetStringHeight() or 0
 end
 
@@ -108,7 +109,7 @@ end
 -- section header with a thin rule, as in Blizzard's settings list
 function W.Header(page, y, width, text)
 	if y > 0 then
-		y = y + 8
+		y = y + 16
 	end
 	local fs, h = W.Text(page, W.FONT_HEADER, width, text)
 	fs:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -y)
@@ -214,7 +215,6 @@ local function DarkenSliderText(slider)
 		local fs = slider[key]
 		if type(fs) == "table" and fs.SetTextColor then
 			fs:SetTextColor(r, g, b)
-			fs:SetShadowColor(0, 0, 0, 0)
 		end
 	end
 end

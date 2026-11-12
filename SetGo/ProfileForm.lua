@@ -25,30 +25,29 @@ local U = ns.ui
 local form = {}
 ns.form = form
 
-local ALL_TABS = { "layout", "settings", "modules", "addons" }
+-- Layout (its layout, bars and frames, then the settings), Addons (the
+-- modules, then the other addons) and Interface Tweaks
+local ALL_TABS = { "layout", "addons", "tweaks" }
+-- the old tabs, now parts of these
+local TAB_OF = { settings = "layout", modules = "addons" }
 
--- the tabs shown: Addons only while there are other addons (Ace3 ones may
--- load later, on demand: looked at each time)
+-- other addons installed (Ace3 ones may load later, on demand: looked at
+-- each time)
+local function HasOtherAddons()
+	return ns.AddonList and (#ns.AddonList() > 0 or #ns.AceAddons() > 0) or false
+end
+
 local function Tabs()
-	local list = {}
-	local ace = ns.AddonList and (#ns.AddonList() > 0 or #ns.AceAddons() > 0)
-	for _, tab in ipairs(ALL_TABS) do
-		if tab ~= "addons" or ace then
-			list[#list + 1] = tab
-		end
-	end
-	return list
+	return ALL_TABS
 end
 local BLIZZARD_TINT = { 0.12, 0.23, 0.45 } -- Blizzard's layouts: blue ink
 local CELL_H, CELL_GAP = 28, 3
-local LIST_ROWS = 5 -- the account's layouts, all shown
 local DEFAULT_ICON = 134400 -- the question mark
-local ICON = 64
-local NAME_MAX = 24
-local TABS_TOP = U.PAD_TOP + ICON + 8
+local HEAD_H = 76 -- the name and the button, then Copy from and Export
+local TABS_TOP = U.PAD_TOP + HEAD_H
 local TAB_H = 28
-local BODY_TOP = TABS_TOP + TAB_H + 8
-local FOOT_H = 70 -- the button, the line over it and the rule
+local BODY_TOP = TABS_TOP + TAB_H + 18
+local FOOT_H = 44 -- the line, Back and Next
 local BODY_H = 564 - BODY_TOP - FOOT_H
 local ROW_H = 30 -- Change modules
 
@@ -101,6 +100,19 @@ end
 
 local function NameText()
 	return head and strtrim(head.name:GetText() or "") or ""
+end
+
+-- the name on the form (the title shows it)
+function ns.SetFormName(name)
+	if head then
+		head.name:SetText(name or "")
+		ns.Refresh()
+	end
+end
+
+function ns.FormName()
+	local name = NameText()
+	return name ~= "" and name or nil
 end
 
 local function TabIndex(tab)
@@ -258,7 +270,10 @@ local function FormDefaults(edit)
 	-- a profile of the list keeps its own layout (its text) until another is
 	-- picked; a new one starts from the layout in use
 	local index = not p and ActiveGridLayout() or nil
-	form.layout = p and { keep = true } or { use = index }
+	-- (a new one: New layout, from the one in use; Edit Mode opens to place
+	-- it after the reload)
+	form.layout = p and { keep = true }
+		or { new = true, fresh = true, from = "current", fromLabel = L.CURRENT_LAYOUT, start = true }
 	-- what it switches on and its modules: the profile's, else the game's
 	form.ui = ns.UILive()
 	form.modules = ns.ModuleStates()
@@ -344,8 +359,17 @@ function ns.OpenForm(edit, tab)
 end
 
 function ns.ShowFormTab(tab)
-	form.tab = tab
+	form.tab = TAB_OF[tab] or tab
 	ns.Select("newpreset")
+end
+
+-- Empty profile (+ New): the form with the game as it is now, on its tabs
+function ns.FormStartEmpty()
+	if not (ns.creating and not ns.creating.edit and form.choosing) then
+		return
+	end
+	form.pick = ns.CurrentPreset()
+	ns.FormCustomize()
 end
 
 -- Leaves the form (nothing on it is kept until saved)
@@ -514,12 +538,11 @@ local function Import(text)
 	ns.Refresh()
 end
 
--- Import profile: a SetGo! profile as text, every tab of the form filled;
--- nothing is kept until saved. into: the profile open on the form, which
--- it replaces (its name stays); else (the cards) a new profile.
+-- Import profile: a SetGo! profile as text, a new profile on the form with
+-- every tab filled; nothing is kept until saved.
 -- opts: { settings, keys } false leaves that part of the code out (the
 -- Import menu's boxes)
-function ns.ImportProfile(text, into, opts)
+function ns.ImportProfile(text, opts)
 	text = strtrim(text or "")
 	local profile = ns.ParseProfileText(text)
 	if not profile then
@@ -527,18 +550,15 @@ function ns.ImportProfile(text, into, opts)
 		ns.Print(type(info) == "table" and L.MSG_USE_IMPORT_LAYOUT or L.MSG_BAD_PROFILE)
 		return
 	end
-	local replacing = into ~= nil and ns.creating ~= nil and ns.creating.edit == into
-	if not replacing then
-		if ns.ProfilesFull() then
-			ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
-			return
-		end
-		ns.LeaveForm(function()
-			ns.OpenForm(nil)
-		end)
-		if ns.creating == nil or ns.creating.edit ~= nil then
-			return
-		end
+	if ns.ProfilesFull() then
+		ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
+		return
+	end
+	ns.LeaveForm(function()
+		ns.OpenForm(nil)
+	end)
+	if ns.creating == nil or ns.creating.edit ~= nil then
+		return
 	end
 	form.choosing = nil
 	-- its layout, if this version of the game can read it (Blizzard's own
@@ -589,9 +609,7 @@ function ns.ImportProfile(text, into, opts)
 		form.scope.keys = "profile"
 		form.keys = Copy(profile.keys)
 	end
-	if not replacing then
-		head.name:SetText(ns.FreePresetName(profile.name))
-	end
+	head.name:SetText(ns.FreePresetName(profile.name))
 	ns.Print(L.MSG_PROFILE_IMPORTED:format(profile.name))
 	if not layoutOK then
 		ns.Print(L.MSG_IMPORT_NO_LAYOUT)
@@ -618,10 +636,9 @@ StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	editBoxWidth = 320,
 	OnAccept = function(self, data)
 		local text = U.EditBoxOf(self):GetText()
-		local into = data and data.into
 		local opts = data and data.opts
 		C_Timer.After(0, function()
-			ns.ImportProfile(text, into, opts)
+			ns.ImportProfile(text, opts)
 		end)
 	end,
 	EditBoxOnEscapePressed = function(self)
@@ -632,9 +649,9 @@ StaticPopupDialogs.SETGO_IMPORT_PROFILE = {
 	hideOnEscape = true,
 }
 
-function ns.AskImportProfile(into, opts)
+function ns.AskImportProfile(opts)
 	C_Timer.After(0, function()
-		U.Popup("SETGO_IMPORT_PROFILE", L.POPUP_IMPORT_PROFILE, { into = into, opts = opts })
+		U.Popup("SETGO_IMPORT_PROFILE", L.POPUP_IMPORT_PROFILE, { opts = opts })
 	end)
 end
 
@@ -714,176 +731,6 @@ function ns.ExportProfileText(name, opts)
 end
 
 --------------------------------------------------------------------------------
--- Icon picker: the game's icons (as for macros), all of them, spells or
--- items; a grid that scrolls with the mouse wheel or the arrows
---------------------------------------------------------------------------------
-
-local picker
-local PICK_COLS, PICK_ROWS, PICK_SIZE, PICK_GAP = 9, 6, 36, 4
-local PICK_TOP = 60
-
-local function IconTypes(filter)
-	local types = IconDataProviderIconType
-	if filter == "spell" and types then
-		return { types.Spell }
-	elseif filter == "item" and types then
-		return { types.Item }
-	end
-	return nil -- all
-end
-
-local function IconProvider()
-	if picker.provider then
-		return picker.provider
-	end
-	if CreateAndInitFromMixin and IconDataProviderMixin then
-		local extra = IconDataProviderExtraType and IconDataProviderExtraType.Spellbook
-		picker.provider = Try(CreateAndInitFromMixin, IconDataProviderMixin, extra)
-		if picker.provider and picker.provider.SetIconTypes then
-			Try(picker.provider.SetIconTypes, picker.provider, IconTypes(picker.filter))
-		end
-	end
-	return picker.provider
-end
-
-local function IconCount()
-	local p = IconProvider()
-	return p and (Try(p.GetNumIcons, p) or 0) or 0
-end
-
-local function IconAt(i)
-	local p = IconProvider()
-	return p and Try(p.GetIconByIndex, p, i)
-end
-
-local function FillPicker()
-	local total = IconCount()
-	local rows = math.ceil(total / PICK_COLS)
-	picker.offset = math.max(0, math.min(picker.offset or 0, rows - PICK_ROWS))
-	for i, b in ipairs(picker.buttons) do
-		local index = picker.offset * PICK_COLS + i
-		local icon = index <= total and IconAt(index)
-		b.icon = icon
-		if icon then
-			b.tex:SetTexture(icon)
-			b:Show()
-		else
-			b:Hide()
-		end
-	end
-	picker.up:SetEnabled(picker.offset > 0)
-	picker.down:SetEnabled(picker.offset < rows - PICK_ROWS)
-end
-
-local function SetFilter(filter)
-	picker.filter = filter
-	picker.offset = 0
-	local p = picker.provider
-	if p and p.SetIconTypes then
-		Try(p.SetIconTypes, p, IconTypes(filter))
-	end
-	FillPicker()
-end
-
-local function CreatePicker()
-	local template = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("BasicFrameTemplateWithInset")
-		and "BasicFrameTemplateWithInset" or nil
-	picker = CreateFrame("Frame", "SetGoIconPicker", U.frame or UIParent, template)
-	if picker:GetParent() == UIParent then
-		ns.ScaleFrame(picker)
-	end
-	local w = PICK_COLS * (PICK_SIZE + PICK_GAP) + 50
-	local h = PICK_ROWS * (PICK_SIZE + PICK_GAP) + PICK_TOP + 20
-	picker:SetSize(w, h)
-	picker:SetFrameStrata("FULLSCREEN_DIALOG")
-	picker:EnableMouse(true)
-	picker:EnableMouseWheel(true)
-	if not template then
-		local bg = picker:CreateTexture(nil, "BACKGROUND")
-		bg:SetAllPoints()
-		bg:SetColorTexture(0.08, 0.06, 0.04, 0.95)
-	end
-	local title = picker:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	title:SetPoint("TOP", 0, -6)
-	title:SetText(L.PICK_ICON)
-	table.insert(UISpecialFrames, "SetGoIconPicker")
-	-- the filter, as in Blizzard's icon selector
-	picker.filterMenu = CreateFrame("DropdownButton", nil, picker, "WowStyle1DropdownTemplate")
-	picker.filterMenu:SetWidth(130)
-	picker.filterMenu:SetPoint("TOPLEFT", 12, -28)
-	picker.filterMenu:SetupMenu(function(_, root)
-		for _, f in ipairs({ { "all", L.PICK_ALL }, { "spell", L.PICK_SPELLS }, { "item", L.PICK_ITEMS } }) do
-			root:CreateRadio(f[2], function()
-				return (picker.filter or "all") == f[1]
-			end, function()
-				SetFilter(f[1])
-			end)
-		end
-	end)
-	picker.buttons = {}
-	for i = 1, PICK_COLS * PICK_ROWS do
-		local b = CreateFrame("Button", nil, picker)
-		b:SetSize(PICK_SIZE, PICK_SIZE)
-		local r, c = math.floor((i - 1) / PICK_COLS), (i - 1) % PICK_COLS
-		b:SetPoint("TOPLEFT", 12 + c * (PICK_SIZE + PICK_GAP), -PICK_TOP - r * (PICK_SIZE + PICK_GAP))
-		b.tex = b:CreateTexture(nil, "ARTWORK")
-		b.tex:SetAllPoints()
-		local hl = b:CreateTexture(nil, "HIGHLIGHT")
-		hl:SetAllPoints()
-		hl:SetColorTexture(1, 1, 1, 0.25)
-		b:SetScript("OnClick", function(self)
-			if self.icon and picker.onPick then
-				picker.onPick(self.icon)
-			end
-			picker:Hide()
-		end)
-		picker.buttons[i] = b
-	end
-	picker.up = W.PageArrow(picker, "Prev", function()
-		picker.offset = picker.offset - PICK_ROWS
-		FillPicker()
-	end)
-	picker.up:SetPoint("TOPRIGHT", -8, -PICK_TOP)
-	picker.down = W.PageArrow(picker, "Next", function()
-		picker.offset = picker.offset + PICK_ROWS
-		FillPicker()
-	end)
-	picker.down:SetPoint("BOTTOMRIGHT", -8, 12)
-	picker:SetScript("OnMouseWheel", function(_, delta)
-		picker.offset = picker.offset - delta
-		FillPicker()
-	end)
-	picker:SetScript("OnHide", function()
-		local p = picker.provider
-		picker.provider = nil
-		if p and p.Release then
-			Try(p.Release, p)
-		end
-	end)
-	picker:Hide()
-end
-
--- owner: the window it belongs to (closes with it), anchor: where it shows;
--- SetGo!'s right page unless given (the first profile's guide)
-function ns.PickIcon(onPick, owner, anchor)
-	if not picker then
-		CreatePicker()
-	end
-	owner, anchor = owner or U.frame, anchor or U.rightPage
-	if owner and picker:GetParent() ~= owner then
-		picker:SetParent(owner)
-		picker:SetFrameStrata("FULLSCREEN_DIALOG")
-	end
-	picker:ClearAllPoints()
-	picker:SetPoint("TOPLEFT", anchor or UIParent, "TOPLEFT", 20, -60)
-	picker.onPick = onPick
-	picker.offset = 0
-	picker:Show()
-	FillPicker()
-end
-
-
---------------------------------------------------------------------------------
 -- Apply, after asking (Blizzard's own popup: the reload must come from it).
 -- Keys and action bars always go with the profile.
 --------------------------------------------------------------------------------
@@ -912,12 +759,12 @@ local function CheckName()
 	local name = NameText()
 	if name == "" then
 		ns.Print(L.MSG_NAME_EMPTY)
-		head.name:SetFocus()
+		ns.AskRename()
 		return nil
 	end
 	if name ~= form.edit and ns.ProfileOf(name) then
 		ns.Print(L.MSG_NAME_TAKEN:format(name))
-		head.name:SetFocus()
+		ns.AskRename()
 		return nil
 	end
 	return name
@@ -987,7 +834,7 @@ function ns.FormHasChanges()
 		return Dirty()
 	end
 	local o = form.orig or {}
-	return NameText() ~= "" or form.layout.new or form.layout.use ~= o.use or form.icon ~= nil
+	return NameText() ~= "" or (form.layout.new and not form.layout.start) or form.layout.use ~= o.use or form.icon ~= nil
 		or form.customModules or form.skillsFrom or (form.shared and next(form.shared) ~= nil)
 		or not SameValues(form.scope, o.scope)
 		or not (SameFlags(form.ui, o.ui) and SameFlags(form.modules, o.modules))
@@ -1137,10 +984,38 @@ local function InkField(parent, label)
 end
 
 -- Copy from: as the game is now, or another profile (what the tab shows)
+-- Copy from (the header): everything a profile holds, from another
+-- profile or from the game as it is now: the layout, bars and frames, the
+-- modules and other addons, the character settings, keybinds and bar
+-- slots (as Global or its own, as the other has them). Asked first: it
+-- replaces all of this form; nothing is kept until saved.
+local function CopyAll(p)
+	CopyFrom(p, "layout")
+	CopyFrom(p, "modules")
+	CopyFrom(p, "addons")
+	local name = p and NameOf(p) or L.COPY_CURRENT
+	for _, field in ipairs({ "settings", "keys", "bars" }) do
+		if p and ns.ScopeOf(p, field) ~= "profile" then
+			ns.SetFormScope(field, "global")
+		else
+			ns.SetFormScope(field, "profile")
+			ns.FormCopyField(field, p, name)
+		end
+	end
+	ns.Refresh()
+end
+
 local function CopySources(root)
-	local what = form.tab or "layout"
+	local function Run(p, label)
+		-- after the menu closes
+		C_Timer.After(0, function()
+			U.Confirm(L.POPUP_COPY_ALL:format(label), function()
+				CopyAll(p)
+			end)
+		end)
+	end
 	root:CreateButton(L.COPY_CURRENT, function()
-		CopyFrom(nil, what)
+		Run(nil, L.COPY_CURRENT)
 	end)
 	local others = {}
 	for _, name in ipairs(ns.ProfileSlots()) do
@@ -1153,149 +1028,124 @@ local function CopySources(root)
 	end
 	for _, name in ipairs(others) do
 		local p = ns.ProfileOf(name)
-		local b = root:CreateButton(name, function()
-			CopyFrom(p, what)
+		root:CreateButton(name, function()
+			Run(p, name)
 		end)
-		local empty = (what == "modules" and not (p and (p.customModules or p.moduleSettings)))
-			or (what == "addons" and not (p and (p.customAddons or (p.aceProfiles and next(p.aceProfiles)))))
-		if empty and b and b.SetEnabled then
-			b:SetEnabled(false)
-		end
 	end
 end
 
 local function CreateHead(rightPage, width)
 	head = CreateFrame("Frame", nil, rightPage)
 	head:SetPoint("TOPLEFT", U.PAD, -U.PAD_TOP)
-	head:SetSize(width, TABS_TOP - U.PAD_TOP + TAB_H + 2)
+	head:SetSize(width, HEAD_H + TAB_H + 2)
 	head:SetFrameLevel(rightPage:GetFrameLevel() + 20)
 	local r, g, bl = W.Ink()
 
-	-- the icon, round
+	-- the icon: gone from the window (profiles show their name only); kept
+	-- hidden for the code and the codes that still carry one
 	head.icon = CreateFrame("Button", nil, head)
-	head.icon:SetSize(ICON, ICON)
-	head.icon:SetPoint("TOPLEFT", 0, 0)
 	head.icon.tex = head.icon:CreateTexture(nil, "ARTWORK")
-	head.icon.tex:SetAllPoints()
-	if head.icon.CreateMaskTexture then
-		local mask = head.icon:CreateMaskTexture()
-		mask:SetAllPoints(head.icon.tex)
-		mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-		head.icon.tex:AddMaskTexture(mask)
-	end
-	if HasAtlas("communities-ring-gold") then
-		local ring = head.icon:CreateTexture(nil, "OVERLAY")
-		ring:SetAtlas("communities-ring-gold")
-		ring:SetPoint("CENTER")
-		ring:SetSize(ICON + 10, ICON + 10)
-	end
-	local ihl = head.icon:CreateTexture(nil, "HIGHLIGHT")
-	ihl:SetAllPoints()
-	ihl:SetColorTexture(1, 1, 1, 0.15)
-	head.icon:SetScript("OnClick", function()
-		ns.PickIcon(function(icon)
-			form.icon = icon
-			ns.Refresh()
-		end)
-	end)
-	W.TipScripts(head.icon, L.NP_ICON, L.NP_ICON_DESC)
+	head.icon:Hide()
 
-	-- the name: a headline you can write in
-	local x = ICON + 14
-	local nameW = width - x
+	-- the name: shown, not written in (Rename next to it asks for it in a
+	-- popup, as Blizzard's macros); the box under it keeps it for the form
 	head.name = CreateFrame("EditBox", nil, head)
-	head.name:SetSize(nameW, 32)
-	head.name:SetPoint("TOPLEFT", x, 0)
+	head.name:SetSize(10, 10)
 	head.name:SetAutoFocus(false)
-	Try(head.name.SetMaxLetters, head.name, NAME_MAX)
-	head.name:SetFontObject(GameFontNormalHuge or GameFontNormalLarge)
-	Try(head.name.SetFont, head.name, "Fonts\\FRIZQT__.TTF", 20, "")
-	head.name:SetTextColor(r, g, bl)
-	Try(head.name.SetShadowColor, head.name, 0, 0, 0, 0)
-	head.name:SetTextInsets(8, 8, 0, 0)
-	local bg = head.name:CreateTexture(nil, "BACKGROUND")
-	bg:SetAllPoints()
-	bg:SetColorTexture(r, g, bl, 0.12)
-	head.name:SetScript("OnEditFocusGained", function()
-		bg:SetColorTexture(r, g, bl, 0.2)
-	end)
-	head.name:SetScript("OnEditFocusLost", function()
-		bg:SetColorTexture(r, g, bl, 0.12)
-	end)
-	head.name:SetScript("OnEscapePressed", head.name.ClearFocus)
-	head.name:SetScript("OnEnterPressed", head.name.ClearFocus)
-	head.name:HookScript("OnTextChanged", function(_, userInput)
-		if userInput and ns.RefreshFormButton then
-			ns.RefreshFormButton()
-		end
-	end)
-	W.TipScripts(head.name, L.NP_NAME, L.NP_NAME_DESC, true)
-
-	-- Copy from, under the name: a field in ink that opens the menu
-	head.copy = InkField(head, L.NP_COPY_FROM .. " " .. L.COPY_CURRENT)
-	head.copy:SetPoint("TOPLEFT", x + 4, -38)
-	head.copy:SetScript("OnClick", function(self)
-		if MenuUtil and MenuUtil.CreateContextMenu then
-			MenuUtil.CreateContextMenu(self, function(_, root)
-				CopySources(root)
-			end)
-		end
-	end)
-	W.TipScripts(head.copy, L.NP_COPY_PROFILE, function()
-		return L["NP_COPY_" .. (form.tab or "layout"):upper() .. "_DESC"]
-	end, true)
-
-	-- Import, on the right of the same line: a profile someone shared, made
-	-- as a new one (as Import profile on the cards' menu)
-	head.import = W.Button(head, 120, L.IMPORT_PROFILE, function(self)
-		local function Run(opts)
-			local edit = form.edit
-			if edit then
-				-- into the profile open: always asked first
-				U.Confirm(L.POPUP_IMPORT_REPLACE:format(edit), function()
-					ns.AskImportProfile(edit, opts)
-				end)
-			else
-				ns.AskImportProfile(nil, opts)
-			end
-		end
-		-- the menu: what comes in too, then Import
-		if MenuUtil and MenuUtil.CreateContextMenu then
-			MenuUtil.CreateContextMenu(self or head.import, function(_, root)
-				ns.ImportMenuItems(root, Run)
-			end)
-		else
-			Run(nil)
-		end
+	head.name:EnableMouse(false)
+	head.name:EnableKeyboard(false)
+	head.name:SetFontObject(GameFontNormal)
+	head.name:SetAlpha(0)
+	head.name:SetPoint("TOPLEFT")
+	head.title = head:CreateFontString(nil, "OVERLAY", "GameFontHighlightHuge")
+	Try(head.title.SetFont, head.title, "Fonts\\FRIZQT__.TTF", 20, "")
+	head.title:SetPoint("TOPLEFT", 4, -4)
+	head.title:SetJustifyH("LEFT")
+	Try(head.title.SetWordWrap, head.title, false)
+	head.rename = W.Button(head, 90, L.RENAME, function()
+		ns.AskRename()
 	end, 22)
-	local fs = head.import.GetFontString and head.import:GetFontString()
-	head.import:SetWidth(math.max(100, (fs and tonumber(fs:GetStringWidth()) or 90) + 30))
-	head.import:SetPoint("TOPRIGHT", head, "TOPRIGHT", 0, -36)
-	W.TipScripts(head.import, L.IMPORT_PROFILE, function()
-		return form.edit and L.IMPORT_REPLACE_DESC or L.IMPORT_PROFILE_DESC
-	end)
+	local rfs = head.rename.GetFontString and head.rename:GetFontString()
+	head.rename:SetWidth(math.max(80, (rfs and tonumber(rfs:GetStringWidth()) or 60) + 24))
+	head.rename:SetPoint("LEFT", head.title, "RIGHT", 10, 0)
+	W.TipScripts(head.rename, L.RENAME, L.RENAME_DESC)
+	head.nameW = width - 120
 
-	-- the tabs, the width of the page, on a darker band
-	local band = head:CreateTexture(nil, "BACKGROUND")
-	band:SetColorTexture(r, g, bl, 0.1)
-	band:SetPoint("TOPLEFT", 0, -(TABS_TOP - U.PAD_TOP))
-	band:SetSize(width, TAB_H)
+	-- Copy from, under the name: Blizzard's dropdown
+	head.copy = CreateFrame("DropdownButton", nil, head, "WowStyle1DropdownTemplate")
+	head.copy:SetPoint("TOPLEFT", 2, -38)
+	head.copy:SetWidth(220)
+	Try(head.copy.SetDefaultText, head.copy, L.SCOPE_COPY_DEFAULT)
+	head.copy:SetupMenu(function(_, root)
+		if form.scope then
+			CopySources(root)
+		end
+	end)
+	W.TipScripts(head.copy, L.NP_COPY_PROFILE, L.NP_COPY_ALL_DESC, true)
+
+	-- Export: on the card's right click now; kept hidden for the code
+	head.import = CreateFrame("Button", nil, head)
+	head.import:Hide()
+
+	-- the tabs: Blizzard's top tabs (its gold ones), else ours
 	head.tabs = {}
 	head.tabsWidth = width
+	local blizzard = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("PanelTopTabButtonTemplate")
+		and PanelTemplates_SelectTab and PanelTemplates_DeselectTab
 	local tabW = width / #ALL_TABS
+	local prev
 	for i, tab in ipairs(ALL_TABS) do
-		local t = U.MakeTab(head, L["FORM_TAB_" .. tab:upper()], tabW, function()
-			ns.ShowFormTab(tab)
-		end)
-		t:SetHeight(TAB_H)
-		t:SetPoint("TOPLEFT", (i - 1) * tabW, -(TABS_TOP - U.PAD_TOP))
+		local label = L["FORM_TAB_" .. tab:upper()]
+		local t
+		if blizzard then
+			t = CreateFrame("Button", nil, head, "PanelTopTabButtonTemplate")
+			t:SetText(label)
+			t:SetScript("OnClick", function()
+				ns.Sound("IG_CHARACTER_INFO_TAB", 841)
+				ns.ShowFormTab(tab)
+			end)
+			function t:SetOn(on)
+				if on then
+					PanelTemplates_SelectTab(self)
+				else
+					PanelTemplates_DeselectTab(self)
+				end
+			end
+			if prev then
+				t:SetPoint("LEFT", prev, "RIGHT", 4, 0)
+			else
+				t:SetPoint("BOTTOMLEFT", head, "TOPLEFT", 6, -(HEAD_H + TAB_H))
+			end
+			t.blizzard = true
+		else
+			t = U.MakeTab(head, label, tabW, function()
+				ns.ShowFormTab(tab)
+			end)
+			t:SetHeight(TAB_H)
+			t:SetPoint("TOPLEFT", (i - 1) * tabW, -HEAD_H)
+		end
+		prev = t
 		head.tabs[tab] = t
+		-- Blizzard's "New" on Interface Tweaks while it has unseen features
+		if tab == "tweaks" and C_XMLUtil and C_XMLUtil.GetTemplateInfo
+			and C_XMLUtil.GetTemplateInfo("NewFeatureLabelNoAnimateTemplate") then
+			local label = CreateFrame("Frame", nil, t, "NewFeatureLabelNoAnimateTemplate")
+			label:SetPoint("BOTTOM", t, "TOP", 0, -6)
+			label:SetFrameLevel(t:GetFrameLevel() + 5)
+			head.newLabel = label
+		end
 	end
+	-- a line under the tabs, the width of the panel
+	local rule = head:CreateTexture(nil, "ARTWORK")
+	rule:SetHeight(1)
+	rule:SetColorTexture(r, g, bl, 0.25)
+	rule:SetPoint("TOPLEFT", 0, -(HEAD_H + TAB_H))
+	rule:SetPoint("TOPRIGHT", 0, -(HEAD_H + TAB_H))
 	head:Hide()
 end
 
 --------------------------------------------------------------------------------
--- The bottom: a rule, a line, the button
+-- The bottom: the line (what changed, the step), Back and Next
 --------------------------------------------------------------------------------
 
 local function CreateFoot(rightPage, width)
@@ -1303,10 +1153,11 @@ local function CreateFoot(rightPage, width)
 	foot:SetPoint("BOTTOMLEFT", U.PAD, 0)
 	foot:SetSize(width, FOOT_H)
 	foot:SetFrameLevel(rightPage:GetFrameLevel() + 20)
-	foot.main = W.Button(foot, 150, L.SAVE, function()
+	-- the button: on the right of the header's first line
+	foot.main = W.Button(foot, 130, L.SAVE, function()
 		ns.FormButton()
 	end, 24)
-	foot.main:SetPoint("BOTTOM", foot, "BOTTOM", 0, 17)
+	foot.main:SetPoint("TOPRIGHT", rightPage, "TOPRIGHT", -U.PAD, -(U.PAD_TOP + 38))
 	W.TipScripts(foot.main, function()
 		return foot.main:GetText()
 	end, function()
@@ -1319,18 +1170,19 @@ local function CreateFoot(rightPage, width)
 		end
 		return L.UPRESET_APPLY_DESC
 	end)
-	local rule = U.Rule(foot, 0, FOOT_H - 48, width)
+	local rule = U.Rule(foot, 0, 4, width)
 	rule:SetAlpha(1)
-	foot.pending = W.Text(foot, W.FONT_SMALL, width, "", 0.8)
+	foot.pending = W.Text(foot, W.FONT_SMALL, width - 200, "", 0.8)
 	foot.pending:SetJustifyH("CENTER")
-	foot.pending:SetPoint("BOTTOM", foot, "BOTTOM", 0, 52)
+	foot.pending:SetPoint("BOTTOM", foot, "BOTTOM", 0, 15)
 	Try(foot.pending.SetWordWrap, foot.pending, false)
+	-- Undo: next to the button, in the header
 	foot.undo = U.IconBox(foot, { "common-icon-undo" }, "<", function()
 		local edit, tab = form.edit, form.tab
 		ns.creating = nil
 		ns.OpenForm(edit, tab)
 	end)
-	foot.undo:SetPoint("BOTTOMRIGHT", foot, "BOTTOMRIGHT", 0, 15)
+	foot.undo:SetPoint("RIGHT", foot.main, "LEFT", -4, 0)
 	-- a new profile: back to the tab before
 	foot.back = W.Button(foot, 90, L.WIZ_BACK, function()
 		local i = TabIndex(form.tab)
@@ -1342,7 +1194,7 @@ local function CreateFoot(rightPage, width)
 			ns.Refresh()
 		end
 	end, 22)
-	foot.back:SetPoint("BOTTOMLEFT", foot, "BOTTOMLEFT", 0, 18)
+	foot.back:SetPoint("BOTTOMLEFT", foot, "BOTTOMLEFT", 0, 10)
 	foot.back:Hide()
 	-- a new profile: the next tab (Save and Apply works from any tab)
 	foot.next = W.Button(foot, 90, L.GUIDE_NEXT, function()
@@ -1352,7 +1204,7 @@ local function CreateFoot(rightPage, width)
 			ns.ShowFormTab(tabs[i + 1])
 		end
 	end, 22)
-	foot.next:SetPoint("BOTTOMRIGHT", foot, "BOTTOMRIGHT", 0, 18)
+	foot.next:SetPoint("BOTTOMRIGHT", foot, "BOTTOMRIGHT", 0, 10)
 	foot.next:Hide()
 	W.TipScripts(foot.next, L.GUIDE_NEXT, L.NP_NEXT_DESC)
 	W.TipScripts(foot.undo, L.NP_UNDO, L.NP_UNDO_DESC)
@@ -1367,7 +1219,9 @@ function ns.RefreshFormButton()
 	local edit = form.edit
 	foot.main:SetEnabled(true)
 	foot.back:SetShown(not edit and not form.choosing)
-	foot.undo:SetShown(edit ~= nil)
+	-- Undo: always there, greyed while nothing changed
+	foot.undo:SetShown(not form.choosing)
+	foot.undo:SetEnabled(edit ~= nil and Dirty())
 	local tabs = Tabs()
 	foot.next:SetShown(not edit and not form.choosing and tabs[TabIndex(form.tab) + 1] ~= nil)
 	if np and np.customize then
@@ -1417,23 +1271,24 @@ function ns.RefreshFormHead(onForm)
 	if not onForm then
 		return
 	end
-	head.icon.tex:SetTexture(form.icon or DEFAULT_ICON)
-	-- the Settings tab has a Copy from for each of its parts
-	head.copy:SetShown(form.tab ~= "settings")
-	head.import:SetEnabled(form.edit ~= nil or not ns.ProfilesFull())
-	-- the tabs shown, side by side over the band
-	local shown = Tabs()
-	local tabW = head.tabsWidth / #shown
+	-- the name, and Rename after it
+	head.title:SetText(NameText() ~= "" and NameText() or L.NEW_PRESET)
+	local tw = tonumber(head.title:GetStringWidth()) or 100
+	head.title:SetWidth(math.min(tw + 2, head.nameW - (tonumber(head.rename:GetWidth()) or 80) - 10))
+	-- Copy from: everything, on every tab
+	head.copy:Show()
+	Try(head.copy.GenerateMenu, head.copy)
+	head.import:SetEnabled(form.edit ~= nil)
 	for tab, t in pairs(head.tabs) do
-		t:Hide()
-	end
-	for i, tab in ipairs(shown) do
-		local t = head.tabs[tab]
-		t:SetWidth(tabW)
-		t:ClearAllPoints()
-		t:SetPoint("TOPLEFT", (i - 1) * tabW, -(TABS_TOP - U.PAD_TOP))
 		t:SetOn(tab == form.tab)
 		t:Show()
+	end
+	if head.newLabel then
+		local any = false
+		for key in pairs(ns.NEW_FEATURES or {}) do
+			any = any or ns.IsNew(key)
+		end
+		head.newLabel:SetShown(any)
 	end
 	ns.RefreshFormButton()
 end
@@ -1441,58 +1296,6 @@ end
 --------------------------------------------------------------------------------
 -- Pieces
 --------------------------------------------------------------------------------
-
--- a toggle in the cards' style: selected full ink, the rest faded
-local function Toggle(parent, width, height, text)
-	local b = CreateFrame("Button", nil, parent)
-	b:SetSize(width, height)
-	U.Card(b)
-	b.text = W.Text(b, W.FONT_BODY, width - 6, text)
-	b.text:SetJustifyH("CENTER")
-	b.text:SetPoint("CENTER")
-	Try(b.text.SetWordWrap, b.text, false)
-	function b:SetOn(on, locked)
-		if on then
-			self:Look(0.22, 0.9, false)
-			self.text:SetAlpha(1)
-		else
-			self:Look(0.03, 0.25, false)
-			self.text:SetAlpha(0.45)
-		end
-		if locked then
-			self.text:SetAlpha(0.8)
-		end
-	end
-	return b
-end
-
-local function Cell(parent, width, tint)
-	local b = CreateFrame("Button", nil, parent)
-	b:SetSize(width, CELL_H)
-	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-	U.Card(b, tint)
-	b.text = W.Text(b, W.FONT_BODY, width - 20, "")
-	b.text:SetJustifyH("LEFT")
-	b.text:SetPoint("LEFT", 10, 0)
-	Try(b.text.SetWordWrap, b.text, false)
-	b:SetScript("OnEnter", function(self)
-		if self.tip then
-			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-			GameTooltip:SetText(self.tip, 1, 1, 1)
-			if self.tipLine then
-				GameTooltip:AddLine(self.tipLine, nil, nil, nil, true)
-			end
-			if self.tipWarn then
-				GameTooltip:AddLine(self.tipWarn, 1, 0.3, 0.3, true)
-			end
-			GameTooltip:Show()
-		end
-	end)
-	b:SetScript("OnLeave", function()
-		GameTooltip:Hide()
-	end)
-	return b
-end
 
 -- a checkbox and its label, on a row of its own (Change modules, Apply own
 -- settings)
@@ -1594,185 +1397,215 @@ local function CreateChoiceBody(width)
 	body:Hide()
 end
 
+-- a Blizzard checkbox and its label (the bars, the frames)
+local function CheckRow(parent, x, y, width, label, tip, onClick)
+	local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+	cb:SetSize(24, 24)
+	cb:SetPoint("TOPLEFT", parent, "TOPLEFT", x - 2, -y)
+	cb.label = W.Text(parent, W.FONT_BODY, width - 28, label)
+	cb.label:SetPoint("LEFT", cb, "RIGHT", 2, 0)
+	Try(cb.label.SetWordWrap, cb.label, false)
+	W.TipScripts(cb, label, tip)
+	cb:SetScript("OnClick", function(self)
+		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+		onClick(self:GetChecked() and true or false)
+	end)
+	return cb
+end
+
+-- the layout dropdown's text: the one picked, a new one, or the profile's own
+local function LayoutChoiceText()
+	local lay = form.layout or {}
+	if lay.new then
+		return L.LAYOUT_NEW_FROM:format(lay.fromLabel or L.CURRENT_LAYOUT)
+	end
+	if lay.use then
+		local l = ns.GetLayouts()[lay.use]
+		if l then
+			return LayoutText(l)
+		end
+	end
+	return form.edit and L.LAYOUT_OWN:format(form.edit) or L.LAYOUT_KEEP
+end
+
+-- the dropdown's menu: New layout (from the one in use; a new profile's
+-- start), Blizzard's layouts, SetGo!'s presets, the account's layouts, then
+-- Copy from (another profile's layout, or a layout code)
+local function LayoutMenu(root)
+	local blizzard, account = GridLayouts()
+	local function Is(test)
+		return function()
+			return test(form.layout or {})
+		end
+	end
+	-- the profile's own layout (a profile of the list keeps it as text)
+	if form.edit then
+		root:CreateRadio(L.LAYOUT_OWN:format(form.edit), Is(function(lay)
+			return lay.keep
+		end), function()
+			form.layout = { keep = true }
+			ns.Refresh()
+		end)
+	end
+	root:CreateRadio(L.LAYOUT_NEW, Is(function(lay)
+		return lay.new and lay.from == "current" and not lay.template
+	end), function()
+		form.layout = { new = true, fresh = true, from = "current", fromLabel = L.CURRENT_LAYOUT }
+		ns.Refresh()
+	end)
+	local function Use(l)
+		root:CreateRadio(LayoutText(l), Is(function(lay)
+			return not lay.new and lay.use == l.index
+		end), function()
+			form.layout = { use = l.index }
+			ns.Refresh()
+		end)
+	end
+	if #blizzard > 0 then
+		root:CreateDivider()
+		root:CreateTitle(L.PRESETS_BLIZZARD)
+		for _, l in ipairs(blizzard) do
+			Use(l)
+		end
+	end
+	-- SetGo!'s presets: their layout (and the bars it shows)
+	local presets = ns.PresetList and ns.PresetList() or {}
+	local templates = ns.LayoutTemplates()
+	if #presets + #templates > 0 then
+		root:CreateDivider()
+		root:CreateTitle(L.PRESETS_SETGO)
+		for _, entry in ipairs(presets) do
+			root:CreateRadio(entry.name, Is(function(lay)
+				return lay.new and lay.preset == entry.name
+			end), function()
+				local opts = ns.PresetOpts(entry)
+				if not (opts and opts.layout and opts.layout.template) then
+					ns.Print(L.MSG_LAYOUT_FAILED)
+					return
+				end
+				form.layout = { new = true, fresh = true, template = opts.layout.template, imported = opts.layout.imported,
+					data = opts.layout.data, fromLabel = entry.name, preset = entry.name }
+				for n = 2, 8 do
+					local key = "bar" .. n
+					if opts.ui and opts.ui[key] ~= nil then
+						form.ui[key] = opts.ui[key] and true or false
+					end
+				end
+				ns.Refresh()
+			end)
+		end
+		for _, t in ipairs(templates) do
+			root:CreateRadio(t.name, Is(function(lay)
+				return lay.template == t.data
+			end), function()
+				form.layout = { new = true, fresh = true, template = t.data, bars = t.bars, fromLabel = t.name }
+				ns.Refresh()
+			end)
+		end
+	end
+	if #account > 0 then
+		root:CreateDivider()
+		root:CreateTitle(L.YOUR_LAYOUTS)
+		for _, l in ipairs(account) do
+			Use(l)
+		end
+	end
+	root:CreateDivider()
+	local copy = root:CreateButton(L.SCOPE_COPY_DEFAULT)
+	for _, name in ipairs(ns.ProfileSlots()) do
+		if name ~= form.edit then
+			local p = ns.ProfileOf(name)
+			local b = copy:CreateRadio(name, Is(function(lay)
+				return lay.new and lay.template ~= nil and lay.fromLabel == name
+			end), function()
+				CopyFrom(p, "layout")
+			end)
+			if not ns.ProfileLayoutText(p) and b and b.SetEnabled then
+				b:SetEnabled(false)
+			end
+		end
+	end
+	copy:CreateDivider()
+	copy:CreateButton(ns.G("HUD_EDIT_MODE_IMPORT_LAYOUT", L.NP_IMPORT), function()
+		C_Timer.After(0, function()
+			U.Popup("SETGO_IMPORT_LAYOUT", L.POPUP_IMPORT_LAYOUT)
+		end)
+	end)
+end
+
 local function CreateLayoutBody(width)
 	local body = CreateFrame("Frame", nil, np)
 	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
 	body:SetSize(width, BODY_H)
+	body.refreshers = {}
 	np.layoutBody = body
-
-	-- Blizzard's two, side by side (Refresh places them)
 	np.width = width
-	np.blizzard = {}
-	for i = 1, 2 do
-		np.blizzard[i] = Cell(body, (width - 6) / 2, BLIZZARD_TINT)
-	end
-	-- the account's five (+ New in the first free row)
-	local y = CELL_H + CELL_GAP
-	np.account = {}
-	for i = 1, LIST_ROWS do
-		local c = Cell(body, width)
-		c:SetPoint("TOPLEFT", 0, -(y + (i - 1) * (CELL_H + CELL_GAP)))
-		np.account[i] = c
-	end
-	y = y + LIST_ROWS * (CELL_H + CELL_GAP) + 2
 
-	-- a title with its rule, tighter than the option pages'
-	local function Head(at, text)
-		local fs = W.Text(body, W.FONT_HEADER, width, text)
-		fs:SetPoint("TOPLEFT", 0, -(at + 6))
-		local rule = body:CreateTexture(nil, "ARTWORK")
-		rule:SetHeight(1)
-		local r, g, bl = W.Ink()
-		rule:SetColorTexture(r, g, bl, 0.35)
-		rule:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -3)
-		rule:SetPoint("RIGHT", body, "LEFT", width, 0)
-		return at + 6 + 16 + 3 + 6
-	end
+	-- the Edit Mode layout: one dropdown
+	local y = W.Header(body, 0, width, L.EDITMODE_LAYOUT)
+	local dd = CreateFrame("DropdownButton", nil, body, "WowStyle1DropdownTemplate")
+	dd:SetPoint("TOPLEFT", 2, -y)
+	dd:SetWidth(math.min(320, width - 4))
+	dd:SetupMenu(function(_, root)
+		LayoutMenu(root)
+	end)
+	W.TipScripts(dd, L.EDITMODE_LAYOUT, L.LAYOUT_DD_DESC, true)
+	np.layoutDD = dd
+	y = y + 26 + 6
 
-	-- action bars 1 to 8
-	y = Head(y, L.NP_BARS)
+	-- action bars 1 to 8, Blizzard's checkboxes in two columns
+	y = W.Header(body, y, width, L.NP_BARS)
+	local colW = math.floor(width / 2)
 	np.bars = {}
-	local sq = 28
 	for n = 1, 8 do
-		local b = Toggle(body, sq, sq, tostring(n))
-		b:SetPoint("TOPLEFT", (n - 1) * (sq + 6), -y)
+		local col, row = (n - 1) % 2, math.floor((n - 1) / 2)
+		local label = ns.G("OPTION_SHOW_ACTION_BAR", L.UI_BAR):format(n)
+		local cb = CheckRow(body, col * colW, y + row * 26, colW, label, n == 1 and L.BAR1_ALWAYS or nil, function(on)
+			form.ui["bar" .. n] = on
+			ns.Refresh()
+		end)
 		if n == 1 then
-			W.TipScripts(b, L.UI_BAR_SHORT:format(1), L.BAR1_LOCKED)
-		else
-			b:SetScript("OnClick", function()
-				local key = "bar" .. n
-				form.ui[key] = not form.ui[key]
-				ns.Refresh()
-			end)
-			W.TipScripts(b, function()
-				return ns.G("OPTION_SHOW_ACTION_BAR", L.UI_BAR):format(n)
-			end, function()
-				return form.ui and form.ui["bar" .. n] and L.STATE_ON or L.STATE_OFF
-			end)
+			cb:Disable()
 		end
-		np.bars[n] = b
+		np.bars[n] = cb
 	end
-	y = y + sq + 2
+	y = y + 4 * 26 + 6
 
-	-- the elements, in two columns
-	y = Head(y, L.NP_UI)
+	-- the frames it shows, the same way
+	y = W.Header(body, y, width, L.NP_UI)
 	np.elements = {}
-	local colW, rowH, i = (width - 6) / 2, 22, 0
+	local i = 0
 	for _, e in ipairs(ns.UIElements()) do
 		if not e.bar then
 			local label = ns.UILabel(e)
-			local b = Toggle(body, colW, rowH, label)
-			b:SetPoint("TOPLEFT", (i % 2) * (colW + 6), -(y + math.floor(i / 2) * (rowH + 5)))
-			i = i + 1
-			b.element = e
-			b:SetScript("OnClick", function()
-				form.ui[e.key] = not form.ui[e.key]
+			local col, row = i % 2, math.floor(i / 2)
+			local cb = CheckRow(body, col * colW, y + row * 26, colW, label, nil, function(on)
+				form.ui[e.key] = on
 				ns.Refresh()
 			end)
-			W.TipScripts(b, label, function()
-				return form.ui and form.ui[e.key] and L.STATE_ON or L.STATE_OFF
-			end)
-			np.elements[#np.elements + 1] = b
+			cb.element = e
+			np.elements[#np.elements + 1] = cb
+			i = i + 1
 		end
 	end
-end
-
-local function Pick(cell, selected, empty)
-	if empty then
-		cell:Look(0.02, 0.15, false)
-	elseif selected then
-		cell:Look(0.22, 0.9, true)
-	else
-		cell:Look(0.07, 0.35, false)
-	end
+	np.layoutH = y + math.ceil(i / 2) * 26 + 6
 end
 
 local function RefreshLayoutBody()
-	local blizzard, account = GridLayouts()
+	local blizzard = GridLayouts()
 	-- a layout that went away (deleted meanwhile): back to the first one
 	if form.layout.use and not ns.GetLayouts()[form.layout.use] then
 		form.layout = { use = blizzard[1] and blizzard[1].index or 1 }
 	end
-	-- the row: Blizzard's two (a profile of the list keeps its own layout,
-	-- nothing picked, until another is picked)
-	local w = (np.width - 6) / 2
-	for i, cell in ipairs(np.blizzard) do
-		cell:ClearAllPoints()
-		cell:SetWidth(w)
-		cell.text:SetWidth(w - 20)
-		cell:SetPoint("TOPLEFT", (i - 1) * (w + 6), 0)
+	Try(np.layoutDD.SetDefaultText, np.layoutDD, LayoutChoiceText())
+	-- the text: the radio picked, else the default (the profile's own, a
+	-- new one)
+	Try(np.layoutDD.GenerateMenu, np.layoutDD)
+	for n, cb in ipairs(np.bars) do
+		cb:SetChecked(n == 1 or (form.ui["bar" .. n] and true or false))
 	end
-	for i, cell in ipairs(np.blizzard) do
-		local l = blizzard[i]
-		cell:SetShown(l ~= nil)
-		if l then
-			cell.text:SetText(l.name)
-			cell.tip, cell.tipLine, cell.tipWarn = LayoutText(l), nil, nil
-			Pick(cell, form.layout.use == l.index)
-			cell:SetScript("OnClick", function()
-				form.layout = { use = l.index }
-				ns.Refresh()
-			end)
-		end
-	end
-	-- the account's slots don't matter any more: a profile keeps its layout
-	-- as text (Layouts.lua)
-	local full, max = false, 0
-	for i, cell in ipairs(np.account) do
-		local l = account[i]
-		if l then
-			cell.text:SetText(l.name)
-			cell.tip, cell.tipLine, cell.tipWarn = l.name, nil, nil
-			Pick(cell, form.layout.use == l.index)
-			cell:SetEnabled(true)
-			cell:SetScript("OnClick", function()
-				form.layout = { use = l.index }
-				ns.Refresh()
-			end)
-			cell:Show()
-		elseif i == #account + 1 then
-			-- the last row: + New (right click: what it copies), or full
-			local making = form.layout.new
-			if full then
-				cell.text:SetText(L.NP_LAYOUTS_FULL_CELL)
-				cell.tip, cell.tipLine = L.NP_NEW_CELL, nil
-				cell.tipWarn = ns.G("HUD_EDIT_MODE_ERROR_MAX_ACCOUNT_LAYOUTS", L.NP_LAYOUT_FULL):format(max)
-				Pick(cell, false, true)
-				cell:SetScript("OnClick", nil)
-			else
-				cell.text:SetText(making and L.NP_NEW_FROM:format(form.layout.fromLabel or L.CURRENT_LAYOUT) or L.NP_NEW_CELL)
-				cell.tip, cell.tipLine, cell.tipWarn = L.NP_NEW_CELL, L.NP_NEW_CELL_TIP, nil
-				Pick(cell, making)
-				cell:SetScript("OnClick", function(self, button)
-					if button == "RightButton" then
-						NewLayoutMenu(self)
-						return
-					end
-					if not form.layout.new then
-						form.layout = { new = true, fresh = true, from = "current", fromLabel = L.CURRENT_LAYOUT }
-						ns.Refresh()
-					end
-				end)
-			end
-			cell:Show()
-		else
-			-- a free slot, after + New
-			cell.text:SetText("")
-			cell.tip, cell.tipLine, cell.tipWarn = nil, nil, nil
-			Pick(cell, false, true)
-			cell:SetScript("OnClick", nil)
-			cell:Show()
-		end
-	end
-	for n, b in ipairs(np.bars) do
-		if n == 1 then
-			b:SetOn(true, true)
-		else
-			b:SetOn(form.ui["bar" .. n] and true or false)
-		end
-	end
-	for _, b in ipairs(np.elements) do
-		b:SetOn(form.ui[b.element.key] and true or false)
+	for _, cb in ipairs(np.elements) do
+		cb:SetChecked(form.ui[cb.element.key] and true or false)
 	end
 end
 
@@ -1876,84 +1709,119 @@ local function ModuleItems(key)
 	return out
 end
 
-local function CreateModulesBody(width)
-	local body = CreateFrame("Frame", nil, np)
-	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
-	body:SetSize(width, BODY_H)
-	np.modulesBody = body
-	np.customModules = CustomRow(body, L.FORM_CUSTOM_MODULES, L.FORM_CUSTOM_MODULES_DESC, ns.SetFormModules, L.INFO_MODULES)
-
-	local listW = width - 22
-	local scroll = CreateFrame("ScrollFrame", nil, body, ScrollTemplate())
-	scroll:SetPoint("TOPLEFT", 0, -ROW_H)
-	scroll:SetSize(listW, BODY_H - ROW_H - 18)
-	-- a choice marked * changed: it reloads the game when applied
-	np.moduleReload = W.Text(body, W.FONT_SMALL, width, L.RELOAD_LEGEND, 0.8)
-	np.moduleReload:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 0, 2)
-	np.moduleReload:Hide()
-	if scroll.ScrollBar and scroll.ScrollBar.SetHideIfUnscrollable then
-		scroll.ScrollBar:SetHideIfUnscrollable(true)
+-- A row of the Addons tab, the same for the modules and the other addons,
+-- as the game's addon list: no box, a faint ground, the icon (round), the
+-- name and a line under it, the box on the right; left of the box, the
+-- arrow that opens what is under it (a module's options, an addon's
+-- companions) and, for Ace3 addons, its profile
+local ROW_TEXT_H = 40
+local function ListRow(list, width)
+	local row = CreateFrame("Button", nil, list)
+	row:SetSize(width, ROW_TEXT_H)
+	row.ground = row:CreateTexture(nil, "BACKGROUND")
+	row.ground:SetAllPoints()
+	row.ground:SetColorTexture(1, 1, 1, 0.03)
+	local hl = row:CreateTexture(nil, "HIGHLIGHT")
+	hl:SetAllPoints()
+	hl:SetColorTexture(1, 1, 1, 0.05)
+	row.icon = ns.RoundIcon(row, 26)
+	row.icon:SetPoint("LEFT", 8, 0)
+	row.on = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+	row.on:SetSize(24, 24)
+	row.on:SetPoint("RIGHT", -6, 0)
+	row.arrow = row:CreateTexture(nil, "ARTWORK")
+	row.arrow:SetSize(14, 14)
+	row.arrow:SetPoint("RIGHT", row.on, "LEFT", -8, 0)
+	function row:SetOpen(open, can)
+		self.arrow:SetShown(can and true or false)
+		if not can then
+			return
+		end
+		local atlas = open and "friendslist-categorybutton-arrow-down" or "friendslist-categorybutton-arrow-right"
+		if not (C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)) then
+			self.arrow:SetTexture(open and "Interface\\Buttons\\UI-MinusButton-Up" or "Interface\\Buttons\\UI-PlusButton-Up")
+		else
+			self.arrow:SetAtlas(atlas)
+		end
 	end
-	local list = CreateFrame("Frame", nil, scroll)
-	list:SetSize(listW, 10)
-	scroll:SetScrollChild(list)
-	np.moduleScroll, np.moduleList, np.moduleListW = scroll, list, listW
+	row.name = W.Text(row, W.FONT_BODY, width - 120, "")
+	row.name:SetPoint("TOPLEFT", 44, -5)
+	Try(row.name.SetWordWrap, row.name, false)
+	row.info = W.Text(row, W.FONT_SMALL, width - 120, "", 0.7)
+	row.info:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
+	Try(row.info.SetWordWrap, row.info, false)
+	return row
+end
+
+local function CreateModulesBody(parent, width)
+	local body = CreateFrame("Frame", nil, parent)
+	body:SetWidth(width)
+	np.modulesBody = body
+	local y = W.Header(body, 0, width, L.ADDON)
+	local custom = CreateFrame("Frame", nil, body)
+	custom:SetPoint("TOPLEFT", 0, -y)
+	custom:SetSize(width, ROW_H)
+	np.customModules = CustomRow(custom, L.FORM_CUSTOM_MODULES, L.FORM_CUSTOM_MODULES_DESC, ns.SetFormModules, L.INFO_MODULES)
+	y = y + ROW_H
+	local list = CreateFrame("Frame", nil, body)
+	list:SetPoint("TOPLEFT", 0, -y)
+	list:SetSize(width, 10)
+	np.moduleList, np.moduleListW, np.moduleTop = list, width, y
 
 	np.moduleRows = {}
 	for _, m in ipairs(ns.KNOWN_MODULES) do
 		if ns.AddonInstalled(m.addon) then
-			local row = CreateFrame("Button", nil, list)
-			row:SetSize(listW, CELL_H + 4)
-			U.Card(row)
+			local row = ListRow(list, width)
 			row.key = m.key
-			row.on = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
-			row.on:SetSize(24, 24)
-			row.on:SetPoint("LEFT", 6, 0)
+			row.icon:SetTexture(ns.ModuleIcon(m.addon))
 			-- the asterisk: switching a module on or off reloads the game
-			row.title = W.Text(row, W.FONT_HEADER, listW - 80, L[m.title] .. " *")
-			row.title:SetPoint("LEFT", row.on, "RIGHT", 4, 0)
-			row.arrow = W.Text(row, W.FONT_HEADER, nil, "+", 0.7)
-			row.arrow:SetPoint("RIGHT", -12, 0)
+			row.name:SetText(L[m.title] .. " *")
+			-- a line: what it is (the whole text in its tooltip)
+			row.info:SetText(L[(m.title or "") .. "_SHORT"] or L[m.desc] or "")
 			W.TipScripts(row.on, L[m.title], L.MODULE_SWITCH_DESC)
 			row.on:SetScript("OnClick", function(self)
 				ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
 				form.modules[m.key] = self:GetChecked() and true or false
 				ns.Refresh()
 			end)
-			row:SetScript("OnClick", function()
-				np.openModule = np.openModule ~= m.key and m.key or nil
-				ns.Refresh()
-			end)
 			W.TipScripts(row, L[m.title], L[m.desc])
-			-- its options, built once
-			local panel = CreateFrame("Frame", nil, list)
-			panel:SetWidth(listW)
-			panel.refreshers = {}
-			local items = ModuleItems(m.key)
-			local h = 8
-			if #items > 0 then
-				h = U.RenderItems(panel, items, 8)
-			else
-				-- nothing a profile keeps: what it does, and that it has none
-				local fs, th = W.Text(panel, W.FONT_SMALL, listW - 20, L[m.desc] .. "\n\n" .. L.MODULE_NO_PROFILE, 0.8)
-				fs:SetPoint("TOPLEFT", 10, -8)
-				h = 8 + th
+			-- its options, built once, under the row: the controls only (no
+			-- notes); none, nothing opens
+			local items = {}
+			for _, item in ipairs(ModuleItems(m.key)) do
+				if item.kind ~= "note" and item.kind ~= "title" then
+					items[#items + 1] = item
+				end
 			end
-			panel:SetHeight(h + 8)
-			panel:Hide()
-			row.panel = panel
+			local hasControls = false
+			for _, item in ipairs(items) do
+				if item.kind ~= "header" then
+					hasControls = true
+				end
+			end
+			if hasControls then
+				local panel = CreateFrame("Frame", nil, list)
+				panel:SetWidth(width)
+				panel.refreshers = {}
+				panel:SetHeight(U.RenderItems(panel, items, 8, width - 8) + 8)
+				panel:Hide()
+				row.panel = panel
+				row:SetScript("OnClick", function()
+					np.openModule = np.openModule ~= m.key and m.key or nil
+					ns.Refresh()
+				end)
+			end
 			np.moduleRows[#np.moduleRows + 1] = row
 		end
 	end
 	if #np.moduleRows == 0 then
-		local note = W.Text(list, W.FONT_SMALL, listW, L.NO_MODULES, 0.8)
+		local note = W.Text(list, W.FONT_SMALL, width, L.NO_MODULES, 0.8)
 		note:SetPoint("TOPLEFT")
 	end
-	-- unticked: the modules can't be changed (over their rows only: the
-	-- addons below have their own Don't change)
+	-- unticked: the modules can't be changed
 	np.moduleBlock = CreateFrame("Frame", nil, list)
 	np.moduleBlock:SetPoint("TOPLEFT", list, "TOPLEFT")
-	np.moduleBlock:SetSize(listW, 10)
+	np.moduleBlock:SetSize(width, 10)
 	np.moduleBlock:EnableMouse(true)
 	np.moduleBlock:SetFrameLevel(list:GetFrameLevel() + 30)
 	W.TipScripts(np.moduleBlock, L.FORM_CUSTOM_MODULES, L.FORM_MODULES_OFF)
@@ -1997,16 +1865,8 @@ local function ProfileMenu(owner, row)
 	end)
 end
 
--- a card: the icon, the name, the profile (Ace3) and the box on the first
--- line; under the name the version (red when out of date) and the author;
--- then, when it has them, a thin rule and the button that shows the addons
--- that go with it
-local TEXT_H = 44 -- the name and the line under it
-local MORE_H = 32 -- the rule and the button of the addons that go with it
 local FIELD_MAX = 0.4 -- the profile field: at most this much of the card
-local ADDON_ICON = 28
 local CHILD_INDENT = 24
-local TEXT_X = ADDON_ICON + 16
 
 local openGroups = {} -- the groups shown open (this session)
 
@@ -2017,16 +1877,14 @@ local function ProfileLabel(row)
 end
 
 local function AddonRow(list, width)
-	local r, g, bl = W.Ink()
-	local row = CreateFrame("Frame", nil, list)
-	row:SetSize(width, TEXT_H)
-	U.Card(row)
-	row:Look(0.07, 0.35, false)
-	row.icon = ns.RoundIcon(row, ADDON_ICON)
-	row.icon:SetPoint("TOPLEFT", 8, -8)
-	row.on = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
-	row.on:SetSize(24, 24)
-	row.on:SetPoint("TOPRIGHT", -6, -9)
+	local row = ListRow(list, width)
+	row:SetScript("OnClick", function(self)
+		if self.children and #self.children > 0 then
+			openGroups[self.group] = not openGroups[self.group] or nil
+			ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
+			ns.Refresh()
+		end
+	end)
 	row.on:SetScript("OnClick", function(self)
 		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
 		local on = self:GetChecked() and true or false
@@ -2043,14 +1901,7 @@ local function AddonRow(list, width)
 	end, function()
 		return row.tip
 	end)
-	local textW = width - TEXT_X - 40
-	row.name = W.Text(row, W.FONT_BODY, textW, "")
-	row.name:SetPoint("TOPLEFT", TEXT_X, -8)
-	Try(row.name.SetWordWrap, row.name, false)
-	row.info = W.Text(row, W.FONT_SMALL, textW, "", 0.8)
-	row.info:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -3)
-	Try(row.info.SetWordWrap, row.info, false)
-	-- the profile: a field in ink, as Copy from in the header
+	-- the profile: a field that opens the menu, left of the arrow and the box
 	row.dd = InkField(row, "")
 	row.dd:SetScript("OnClick", function(self)
 		ProfileMenu(self, row)
@@ -2061,29 +1912,6 @@ local function AddonRow(list, width)
 		-- the whole name (the field can cut it)
 		return ProfileLabel(row) .. "\n\n" .. L.ACE_TIP
 	end, true)
-	-- a thin rule over the button of the addons that go with it
-	row.rule = row:CreateTexture(nil, "ARTWORK")
-	row.rule:SetHeight(1)
-	row.rule:SetColorTexture(r, g, bl, 0.25)
-	row.rule:SetPoint("TOPLEFT", row, "TOPLEFT", 8, -TEXT_H)
-	row.rule:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -TEXT_H)
-	-- the addons that go with it: a button with a border, in ink
-	row.more = CreateFrame("Button", nil, row)
-	row.more:SetHeight(20)
-	U.Card(row.more)
-	row.more:Look(0.04, 0.6, false)
-	row.more.text = W.Text(row.more, W.FONT_SMALL, nil, "")
-	row.more.text:SetPoint("CENTER")
-	row.more:SetScript("OnClick", function()
-		openGroups[row.group] = not openGroups[row.group] or nil
-		ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
-		ns.Refresh()
-	end)
-	W.TipScripts(row.more, function()
-		return row.title
-	end, function()
-		return L.ADDON_CHILDREN:format(#(row.children or {}))
-	end)
 	return row
 end
 
@@ -2228,13 +2056,14 @@ local function RefreshAddonList()
 		end
 		local dim = parentOn == false
 		row.name:SetAlpha(dim and 0.45 or 1)
-		row.info:SetAlpha(dim and 0.45 or 0.8)
+		row.info:SetAlpha(dim and 0.45 or 0.7)
 		row.icon:SetDesaturated(dim or state == false)
 		local x = child and CHILD_INDENT or 0
 		local rowW = width - x
-		local h = TEXT_H
-		-- the room the name has: up to the box (or the card's edge)
-		local textW = rowW - TEXT_X - (e.addon and 38 or 10)
+		local hasKids = #row.children > 0
+		row:SetOpen(openGroups[row.group], hasKids)
+		-- the room the name has: up to the arrow and the box
+		local textW = rowW - 44 - 36 - (hasKids and 22 or 0)
 		-- the profile field: Ace3 addons, on the first line, left of the box
 		-- (greyed while off here)
 		local hasProfiles = row.db ~= nil
@@ -2244,36 +2073,26 @@ local function RefreshAddonList()
 			row.dd.text:SetText(ProfileLabel(row))
 			row.dd:Fit(math.floor(rowW * FIELD_MAX))
 			row.dd:ClearAllPoints()
-			if e.addon then
-				row.dd:SetPoint("RIGHT", row.on, "LEFT", -4, 0)
-			else
-				row.dd:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -11)
-			end
+			row.dd:SetPoint("RIGHT", hasKids and row.arrow or row.on, "LEFT", -8, 0)
 			row.dd:SetEnabled(on)
 			row.dd:SetAlpha(on and 1 or 0.45)
 			textW = textW - (tonumber(row.dd:GetWidth()) or 0) - 8
 		end
 		row.name:SetWidth(math.max(textW, 40))
 		row.info:SetWidth(math.max(textW, 40))
-		-- the button of a main addon, centred under a thin rule: + 4 addons (open:
-		-- - 4 addons)
-		local hasKids = #row.children > 0
-		row.rule:SetShown(hasKids)
-		row.more:SetShown(hasKids)
+		-- a main addon: how many go with it, after its version
 		if hasKids then
-			row.more.text:SetText(L.ADDON_MORE:format(openGroups[row.group] and "-" or "+", #row.children))
-			row.more:SetWidth((tonumber(row.more.text:GetStringWidth()) or 80) + 20)
-			row.more:ClearAllPoints()
-			row.more:SetPoint("TOP", row, "TOP", 0, -(h + 6))
-			h = h + MORE_H
+			local info = row.info:GetText() or ""
+			local more = L.ADDON_MORE:format(openGroups[row.group] and "-" or "+", #row.children)
+			row.info:SetText(info ~= "" and (info .. "  \194\183  " .. more) or more)
 		end
-		local rowH = h
+		local rowH = ROW_TEXT_H
 		row:SetHeight(rowH)
 		row:SetWidth(rowW)
 		row:ClearAllPoints()
 		row:SetPoint("TOPLEFT", list, "TOPLEFT", x, -y)
 		row:Show()
-		y = y + rowH + CELL_GAP
+		y = y + rowH + 2
 		if hasKids and openGroups[row.group] then
 			local on = state ~= false
 			for _, k in ipairs(children) do
@@ -2307,37 +2126,32 @@ local function AddonsChanged()
 	return false
 end
 
--- The Addons tab: a list that scrolls
-local function CreateAddonsBody(width)
-	local body = CreateFrame("Frame", nil, np)
-	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
-	body:SetSize(width, BODY_H)
+-- The other addons: under the modules, in the same list
+local function CreateAddonsBody(parent, width)
+	local body = CreateFrame("Frame", nil, parent)
+	body:SetWidth(width)
 	np.addonsBody = body
-	np.customAddons = CustomRow(body, L.FORM_CUSTOM_ADDONS, L.FORM_CUSTOM_ADDONS_DESC, function(on)
+	local y = W.Header(body, 0, width, L.OTHER_ADDONS)
+	local custom = CreateFrame("Frame", nil, body)
+	custom:SetPoint("TOPLEFT", 0, -y)
+	custom:SetSize(width, ROW_H)
+	np.customAddons = CustomRow(custom, L.FORM_CUSTOM_ADDONS, L.FORM_CUSTOM_ADDONS_DESC, function(on)
 		ns.SetFormAddons(on)
 	end, L.INFO_ADDONS)
-	local listW = width - 22
-	local scroll = CreateFrame("ScrollFrame", nil, body, ScrollTemplate())
-	scroll:SetPoint("TOPLEFT", 0, -ROW_H)
-	scroll:SetSize(listW, BODY_H - ROW_H - 18)
-	-- switching an addon on or off reloads the game when applied
-	np.addonsReload = W.Text(body, W.FONT_SMALL, width, L.RELOAD_LEGEND, 0.8)
-	np.addonsReload:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", 0, 2)
-	np.addonsReload:Hide()
-	if scroll.ScrollBar and scroll.ScrollBar.SetHideIfUnscrollable then
-		scroll.ScrollBar:SetHideIfUnscrollable(true)
-	end
-	local list = CreateFrame("Frame", nil, scroll)
-	list:SetSize(listW, 10)
-	scroll:SetScrollChild(list)
-	np.aceList, np.aceListW = list, listW
+	y = y + ROW_H
+	local list = CreateFrame("Frame", nil, body)
+	list:SetPoint("TOPLEFT", 0, -y)
+	list:SetSize(width, 10)
+	np.aceList, np.aceListW, np.aceTop = list, width, y
 	body:Hide()
 end
 
 local function RefreshAddonsBody()
 	np.customAddons:SetChecked(form.customAddons and true or false)
-	np.aceList:SetHeight(math.max(RefreshAddonList(), 10))
-	np.addonsReload:SetShown(AddonsChanged())
+	local h = math.max(RefreshAddonList(), 10)
+	np.aceList:SetHeight(h)
+	np.addonsBody:SetHeight(np.aceTop + h)
+	return np.aceTop + h
 end
 
 local function RefreshModulesBody()
@@ -2353,25 +2167,25 @@ local function RefreshModulesBody()
 		row:ClearAllPoints()
 		row:SetPoint("TOPLEFT", np.moduleList, "TOPLEFT", 0, -y)
 		row.on:SetChecked(form.modules[row.key] and true or false)
-		local open = np.openModule == row.key
-		row:Look(open and 0.16 or 0.07, open and 0.8 or 0.35, open)
-		row.arrow:SetText(open and "-" or "+")
-		y = y + CELL_H + 4 + CELL_GAP
+		local open = row.panel ~= nil and np.openModule == row.key
+		row:SetOpen(open, row.panel ~= nil)
+		y = y + ROW_TEXT_H + 2
 		if open then
 			row.panel:ClearAllPoints()
-			row.panel:SetPoint("TOPLEFT", np.moduleList, "TOPLEFT", 0, -y)
+			row.panel:SetPoint("TOPLEFT", np.moduleList, "TOPLEFT", 4, -y)
 			row.panel:Show()
 			for _, refresh in ipairs(row.panel.refreshers) do
 				refresh()
 			end
 			y = y + row.panel:GetHeight() + CELL_GAP
-		else
+		elseif row.panel then
 			row.panel:Hide()
 		end
 	end
 	np.moduleBlock:SetHeight(math.max(y, 1))
 	np.moduleList:SetHeight(math.max(y, 10))
-	np.moduleReload:SetShown(on and not SameFlags(form.modules, (form.orig or {}).modules) or false)
+	np.modulesBody:SetHeight(np.moduleTop + math.max(y, 10))
+	return np.moduleTop + math.max(y, 10)
 end
 
 --------------------------------------------------------------------------------
@@ -2386,43 +2200,59 @@ local FIELDS = {
 	{ key = "bars", title = "SCOPE_BARS" },
 }
 
--- Copy from, for one part: as the game is now, or another profile (only
--- the ones that have something to give). On Global it asks first: the
--- shared set changes for every profile that uses it.
-local function FieldCopy(field, p, label)
-	if form.scope[field] == "profile" then
-		ns.FormCopyField(field, p, label)
-		return
+-- what the dropdown says: Global, or Profile (new, a copy, its own)
+local function ScopeText(field)
+	if not form.scope or form.scope[field] ~= "profile" then
+		return L.SCOPE_GLOBAL
 	end
-	U.Confirm(L.POPUP_COPY_GLOBAL, function()
-		ns.FormCopyField(field, p, label)
-	end)
+	local label = form.copied and form.copied[field]
+	if label == L.COPY_CURRENT then
+		return L.SCOPE_PROFILE_NEW
+	elseif label then
+		return L.SCOPE_PROFILE_COPY:format(label)
+	end
+	return L.SCOPE_PROFILE
 end
 
-local function FieldSources(field, root)
-	local function Entry(label, p)
-		return root:CreateRadio(label, function()
-			return form.copied ~= nil and form.copied[field] == label
-		end, function()
-			-- after the menu closes (the popup on Global)
-			C_Timer.After(0, function()
-				FieldCopy(field, p, label)
-			end)
-		end)
+-- Global, Profile (its own set: the one it has, else the game as it is
+-- now), or Copy from another profile (into its own)
+local function ScopeMenu(field, root)
+	-- built with the window, before any profile is open: nothing yet
+	if not (form.scope and form.copied) then
+		return
 	end
-	Entry(L.COPY_CURRENT, nil)
+	local function Tip(desc, title, text)
+		if text and desc and desc.SetTooltip then
+			desc:SetTooltip(function(tooltip)
+				GameTooltip_SetTitle(tooltip, title)
+				GameTooltip_AddNormalLine(tooltip, text)
+			end)
+		end
+	end
+	Tip(root:CreateRadio(L.SCOPE_GLOBAL, function()
+		return form.scope[field] ~= "profile"
+	end, function()
+		ns.SetFormScope(field, "global")
+	end), L.SCOPE_GLOBAL, L["SCOPE_GLOBAL_" .. field:upper() .. "_DESC"])
+	Tip(root:CreateRadio(L.SCOPE_PROFILE, function()
+		return form.scope[field] == "profile" and not form.copied[field]
+	end, function()
+		form.copied[field] = nil
+		ns.SetFormScope(field, "profile")
+	end), L.SCOPE_PROFILE, L["SCOPE_PROFILE_" .. field:upper() .. "_DESC"])
 	local others = {}
 	for _, name in ipairs(ns.ProfileSlots()) do
 		if name ~= form.edit then
 			others[#others + 1] = name
 		end
 	end
-	if #others > 0 then
-		root:CreateDivider()
+	-- the bar slots: no Copy from
+	if #others == 0 or field == "bars" then
+		return
 	end
+	local copy = root:CreateButton(L.SCOPE_COPY_DEFAULT)
 	for _, name in ipairs(others) do
 		local p = ns.ProfileOf(name)
-		local b = Entry(name, p)
 		local has
 		if field == "settings" then
 			has = ns.SettingsOf(p) ~= nil
@@ -2431,6 +2261,15 @@ local function FieldSources(field, root)
 		else
 			has = ns.ScopeOf(p, "bars") == "profile" and p.id and ns.charDB.skills[p.id] ~= nil
 		end
+		local b = copy:CreateRadio(name, function()
+			return form.scope[field] == "profile" and form.copied[field] == name
+		end, function()
+			-- after the menu closes
+			C_Timer.After(0, function()
+				ns.SetFormScope(field, "profile")
+				ns.FormCopyField(field, p, name)
+			end)
+		end)
 		if not has and b and b.SetEnabled then
 			b:SetEnabled(false)
 		end
@@ -2442,59 +2281,33 @@ local function CreateSettingsBody(width)
 	body:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
 	body:SetSize(width, BODY_H)
 	np.settingsBody = body
-	local r, g, bl = W.Ink()
 	np.fields = {}
 	local y = 0
-	local half = (width - 6) / 2
+	local DD_W = 220
 	for _, f in ipairs(FIELDS) do
 		local row = {}
-		-- its title and rule
-		local title = W.Text(body, W.FONT_HEADER, nil, L[f.title])
-		title:SetPoint("TOPLEFT", 0, -(y + 4))
-		local info = W.Info(body, L[f.title], L["INFO_" .. f.key:upper()])
-		info:SetPoint("LEFT", title, "RIGHT", 4, 0)
-		local rule = body:CreateTexture(nil, "ARTWORK")
-		rule:SetHeight(1)
-		rule:SetColorTexture(r, g, bl, 0.35)
-		rule:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
-		rule:SetPoint("RIGHT", body, "LEFT", width, 0)
-		y = y + 4 + 16 + 3 + 6
-		-- Global or Profile
-		row.global = Toggle(body, half, 26, L.SCOPE_GLOBAL)
-		row.global:SetPoint("TOPLEFT", 0, -y)
-		row.global:SetScript("OnClick", function()
-			ns.SetFormScope(f.key, "global")
+		-- its title (with the i) on the left, the dropdown on the right
+		y = W.Header(body, y, width, L[f.title])
+		row.dd = CreateFrame("DropdownButton", nil, body, "WowStyle1DropdownTemplate")
+		row.dd:SetPoint("TOPRIGHT", body, "TOPLEFT", width - 2, -(y - 4))
+		row.dd:SetWidth(DD_W)
+		row.dd:SetupMenu(function(_, root)
+			ScopeMenu(f.key, root)
 		end)
-		W.TipScripts(row.global, L.SCOPE_GLOBAL, L["SCOPE_GLOBAL_" .. f.key:upper() .. "_DESC"])
-		row.own = Toggle(body, half, 26, L.SCOPE_PROFILE)
-		row.own:SetPoint("TOPLEFT", half + 6, -y)
-		row.own:SetScript("OnClick", function()
-			ns.SetFormScope(f.key, "profile")
+		Try(row.dd.SetSelectionTranslator, row.dd, function()
+			return ScopeText(f.key)
 		end)
-		W.TipScripts(row.own, L.SCOPE_PROFILE, L["SCOPE_PROFILE_" .. f.key:upper() .. "_DESC"])
-		y = y + 26 + 6
-		-- what the choice means, in a line or two
-		row.note = W.Text(body, W.FONT_SMALL, width, "", 0.8)
-		row.note:SetPoint("TOPLEFT", 0, -y)
-		Try(row.note.SetMaxLines, row.note, 2)
-		-- Copy from: Blizzard's dropdown (not for Global bars)
-		row.copy = CreateFrame("DropdownButton", nil, body, "WowStyle1DropdownTemplate")
-		row.copy:SetPoint("TOPLEFT", 0, -(y + 26))
-		row.copy:SetWidth(220)
-		Try(row.copy.SetDefaultText, row.copy, L.SCOPE_COPY_DEFAULT)
-		row.copy:SetupMenu(function(_, root)
-			FieldSources(f.key, root)
-		end)
-		W.TipScripts(row.copy, L.NP_COPY_PROFILE, function()
-			local tip = L["SCOPE_COPY_" .. f.key:upper() .. "_DESC"]
-			if form.scope[f.key] ~= "profile" then
-				tip = tip .. "\n\n" .. L.SCOPE_COPY_GLOBAL_NOTE
-			end
-			return tip
-		end, true)
-		y = y + 26 + 24 + 6
+		W.TipScripts(row.dd, L[f.title], L["INFO_" .. f.key:upper()], true)
+		-- what the choice means, in a line or two, left of the dropdown
+		row.note = W.Text(body, W.FONT_SMALL, width - DD_W - 16, "", 0.8)
+		row.note:SetPoint("TOPLEFT", 0, -(y - 2))
+		Try(row.note.SetMaxLines, row.note, 3)
+		-- the old names, for the guide's tip (Tour.lua)
+		row.global = row.dd
+		y = y + 48
 		np.fields[f.key] = row
 	end
+	np.settingsH = y
 end
 
 -- what a part holds now, under its buttons
@@ -2527,11 +2340,9 @@ local function RefreshSettingsBody()
 	for _, f in ipairs(FIELDS) do
 		local row = np.fields[f.key]
 		local own = form.scope[f.key] == "profile"
-		row.global:SetOn(not own)
-		row.own:SetOn(own)
 		row.note:SetText(FieldNote(f.key, own))
-		row.copy:SetShown(own or f.key ~= "bars")
-		Try(row.copy.GenerateMenu, row.copy)
+		Try(row.dd.SetDefaultText, row.dd, ScopeText(f.key))
+		Try(row.dd.GenerateMenu, row.dd)
 	end
 end
 
@@ -2543,10 +2354,16 @@ function ns.RefreshNewPreset()
 	end
 	local tab = not form.choosing and form.tab or nil
 	np.choiceBody:SetShown(form.choosing and true or false)
-	np.layoutBody:SetShown(tab == "layout")
-	np.modulesBody:SetShown(tab == "modules")
-	np.addonsBody:SetShown(tab == "addons")
-	np.settingsBody:SetShown(tab == "settings")
+	np.layoutScroll:SetShown(tab == "layout")
+	np.addonsScroll:SetShown(tab == "addons")
+	-- the reload line belongs to the Addons tab (set again below when open)
+	np.addonsReload:Hide()
+	np.addonsBody:SetShown(HasOtherAddons())
+	-- leaving Interface Tweaks: its new features have been seen
+	if np.tweaksBody:IsShown() and tab ~= "tweaks" and np.SeeTweaks then
+		np.SeeTweaks()
+	end
+	np.tweaksBody:SetShown(tab == "tweaks")
 	if form.choosing then
 		for _, c in ipairs(np.presetCards or {}) do
 			local on = form.pick ~= nil and (form.pick == c.entry
@@ -2560,14 +2377,26 @@ function ns.RefreshNewPreset()
 			end
 		end
 		return
-	elseif tab == "modules" then
-		RefreshModulesBody()
 	elseif tab == "addons" then
-		RefreshAddonsBody()
-	elseif tab == "settings" then
-		RefreshSettingsBody()
+		-- one list: the modules (unless SetGo!'s settings switched them all
+		-- off), then the other addons under them
+		local modulesOff = ns.db and ns.db.modulesOff
+		np.modulesBody:SetShown(not modulesOff)
+		local y = modulesOff and 0 or RefreshModulesBody()
+		if HasOtherAddons() then
+			np.addonsBody:ClearAllPoints()
+			np.addonsBody:SetPoint("TOPLEFT", np.addonsChild, "TOPLEFT", 0, -(y + 6))
+			y = y + 6 + RefreshAddonsBody()
+		end
+		np.addonsChild:SetHeight(y + 8)
+		-- a module or addon switched on or off: the game reloads when applied
+		local modsChanged = form.customModules and not SameFlags(form.modules, (form.orig or {}).modules)
+		np.addonsReload:SetShown((modsChanged or AddonsChanged()) and true or false)
+	elseif tab == "tweaks" then
+		np.RefreshTweaks()
 	else
 		RefreshLayoutBody()
+		RefreshSettingsBody()
 	end
 end
 
@@ -2578,13 +2407,14 @@ function ns.FormFrames()
 	end
 	return {
 		name = head.name, customize = np.customize, next = foot.next,
-		layout = np.blizzard and np.blizzard[1], bars = np.bars and np.bars[1],
+		layout = np.layoutDD, bars = np.bars and np.bars[1],
 		frames = np.elements and np.elements[1],
 		settings = np.fields and np.fields.settings and np.fields.settings.global,
 		modules = np.customModules, addons = np.customAddons,
 	}
 end
 ns.FormTabs = Tabs
+ns.FormHasOtherAddons = HasOtherAddons
 
 -- built with the window (UI.lua)
 function ns.CreateProfileForm()
@@ -2594,10 +2424,154 @@ function ns.CreateProfileForm()
 	np:SetAllPoints()
 	rightPage.newpreset = np
 	CreateChoiceBody(width)
-	CreateLayoutBody(width)
-	CreateModulesBody(width)
-	CreateAddonsBody(width)
-	CreateSettingsBody(width)
+
+	-- Layout: the layout, bars and frames, then the settings, in one list
+	-- that scrolls
+	local listW = width - 22
+	local scroll = CreateFrame("ScrollFrame", nil, np, ScrollTemplate())
+	scroll:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
+	scroll:SetSize(listW, BODY_H)
+	if scroll.ScrollBar and scroll.ScrollBar.SetHideIfUnscrollable then
+		scroll.ScrollBar:SetHideIfUnscrollable(true)
+	end
+	local child = CreateFrame("Frame", nil, scroll)
+	child:SetSize(listW, 10)
+	scroll:SetScrollChild(child)
+	np.layoutScroll = scroll
+	CreateLayoutBody(listW)
+	CreateSettingsBody(listW)
+	np.layoutBody:SetParent(child)
+	np.layoutBody:ClearAllPoints()
+	np.layoutBody:SetPoint("TOPLEFT", child, "TOPLEFT", 0, 0)
+	np.layoutBody:SetHeight(np.layoutH or 10)
+	np.layoutBody:Show()
+	np.settingsBody:SetParent(child)
+	np.settingsBody:ClearAllPoints()
+	np.settingsBody:SetPoint("TOPLEFT", child, "TOPLEFT", 0, -((np.layoutH or 0) + 16))
+	np.settingsBody:SetHeight(np.settingsH or 10)
+	np.settingsBody:Show()
+	child:SetHeight((np.layoutH or 0) + 16 + (np.settingsH or 0) + 6)
+	scroll:Hide()
+
+	-- Addons: one list that scrolls, the modules on top, the other addons
+	-- under them (when there are any); what opens pushes the rest down
+	local ascroll = CreateFrame("ScrollFrame", nil, np, ScrollTemplate())
+	ascroll:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
+	ascroll:SetSize(listW, BODY_H - 18)
+	if ascroll.ScrollBar and ascroll.ScrollBar.SetHideIfUnscrollable then
+		ascroll.ScrollBar:SetHideIfUnscrollable(true)
+	end
+	local achild = CreateFrame("Frame", nil, ascroll)
+	achild:SetSize(listW, 10)
+	ascroll:SetScrollChild(achild)
+	ascroll:Hide()
+	np.addonsScroll, np.addonsChild = ascroll, achild
+	CreateModulesBody(achild, listW)
+	np.modulesBody:SetPoint("TOPLEFT", achild, "TOPLEFT", 0, 0)
+	CreateAddonsBody(achild, listW)
+	-- a choice marked * changed: it reloads the game when applied
+	np.addonsReload = W.Text(np, W.FONT_SMALL, width, L.RELOAD_LEGEND, 0.8)
+	np.addonsReload:SetPoint("TOPLEFT", np, "TOPLEFT", U.PAD, -(BODY_TOP + BODY_H - 14))
+	np.addonsReload:Hide()
+	np.moduleReload = np.addonsReload
+
+	-- Interface Tweaks: their page, as the gear's pages draw it (built the
+	-- first time it shows). They are the profile in use's, and change at once.
+	local tweaks = CreateFrame("Frame", nil, np)
+	tweaks:SetPoint("TOPLEFT", U.PAD, -BODY_TOP)
+	tweaks:SetSize(width, BODY_H)
+	tweaks:Hide()
+	np.tweaksBody = tweaks
+	tweaks.note = W.Text(tweaks, W.FONT_SMALL, width, "", 0.8)
+	tweaks.note:SetPoint("TOPLEFT", 0, 0)
+	-- each part (Action bars, Minimap...) in a box with a bronze edge; the
+	-- explanations left out (their tooltips keep them)
+	local BRONZE = { 0.72, 0.53, 0.3 }
+	local backdrop = BackdropTemplateMixin and "BackdropTemplate" or nil
+	function np.SeeTweaks()
+		for key, dot in pairs(tweaks.dots or {}) do
+			ns.SeeNew(key)
+			dot:Hide()
+		end
+	end
+	function np.RefreshTweaks()
+		tweaks.note:Hide()
+		if not tweaks.scroll then
+			local ts = CreateFrame("ScrollFrame", nil, tweaks, ScrollTemplate())
+			ts:SetPoint("TOPLEFT", 0, 0)
+			ts:SetSize(listW, BODY_H)
+			if ts.ScrollBar and ts.ScrollBar.SetHideIfUnscrollable then
+				ts.ScrollBar:SetHideIfUnscrollable(true)
+			end
+			local page = CreateFrame("Frame", nil, ts)
+			page:SetWidth(listW)
+			page.refreshers = {}
+			-- the items in groups, each starting at a header
+			local groups, current = {}, nil
+			for _, item in ipairs(ns.TweaksItems()) do
+				if item.kind == "header" or not current then
+					current = {}
+					groups[#groups + 1] = current
+				end
+				if item.kind ~= "note" then
+					current[#current + 1] = item
+				end
+			end
+			local y, PAD_IN = 0, 10
+			for i = #groups, 1, -1 do
+				if #groups[i] == 0 then
+					table.remove(groups, i)
+				end
+			end
+			for _, group in ipairs(groups) do
+				local box = CreateFrame("Frame", nil, page, backdrop)
+				box:SetPoint("TOPLEFT", 0, -y)
+				box:SetWidth(listW - 2)
+				box.refreshers = page.refreshers
+				if box.SetBackdrop then
+					box:SetBackdrop({
+						bgFile = "Interface\\Buttons\\WHITE8X8",
+						edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+						edgeSize = 12,
+						insets = { left = 3, right = 3, top = 3, bottom = 3 },
+					})
+					box:SetBackdropColor(0, 0, 0, 0.25)
+					box:SetBackdropBorderColor(BRONZE[1], BRONZE[2], BRONZE[3], 1)
+				end
+				local inner = CreateFrame("Frame", nil, box)
+				inner:SetPoint("TOPLEFT", PAD_IN, -PAD_IN)
+				inner:SetWidth(listW - 2 - PAD_IN * 2)
+				inner.refreshers = page.refreshers
+				-- item by item: a blue dot left of each new feature, until seen
+				local h = 0
+				for _, item in ipairs(group) do
+					local at = h
+					h = U.RenderItems(inner, { item }, h, listW - 2 - PAD_IN * 2)
+					if item.newKey and ns.IsNew(item.newKey) then
+						local dot = inner:CreateTexture(nil, "OVERLAY")
+						dot:SetSize(12, 12)
+						if not (C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("plunderstorm-new-dot-sm")
+							and dot:SetAtlas("plunderstorm-new-dot-sm") ~= false) then
+							dot:SetAtlas("communities-icon-notification")
+						end
+						dot:SetPoint("RIGHT", inner, "TOPLEFT", -1, -(at + 7))
+						tweaks.dots = tweaks.dots or {}
+						tweaks.dots[item.newKey] = dot
+					end
+				end
+				inner:SetHeight(h)
+				box:SetHeight(h + PAD_IN * 2 - 6)
+				y = y + h + PAD_IN * 2 - 6 + 10
+			end
+			page:SetHeight(y + 4)
+			ts:SetScrollChild(page)
+			tweaks.scroll, tweaks.page = ts, page
+		end
+		for _, refresh in ipairs(tweaks.page.refreshers) do
+			refresh()
+		end
+	end
+
 	CreateHead(rightPage, width)
 	CreateFoot(rightPage, width)
 end

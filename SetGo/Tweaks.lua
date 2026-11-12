@@ -31,7 +31,7 @@ local T = {
 	XP_BETTER = "Better XP bar",
 	XP_BETTER_DESC = "The experience and reputation bars with the options below. Off: as Blizzard has them.",
 	XP_WIDTH = "Width",
-	XP_WIDTH_DESC = "How wide the bars are, from a quarter of Blizzard's width to all of it, in 1% steps. Edit Mode's Size still changes their scale.",
+	XP_WIDTH_DESC = "How wide the bars are, from 80% to 100% of Blizzard's width, in 1% steps; the dividers follow. Edit Mode's Size still changes their scale.",
 	XP_UNIFIED = "Unified Bar",
 	XP_UNIFIED_DESC = "While you track a reputation, one bar instead of two: right click it to switch between experience and reputation. It starts on experience every time you log in.",
 	MINIMAP = "Minimap",
@@ -44,16 +44,25 @@ local T = {
 	BAGS_ALL_DESC = "A right click on the backpack button opens or closes all your bags at once. A left click still opens only the backpack.",
 	QUESTS = "Objective tracker",
 	QFILTER = "Quest filter button",
-	QFILTER_DESC = "A button next to the objective tracker's minimize button. Left click: track only the quests of the zone you are in. Right click: All, or one zone of your quest log.",
+	QFILTER_DESC = "A button next to the objective tracker's minimize button. Right click: choose which quests to track (completed or not, a zone, high level, shared with your group). Left click: apply that filter again, for example after changing zone.",
 	QFILTER_TITLE = "Quest filter",
 	QFILTER_ALL = "All",
-	QFILTER_NOW = "Last filter: %s",
-	QFILTER_HINT_ZONE = "Left click: this zone's quests",
+	QFILTER_DONE = "Completed",
+	QFILTER_OPEN = "Not Completed",
+	QFILTER_HERE = "Current Zone",
+	QFILTER_NOW = "Filter: %s",
+	QFILTER_HINT_APPLY = "Left click: apply the filter",
 	QFILTER_HINT_MENU = "Right click: choose",
-	QFILTER_NONE = "Your quest log has no quests for %s.",
+	QFILTER_EMPTY = "No quest in your log matches this filter: the tracker stays as it was.",
 	QFILTER_HIGH = "Untrack High Level",
-	QFILTER_HIGH_DESC = "Stops tracking the quests the game shows in orange or red: 3 or more levels above yours.",
-	QFILTER_HIGH_DONE = "%d high level quests untracked.",
+	QFILTER_HIGH_DESC = "Leaves out the quests the game shows in orange or red: 3 or more levels above yours.",
+	QFILTER_SHARED = "Track Shared Quests",
+	QFILTER_SHARED_DESC = "Also tracks the quests someone in your group is on too, whatever the zone or level (Completed and Not Completed still apply). Out of a group, it adds none.",
+	BUFFS = "Buffs",
+	HIDDEN_BUFFS = "Hidden Buffs Icon",
+	HIDDEN_BUFFS_DESC = "While the buffs' arrow keeps the long buffs hidden, an icon next to it shows how many there are, as in Cataclysm. Mouse over it for the list, with the time left on each.",
+	HIDDEN_BUFFS_TITLE = "Hidden buffs",
+	HIDDEN_BUFFS_HINT = "Click the arrow to show them.",
 	QMIN = "Simplified Minimized Tracker",
 	QMIN_DESC = "While the objective tracker is minimized, only its minimize button shows: no title, no background, no other buttons.",
 	TRACK_DESC = "A button next to the minimap's day and night button for your tracking skills (herbs, minerals, treasure, beasts and others). In colour while one is on, in grey while it is off; none, while you have no tracking skill. Left click: on or off. Right click: choose which.",
@@ -61,8 +70,7 @@ local T = {
 	TRACK_HINT_CHOOSE = "Right click: choose",
 	TRACK_OFF = "Off",
 	TRACK_COMBAT = "The tracking skill can't be chosen in combat.",
-	TRACK_UNLOCK = "Unlock frame",
-	TRACK_UNLOCK_DESC = "Drag the button to move it (out of combat). Untick to lock it where it is.",
+	TRACK_AT = "SetGo! Tracker: x %.1f, y %.1f from the minimap's middle.",
 }
 if GetLocale() == "ptBR" then
 	T.DESC = "Alterações experimentais à interface da Blizzard. Cada perfil tem as suas."
@@ -80,7 +88,7 @@ if GetLocale() == "ptBR" then
 	T.XP_BETTER = "Better XP bar"
 	T.XP_BETTER_DESC = "As barras de experiência e de reputação com as opções abaixo. Desligada: como a Blizzard as tem."
 	T.XP_WIDTH = "Largura"
-	T.XP_WIDTH_DESC = "A largura das barras, de um quarto da largura da Blizzard até à largura toda, em passos de 1%. O Tamanho do Edit Mode continua a mudar a escala."
+	T.XP_WIDTH_DESC = "A largura das barras, de 80% a 100% da largura da Blizzard, em passos de 1%; os tracinhos acompanham. O Tamanho do Edit Mode continua a mudar a escala."
 	T.XP_UNIFIED = "Unified Bar"
 	T.XP_UNIFIED_DESC = "Enquanto segues uma reputação, uma barra em vez de duas: clique direito para trocar entre experiência e reputação. Começa sempre na experiência quando entras no jogo."
 	T.MINIMAP = "Minimapa"
@@ -93,16 +101,25 @@ if GetLocale() == "ptBR" then
 	T.BAGS_ALL_DESC = "Um clique direito no botão da mochila abre ou fecha todos os teus sacos de uma vez. O clique esquerdo continua a abrir só a mochila."
 	T.QUESTS = "Tracker de objectivos"
 	T.QFILTER = "Botão de filtro das missões"
-	T.QFILTER_DESC = "Um botão ao lado do botão de minimizar do tracker de objectivos. Clique esquerdo: seguir só as missões da zona onde estás. Clique direito: Todas, ou uma zona do diário de missões."
+	T.QFILTER_DESC = "Um botão ao lado do botão de minimizar do tracker de objectivos. Clique direito: escolher que missões seguir (acabadas ou não, uma zona, de nível alto, partilhadas com o grupo). Clique esquerdo: aplicar outra vez esse filtro, por exemplo depois de mudar de zona."
 	T.QFILTER_TITLE = "Filtro das missões"
 	T.QFILTER_ALL = "Todas"
-	T.QFILTER_NOW = "Último filtro: %s"
-	T.QFILTER_HINT_ZONE = "Clique esquerdo: missões desta zona"
+	T.QFILTER_DONE = "Acabadas"
+	T.QFILTER_OPEN = "Por acabar"
+	T.QFILTER_HERE = "Zona actual"
+	T.QFILTER_NOW = "Filtro: %s"
+	T.QFILTER_HINT_APPLY = "Clique esquerdo: aplicar o filtro"
 	T.QFILTER_HINT_MENU = "Clique direito: escolher"
-	T.QFILTER_NONE = "O teu diário não tem missões de %s."
+	T.QFILTER_EMPTY = "Nenhuma missão do diário passa neste filtro: o tracker fica como estava."
 	T.QFILTER_HIGH = "Deixar de seguir as de nível alto"
-	T.QFILTER_HIGH_DESC = "Deixa de seguir as missões que o jogo mostra a laranja ou a vermelho: 3 ou mais níveis acima do teu."
-	T.QFILTER_HIGH_DONE = "%d missões de nível alto deixaram de ser seguidas."
+	T.QFILTER_HIGH_DESC = "Deixa de fora as missões que o jogo mostra a laranja ou a vermelho: 3 ou mais níveis acima do teu."
+	T.QFILTER_SHARED = "Seguir as missões partilhadas"
+	T.QFILTER_SHARED_DESC = "Segue também as missões que alguém do teu grupo também tem, seja qual for a zona ou o nível (Acabadas e Por acabar continuam a contar). Fora de um grupo, não junta nenhuma."
+	T.BUFFS = "Buffs"
+	T.HIDDEN_BUFFS = "Ícone dos buffs escondidos"
+	T.HIDDEN_BUFFS_DESC = "Enquanto a seta dos buffs esconde os buffs longos, um ícone ao lado mostra quantos são, como no Cataclysm. Passa o rato por cima para ver a lista, com o tempo que falta a cada um."
+	T.HIDDEN_BUFFS_TITLE = "Buffs escondidos"
+	T.HIDDEN_BUFFS_HINT = "Clica na seta para os mostrar."
 	T.QMIN = "Tracker minimizado simplificado"
 	T.QMIN_DESC = "Com o tracker de objectivos minimizado, só se vê o botão de minimizar: sem título, sem fundo e sem outros botões."
 	T.TRACK_DESC = "Um botão ao lado do botão do dia e da noite do minimapa para as tuas habilidades de tracking (ervas, minérios, tesouros, bestas e outras). A cores com uma ligada, a cinzento com ela desligada; não aparece se não tiveres nenhuma. Clique esquerdo: ligar ou desligar. Clique direito: escolher qual."
@@ -110,8 +127,7 @@ if GetLocale() == "ptBR" then
 	T.TRACK_HINT_CHOOSE = "Clique direito: escolher"
 	T.TRACK_OFF = "Desligado"
 	T.TRACK_COMBAT = "Não é possível escolher a habilidade de tracking em combate."
-	T.TRACK_UNLOCK = "Desbloquear"
-	T.TRACK_UNLOCK_DESC = "Arrasta o botão para o mudar de sítio (fora de combate). Desmarca para o fixar onde está."
+	T.TRACK_AT = "SetGo! Tracker: x %.1f, y %.1f a partir do meio do minimapa."
 end
 L.TWEAKS_TITLE = T.TITLE
 L.TWEAKS_DESC = T.DESC
@@ -120,6 +136,9 @@ ns.TWEAKS_ICON = "Interface\\Icons\\INV_Misc_Wrench_01"
 --------------------------------------------------------------------------------
 -- Where they are kept
 --------------------------------------------------------------------------------
+
+-- the messages SetGo!'s settings can switch off (Settings.lua)
+ns.TWEAK_MESSAGES = { T.TRACK_AT, T.QFILTER_EMPTY }
 
 local function Key()
 	local name = ns.ActivePreset and ns.ActivePreset()
@@ -408,7 +427,7 @@ end
 local VAR_XP = "SETGO_TWEAK_XPBAR"
 local VAR_XP_WIDTH = "SETGO_TWEAK_XPBAR_WIDTH"
 local VAR_XP_UNIFIED = "SETGO_TWEAK_XPBAR_UNIFIED"
-local XP_MIN, XP_MAX, XP_STEP = 0.25, 1, 0.01
+local XP_MIN, XP_MAX, XP_STEP = 0.8, 1, 0.01
 local showRep = false
 local xpHooked = false
 local xpQueued = false
@@ -523,6 +542,34 @@ local function PlaceFrameArt(c, pct)
 		end
 	end
 	tex:SetSize(b.w * pct, b.h)
+end
+
+-- The dividers this client draws over the bars: small frames of one
+-- texture, anchored to the container's left at fixed places. Their places
+-- are scaled around the container's middle, as the bars are.
+local function PlaceDividers(c, pct)
+	local cw = c:GetWidth()
+	if not (cw and cw > 0) then
+		return
+	end
+	local isBar = {}
+	for _, bar in pairs(c.bars or {}) do
+		isBar[bar] = true
+	end
+	for _, f in ipairs({ c:GetChildren() }) do
+		if not isBar[f] and f ~= c.Selection and f:GetNumChildren() == 0 and f:GetNumRegions() == 1 then
+			if not f.sgX then
+				local point, rel, relPoint, x, y = f:GetPoint(1)
+				if point == "LEFT" and rel == c and relPoint == "LEFT" then
+					f.sgX, f.sgY = x or 0, y or 0
+				end
+			end
+			if f.sgX then
+				f:ClearAllPoints()
+				f:SetPoint("LEFT", c, "LEFT", cw / 2 + (f.sgX - cw / 2) * pct, f.sgY)
+			end
+		end
+	end
 end
 
 local function ShowBar(bar, on)
@@ -652,10 +699,15 @@ local function ApplyXPBar()
 	end
 	for _, c in ipairs({ main, second }) do
 		for _, bar in pairs(c.bars) do
+			-- its own size back (the Unified Bar scales the second one)
+			if bar:GetScale() ~= 1 then
+				bar:SetScale(1)
+			end
 			PlaceBar(bar, c, pct)
 			ShowBar(bar, true)
 		end
 		PlaceFrameArt(c, pct)
+		Try(PlaceDividers, c, pct)
 		if c.BarFrameTexture then
 			c.BarFrameTexture:SetAlpha(1)
 		end
@@ -683,7 +735,27 @@ local function ApplyXPBar()
 			end
 		end
 		-- its bar over the main one; experience or reputation shows
-		PlaceBar(otherBar, main, pct)
+		-- at the main bar's size and place, whatever size Edit Mode gives
+		-- the second container
+		local me, se = main:GetEffectiveScale(), second:GetEffectiveScale()
+		if me and se and se > 0 then
+			otherBar:SetScale(me / se)
+		end
+		local mb = BarBase(mainBar)
+		if mb then
+			local w = mb.w * pct
+			otherBar:SetWidth(w)
+			if otherBar.StatusBar then
+				otherBar.StatusBar:SetWidth(w)
+			end
+			if otherBar.sgBase then
+				otherBar.sgBase.home = otherBar.sgBase.home or second
+			end
+			otherBar:ClearAllPoints()
+			otherBar:SetPoint(mb.point, main, mb.relPoint, mb.x + (mb.w - w) / 2, mb.y)
+		else
+			PlaceBar(otherBar, main, pct)
+		end
 		otherBar:SetFrameLevel(math.max(mainBar:GetFrameLevel(), 1) + 1)
 		local mainIsRep = mi == E.Reputation
 		local showMain = showRep == mainIsRep
@@ -803,19 +875,21 @@ local function ActiveTracking(list)
 	end
 end
 
--- the one the left click uses: the one on, else the last one, else the first
+-- the one the left click uses: the one chosen in the menu (or last turned
+-- on elsewhere), else the one on, else the first
 local function Chosen(list, active)
-	if active then
-		return active
-	end
 	local last = ns.charDB and tonumber(ns.charDB.tracking)
 	for _, t in ipairs(list) do
 		if t.id == last then
 			return t
 		end
 	end
-	return list[1]
+	return active or list[1]
 end
+
+-- the one on when last looked: one turned on elsewhere (the spellbook, a
+-- macro) becomes the chosen one; the menu's choice stands otherwise
+local seenActive
 
 local function UpdateTrack()
 	local b = trackButton
@@ -824,15 +898,19 @@ local function UpdateTrack()
 	end
 	local list = KnownTracking()
 	local active = ActiveTracking(list)
-	if active and ns.charDB then
-		ns.charDB.tracking = active.id
+	local activeID = active and active.id or nil
+	if activeID and activeID ~= seenActive and ns.charDB then
+		ns.charDB.tracking = activeID
 	end
+	seenActive = activeID
 	local t = Chosen(list, active)
-	b.current, b.active = t, active
+	-- on: the chosen one is the one on
+	local on = t and active and t.id == active.id
+	b.current, b.active = t, on and active or nil
 	if t then
 		b.icon:SetTexture(t.icon)
-		b.icon:SetDesaturated(not active)
-		b.icon:SetVertexColor(active and 1 or 0.7, active and 1 or 0.7, active and 1 or 0.7)
+		b.icon:SetDesaturated(not on)
+		b.icon:SetVertexColor(on and 1 or 0.7, on and 1 or 0.7, on and 1 or 0.7)
 	end
 	if InCombatLockdown() then
 		trackPending = true
@@ -840,11 +918,12 @@ local function UpdateTrack()
 	end
 	local show = On(VAR_TRACK) and t ~= nil
 	if show then
-		if active then
+		if on then
 			b:SetAttribute("type1", "cancelaura")
 			b:SetAttribute("unit1", "player")
 			b:SetAttribute("spell1", active.name)
 		else
+			-- casting it replaces the one on, if another is
 			b:SetAttribute("type1", "spell")
 			b:SetAttribute("unit1", nil)
 			b:SetAttribute("spell1", t.name)
@@ -890,23 +969,6 @@ local function TrackMenu(self)
 			local label = t.icon and ("|T" .. t.icon .. ":16:16:0:0|t " .. t.name) or t.name
 			root:CreateRadio(label, IsSelected, SetSelected)
 		end
-		-- moving it (next to the calendar, where it sits by default)
-		if self.byClock then
-			if root.CreateDivider then
-				root:CreateDivider()
-			end
-			local unlock = root:CreateCheckbox(T.TRACK_UNLOCK, function()
-				return self.unlocked == true
-			end, function()
-				self.unlocked = not self.unlocked
-			end)
-			if unlock and unlock.SetTooltip then
-				unlock:SetTooltip(function(tooltip)
-					GameTooltip_SetTitle(tooltip, T.TRACK_UNLOCK)
-					GameTooltip_AddNormalLine(tooltip, T.TRACK_UNLOCK_DESC)
-				end)
-			end
-		end
 	end)
 end
 
@@ -914,34 +976,126 @@ end
 -- for the account), round or square minimap, as the other minimap buttons
 local TRACK_ANGLE = 200
 local SQUARE = { SQUARE = true, CORNER = true }
--- Placed from the calendar button (GameTimeFrame) when there is one, as
--- set by hand with /setgo tracker (SetGo_Dev), in the calendar's pixels:
--- GAP from its right edge, DROP below its top, SIZE the button's size (its
--- 31 scaled). Else on the minimap's edge.
-local CLOCK_GAP, CLOCK_DROP, TRACK_SIZE = -29, 78, 43
+--------------------------------------------------------------------------------
+-- As the minimap's day and night indicator, when there is one (a frame of
+-- MinimapCluster.MinimapContainer with no name: the sun or the moon,
+-- UI-HUD-Minimap-DayCycle, under a gold ring, UI-HUD-Minimap-Frame-Cycle,
+-- 42 wide): the same ring at the same size, with the tracking icon cut round
+-- where the sun is. It sits opposite the sun, as far left of the minimap's
+-- middle as the sun is right of it, at the same height, until it is moved:
+-- unlocked (its menu), dragged or with the arrow keys over it (1 pixel,
+-- Shift: 5). Kept in SetGoDB.trackerAt, from the minimap's middle, in the
+-- indicator's pixels; locking it again prints the numbers.
+-- TUNE: in the indicator's pixels (its ring is 42 wide, its sun 33).
+--------------------------------------------------------------------------------
+local TUNE = {
+	SIZE = 42, -- the ring
+	ICON_SIZE = 33, -- the icon, where the sun is
+	ICON_X = 0,
+	ICON_Y = 0,
+}
+local RING_ATLAS = "UI-HUD-Minimap-Frame-Cycle"
+
+-- the day and night indicator: the frame whose ring is RING_ATLAS
+local cycleFrame
+local function Cycle()
+	if cycleFrame then
+		return cycleFrame
+	end
+	local container = MinimapCluster and MinimapCluster.MinimapContainer
+	if not (container and container.GetChildren) then
+		return nil
+	end
+	for _, f in ipairs({ container:GetChildren() }) do
+		for _, r in ipairs({ Try(f.GetRegions, f) }) do
+			local atlas = r.GetAtlas and Try(r.GetAtlas, r)
+			if type(atlas) == "string" and atlas:lower() == RING_ATLAS:lower() then
+				cycleFrame = f
+				return f
+			end
+		end
+	end
+	return nil
+end
+
+local function HasAtlas(atlas)
+	return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) ~= nil
+end
+
+-- the button as the day and night indicator (or back to a minimap button's
+-- look)
+local function TrackArt(b, byCycle)
+	if byCycle and HasAtlas(RING_ATLAS) then
+		local u = 31 / TUNE.SIZE -- the button's units for one of the indicator's pixels
+		b.ring:SetAtlas(RING_ATLAS)
+		b.ring:SetAllPoints()
+		b.ring:Show()
+		b.background:Hide()
+		b.border:Hide()
+		b.icon:ClearAllPoints()
+		b.icon:SetPoint("CENTER", b, "CENTER", TUNE.ICON_X * u, TUNE.ICON_Y * u)
+		b.icon:SetSize(TUNE.ICON_SIZE * u, TUNE.ICON_SIZE * u)
+		b.icon:SetTexCoord(0, 1, 0, 1)
+		if b.iconMask and not b.masked then
+			b.icon:AddMaskTexture(b.iconMask)
+			b.masked = true
+		end
+		local hl = b:GetHighlightTexture()
+		hl:ClearAllPoints()
+		hl:SetPoint("CENTER", b.icon, "CENTER")
+		hl:SetSize(TUNE.ICON_SIZE * u, TUNE.ICON_SIZE * u)
+	else
+		b.ring:Hide()
+		b.background:Show()
+		b.border:Show()
+		b.icon:ClearAllPoints()
+		b.icon:SetPoint("CENTER")
+		b.icon:SetSize(18, 18)
+		b.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
+		if b.iconMask and b.masked then
+			b.icon:RemoveMaskTexture(b.iconMask)
+			b.masked = nil
+		end
+		local hl = b:GetHighlightTexture()
+		hl:ClearAllPoints()
+		hl:SetAllPoints()
+	end
+end
+
 PlaceTrackButton = function(b)
 	if InCombatLockdown() then
 		return
 	end
-	local clock = GameTimeFrame
-	if clock and clock.GetWidth and (tonumber(clock:GetWidth()) or 0) > 0 then
-		-- TRACK_SIZE of the clock's pixels on screen, whatever the minimap's
-		-- own scale
-		local ce = clock:GetEffectiveScale()
+	local cycle = Cycle()
+	-- both values (an "and" chain would keep only the first)
+	local cx, cy, mx, my
+	if cycle then
+		cx, cy = cycle:GetCenter()
+	end
+	mx, my = Minimap:GetCenter()
+	if cycle and cx and cy and mx and my then
+		-- the ring's size on screen, whatever the minimap's own scale
+		local ce = cycle:GetEffectiveScale()
 		local pe = b:GetParent():GetEffectiveScale()
-		local s = (TRACK_SIZE * ce) / (31 * pe)
+		local me = Minimap:GetEffectiveScale()
 		b.byClock = true
-		b:SetScale(s)
-		-- offsets in the button's own units, as the clock's pixels
+		b:SetScale((TUNE.SIZE * ce) / (31 * pe))
+		-- from the minimap's middle, in the indicator's pixels: where the
+		-- player put it, else opposite the indicator
+		-- (it no longer moves: a spot kept from before is forgotten)
+		if ns.db then
+			ns.db.trackerAt = nil
+		end
+		local x = -(cx * ce - mx * me) / ce
+		local y = (cy * ce - my * me) / ce
+		-- offsets in the button's own units
 		local k = ce / b:GetEffectiveScale()
 		b:ClearAllPoints()
-		-- where the player moved it (unlocked), else the default
-		local pos = ns.db and ns.db.trackerPos
-		local gap = tonumber(pos and pos.gap) or CLOCK_GAP
-		local drop = tonumber(pos and pos.drop) or CLOCK_DROP
-		b:SetPoint("TOPLEFT", clock, "TOPRIGHT", gap * k, -drop * k)
+		b:SetPoint("CENTER", Minimap, "CENTER", x * k, y * k)
+		TrackArt(b, true)
 		return
 	end
+	TrackArt(b, false)
 	b.byClock = nil
 	b:SetScale(1)
 	local angle = tonumber(ns.db and ns.db.trackingAngle) or TRACK_ANGLE
@@ -984,14 +1138,35 @@ local function MakeTrackButton()
 	background:SetTexture(136467) -- Interface\Minimap\UI-Minimap-Background
 	background:SetSize(24, 24)
 	background:SetPoint("CENTER")
+	b.background = background
+	-- as the day and night indicator: its gold ring, over the icon
+	b.ring = b:CreateTexture(nil, "OVERLAY", nil, 1)
+	b.ring:SetAllPoints()
+	b.ring:Hide()
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetSize(18, 18)
 	b.icon:SetPoint("CENTER")
 	b.icon:SetTexCoord(0.05, 0.95, 0.05, 0.95)
+	-- the icon cut round, over the day and night art
+	if b.CreateMaskTexture then
+		b.iconMask = b:CreateMaskTexture()
+		b.iconMask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		b.iconMask:SetAllPoints(b.icon)
+	end
 	local border = b:CreateTexture(nil, "OVERLAY")
 	border:SetTexture(136430) -- Interface\Minimap\MiniMap-TrackingBorder
 	border:SetSize(50, 50)
 	border:SetPoint("TOPLEFT")
+	b.border = border
+	-- where it was moved to before it was drawn as the day and night
+	-- indicator (once): it goes opposite it
+	if ns.db then
+		ns.db.trackerPos = nil
+		if not ns.db.trackerCycle then
+			ns.db.trackerAt = nil
+			ns.db.trackerCycle = true
+		end
+	end
 	-- on the minimap's edge, dragged around it as the other addons'
 	-- buttons (out of combat: a secure button can't move in combat)
 	PlaceTrackButton(b)
@@ -1024,14 +1199,16 @@ local function MakeTrackButton()
 		if self.moving then
 			self.moving = nil
 			self:StopMovingOrSizing()
-			-- kept from the calendar, in its pixels (for the account), and
-			-- anchored to it again
-			local clock = GameTimeFrame
-			if clock and self:GetLeft() and clock:GetRight() then
-				local k = self:GetEffectiveScale() / clock:GetEffectiveScale()
-				ns.db.trackerPos = {
-					gap = self:GetLeft() * k - clock:GetRight(),
-					drop = clock:GetTop() - self:GetTop() * k,
+			-- kept from the minimap's middle, in the day and night
+			-- indicator's pixels (for the account), and placed from it again
+			local cycle = Cycle()
+			local bx, by = self:GetCenter()
+			local mx, my = Minimap:GetCenter()
+			if cycle and bx and mx then
+				local ce, be, me = cycle:GetEffectiveScale(), self:GetEffectiveScale(), Minimap:GetEffectiveScale()
+				ns.db.trackerAt = {
+					x = (bx * be - mx * me) / ce,
+					y = (by * be - my * me) / ce,
 				}
 			end
 			PlaceTrackButton(self)
@@ -1040,9 +1217,59 @@ local function MakeTrackButton()
 		self:SetScript("OnUpdate", nil)
 		self:UnlockHighlight()
 	end)
+	-- unlocked: the arrow keys move it, 1 of the day and night button's
+	-- pixels a press (Shift: 5), while the mouse is over it. The keys are
+	-- bound only then (override bindings, out of combat), so they and every
+	-- other key work as usual the rest of the time.
+	local nudge = CreateFrame("Button", "SetGoTrackerNudge", UIParent)
+	nudge:Hide()
+	nudge:SetScript("OnClick", function(_, key)
+		if InCombatLockdown() or not b.unlocked then
+			return
+		end
+		local step = IsShiftKeyDown() and 5 or 1
+		local dx = (key == "LEFT" and -1) or (key == "RIGHT" and 1) or 0
+		local dy = (key == "DOWN" and -1) or (key == "UP" and 1) or 0
+		-- from where it is now (opposite the indicator, when never moved)
+		local at = ns.db.trackerAt
+		if not at then
+			local cycle = Cycle()
+			local bx, by = b:GetCenter()
+			local mx, my = Minimap:GetCenter()
+			if not (cycle and bx and mx) then
+				return
+			end
+			local ce, be, me = cycle:GetEffectiveScale(), b:GetEffectiveScale(), Minimap:GetEffectiveScale()
+			at = { x = (bx * be - mx * me) / ce, y = (by * be - my * me) / ce }
+		end
+		ns.db.trackerAt = { x = (tonumber(at.x) or 0) + dx * step, y = (tonumber(at.y) or 0) + dy * step }
+		PlaceTrackButton(b)
+	end)
+	b.ArrowKeys = function(self, on)
+		if InCombatLockdown() then
+			return
+		end
+		ClearOverrideBindings(nudge)
+		if on then
+			for _, key in ipairs({ "UP", "DOWN", "LEFT", "RIGHT" }) do
+				SetOverrideBindingClick(nudge, true, key, "SetGoTrackerNudge", key)
+				SetOverrideBindingClick(nudge, true, "SHIFT-" .. key, "SetGoTrackerNudge", key)
+			end
+		end
+	end
 	b:SetScript("OnEnter", TrackTooltip)
 	b:SetScript("OnLeave", function()
 		GameTooltip:Hide()
+	end)
+	-- the arrow keys, while the mouse is over it (after the tooltip's own
+	-- scripts, which would replace these)
+	b:HookScript("OnEnter", function(self)
+		if self.unlocked and self.byClock then
+			self:ArrowKeys(true)
+		end
+	end)
+	b:HookScript("OnLeave", function(self)
+		self:ArrowKeys(false)
 	end)
 	b:HookScript("PostClick", function(self, button, down)
 		if button == "RightButton" and not down then
@@ -1054,8 +1281,25 @@ local function MakeTrackButton()
 	local watch = CreateFrame("Frame")
 	watch:RegisterEvent("SPELLS_CHANGED")
 	watch:RegisterEvent("PLAYER_REGEN_ENABLED")
+	-- combat: the arrow keys go back to the game first
+	watch:RegisterEvent("PLAYER_REGEN_DISABLED")
+	-- the day and night button is placed after the login: placed from it again
+	watch:RegisterEvent("PLAYER_ENTERING_WORLD")
+	pcall(watch.RegisterEvent, watch, "EDIT_MODE_LAYOUTS_UPDATED")
 	watch:RegisterUnitEvent("UNIT_AURA", "player")
 	watch:SetScript("OnEvent", function(_, event)
+		if event == "PLAYER_REGEN_DISABLED" then
+			b:ArrowKeys(false)
+			return
+		end
+		if event == "PLAYER_ENTERING_WORLD" or event == "EDIT_MODE_LAYOUTS_UPDATED" then
+			C_Timer.After(0, function()
+				if not b.moving then
+					PlaceTrackButton(b)
+				end
+			end)
+			return
+		end
 		if event == "PLAYER_REGEN_ENABLED" then
 			if trackPending then
 				trackPending = false
@@ -1083,56 +1327,86 @@ local function ApplyTracking()
 end
 
 --------------------------------------------------------------------------------
--- Open All Bags with Right Click: on a right click on the backpack button,
--- all the bags open, or close if any was open (as it was before the
--- click, whatever Blizzard's own click does with the backpack). Not with an
--- item on the cursor (that click puts it in the bag), nor with a modifier
--- (Blizzard's own).
+-- Open All Bags with Right Click: an invisible secure button over the
+-- backpack button. Blizzard's bag windows opened from addon code are
+-- tainted, and using an item from them is then blocked (UseContainerItem),
+-- so the bags are opened by the game's secure code instead:
+--   left click: clicks the backpack button itself (Blizzard's own click);
+--   right click: a macro of /click on the backpack and each bag button
+--   (Blizzard's own clicks, so the windows stay clean): each one opens or
+--   closes; an item on the cursor goes into the backpack.
+-- Items dropped on it go to the backpack button. Shown and hidden only out
+-- of combat (it is protected).
 --------------------------------------------------------------------------------
 
 local VAR_BAGS = "SETGO_TWEAK_BAGS_ALL"
-local bagsHooked = false
-local bagCursor = false
-local bagsWereOpen = false
-
-local function AnyBagOpen()
-	if ContainerFrameCombinedBags and ContainerFrameCombinedBags:IsShown() then
-		return true
-	end
-	local last = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS or 4
-	for bag = 0, last do
-		if IsBagOpen and IsBagOpen(bag) then
-			return true
+local bagButton
+-- each bag button clicked in turn (/click is Blizzard's own, secure; /run
+-- would mark the bag windows as an addon's): each bag opens or closes
+local function BagsMacro()
+	local lines = { "/click MainMenuBarBackpackButton" }
+	for i = 0, 3 do
+		local name = "CharacterBag" .. i .. "Slot"
+		if _G[name] then
+			lines[#lines + 1] = "/click " .. name
 		end
 	end
-	return false
+	if _G.CharacterReagentBag0Slot then
+		lines[#lines + 1] = "/click CharacterReagentBag0Slot"
+	end
+	return table.concat(lines, "\n")
 end
 
-local function HookBags()
-	local b = MainMenuBarBackpackButton
-	if bagsHooked or not b then
-		return
+local function MakeBagButton()
+	local pack = MainMenuBarBackpackButton
+	if bagButton or not pack then
+		return bagButton
 	end
-	bagsHooked = true
-	b:HookScript("PreClick", function()
-		bagCursor = GetCursorInfo() ~= nil
-		bagsWereOpen = AnyBagOpen()
-	end)
-	b:HookScript("OnClick", function(_, button)
-		if button ~= "RightButton" or not On(VAR_BAGS) or bagCursor or IsModifiedClick() then
-			return
+	local b = CreateFrame("Button", nil, pack, "SecureActionButtonTemplate")
+	b:SetAllPoints(pack)
+	b:SetFrameLevel(pack:GetFrameLevel() + 5)
+	b:RegisterForClicks("AnyUp", "AnyDown")
+	b:SetAttribute("useOnKeyDown", false)
+	b:SetAttribute("type1", "click")
+	b:SetAttribute("clickbutton1", pack)
+	b:SetAttribute("type2", "macro")
+	b:SetAttribute("macrotext2", BagsMacro())
+	-- the backpack's own tooltip, highlight and drop
+	b:SetScript("OnEnter", function()
+		pack:LockHighlight()
+		local enter = pack:GetScript("OnEnter")
+		if enter then
+			Try(enter, pack)
 		end
-		if bagsWereOpen then
-			Try(CloseAllBags)
-		else
-			Try(OpenAllBags)
+	end)
+	b:SetScript("OnLeave", function()
+		pack:UnlockHighlight()
+		local leave = pack:GetScript("OnLeave")
+		if leave then
+			Try(leave, pack)
 		end
 	end)
+	b:SetScript("OnReceiveDrag", function()
+		if GetCursorInfo() then
+			Try(PutItemInBackpack)
+		end
+	end)
+	b:Hide()
+	bagButton = b
+	return b
 end
 
 local function ApplyBags()
-	if On(VAR_BAGS) then
-		HookBags()
+	if not On(VAR_BAGS) and not bagButton then
+		return
+	end
+	if InCombatLockdown() then
+		pendingCombat = true
+		return
+	end
+	local b = MakeBagButton()
+	if b then
+		b:SetShown(On(VAR_BAGS))
 	end
 end
 
@@ -1141,16 +1415,18 @@ end
 -- The tracker shows the quests being watched, so the filter changes which
 -- are (C_QuestLog's own watch calls; Questie follows them). Zones are the
 -- quest log's headers. Each click filters once: nothing follows the player.
---   Left click: only the quests of the zone you are in.
---   Right click: All (every quest in the log, as far as the game allows),
---   or one zone. The last one chosen is kept per character (the tooltip).
+--   Right click: the menu. All; Completed or Not Completed; Current Zone or
+--   one zone; Untrack High Level; Track Shared Quests. Each choice is kept
+--   per character and applied at once.
+--   Left click: applies the kept filter again (Current Zone after moving).
+--   A filter that leaves nothing to track leaves the tracker as it was.
 --------------------------------------------------------------------------------
 
 local VAR_QFILTER = "SETGO_TWEAK_QUESTFILTER"
 local qButton
 local Q = C_QuestLog
 
--- { { zone, ids = { questID, ... } } } in the log's order
+-- { { zone, ids = { questID, ... }, levels, done } } in the log's order
 local function QuestZones()
 	local zones, current = {}, nil
 	if not (Q and Q.GetNumQuestLogEntries and Q.GetInfo) then
@@ -1160,12 +1436,17 @@ local function QuestZones()
 		local info = Q.GetInfo(i)
 		if info then
 			if info.isHeader then
-				current = { zone = info.title, ids = {} }
+				current = { zone = info.title, ids = {}, levels = {}, done = {} }
 				zones[#zones + 1] = current
 			elseif info.questID and not info.isHidden and current then
-				current.ids[#current.ids + 1] = info.questID
-				current.levels = current.levels or {}
-				current.levels[info.questID] = tonumber(info.level)
+				local id = info.questID
+				current.ids[#current.ids + 1] = id
+				current.levels[id] = tonumber(info.level)
+				local done = info.isComplete
+				if Q.IsComplete then
+					done = Try(Q.IsComplete, id)
+				end
+				current.done[id] = done and true or false
 			end
 		end
 	end
@@ -1214,98 +1495,208 @@ local function HereNames()
 	return names
 end
 
--- zone: a header's name, or nil for all
-local function FilterTo(zone)
-	local zones = QuestZones()
-	local found = zone == nil
-	for _, z in ipairs(zones) do
-		local want = zone == nil or z.zone == zone
-		found = found or want
-		for _, id in ipairs(z.ids) do
-			local on = Watched(id)
-			if want and not on then
-				Try(Q.AddQuestWatch, id)
-			elseif not want and on then
-				Try(Q.RemoveQuestWatch, id)
-			end
-		end
+-- the kept filter: status (nil, "done", "open"), place (nil, "here" or a
+-- zone), high, shared. Builds before 43 kept only a zone name.
+local function Filter()
+	local db = ns.charDB
+	if not db then
+		return {}
 	end
-	if not found then
+	if type(db.questFilter) ~= "table" then
+		local old = db.questFilter
+		db.questFilter = { place = type(old) == "string" and old or nil }
+	end
+	return db.questFilter
+end
+
+local function InGroup()
+	return IsInGroup and IsInGroup() or false
+end
+
+local function SharedWithGroup(id)
+	if not (Q.IsUnitOnQuest and InGroup()) then
 		return false
 	end
-	if ns.charDB then
-		ns.charDB.questFilter = zone or false
+	local raid = IsInRaid and IsInRaid()
+	local n = raid and (GetNumGroupMembers and GetNumGroupMembers() or 0) or 4
+	for i = 1, n do
+		local unit = raid and ("raid" .. i) or ("party" .. i)
+		if UnitExists(unit) and not UnitIsUnit(unit, "player") and Try(Q.IsUnitOnQuest, unit, id) then
+			return true
+		end
 	end
-	return true
+	return false
 end
 
 -- quests 3 or more levels above yours (orange and red in the game)
 local HIGH_LEVEL = 3
-local function UntrackHigh()
-	local me = UnitLevel("player") or 0
-	local n = 0
-	for _, z in ipairs(QuestZones()) do
-		for _, id in ipairs(z.ids) do
-			local level = z.levels and z.levels[id]
-			if level and level - me >= HIGH_LEVEL and Watched(id) then
-				Try(Q.RemoveQuestWatch, id)
-				n = n + 1
+
+local function ApplyFilter()
+	local f = Filter()
+	local zones = QuestZones()
+	local place = f.place
+	if place == "here" then
+		local names = HereNames()
+		place = false -- no header for this zone: no quest passes
+		for _, z in ipairs(zones) do
+			if names[z.zone] then
+				place = z.zone
+				break
 			end
 		end
 	end
-	ns.Print(T.QFILTER_HIGH_DONE:format(n))
-end
-
-local function FilterHere()
-	local names = HereNames()
-	for _, z in ipairs(QuestZones()) do
-		if names[z.zone] then
-			FilterTo(z.zone)
-			return
+	local me = UnitLevel("player") or 0
+	local want, any = {}, false
+	for _, z in ipairs(zones) do
+		for _, id in ipairs(z.ids) do
+			local ok = place == nil or z.zone == place
+			if ok and f.high then
+				local level = z.levels[id]
+				ok = not (level and level - me >= HIGH_LEVEL)
+			end
+			-- shared with the group: in, whatever the zone or level (out of a
+			-- group, none is)
+			if not ok and f.shared then
+				ok = SharedWithGroup(id)
+			end
+			-- Completed or Not Completed: over everything else
+			if ok and f.status == "done" then
+				ok = z.done[id]
+			elseif ok and f.status == "open" then
+				ok = not z.done[id]
+			end
+			want[id] = ok
+			any = any or ok
 		end
 	end
-	ns.Print(T.QFILTER_NONE:format(GetRealZoneText and GetRealZoneText() or "?"))
+	if not any then
+		ns.Print(T.QFILTER_EMPTY)
+		return
+	end
+	for id, ok in pairs(want) do
+		local on = Watched(id)
+		if ok and not on then
+			Try(Q.AddQuestWatch, id)
+		elseif not ok and on then
+			Try(Q.RemoveQuestWatch, id)
+		end
+	end
+end
+
+local function FilterText()
+	local f = Filter()
+	local parts = {}
+	if f.status == "done" then
+		parts[#parts + 1] = T.QFILTER_DONE
+	elseif f.status == "open" then
+		parts[#parts + 1] = T.QFILTER_OPEN
+	end
+	if f.place == "here" then
+		parts[#parts + 1] = T.QFILTER_HERE
+	elseif f.place then
+		parts[#parts + 1] = f.place
+	end
+	if #parts == 0 then
+		parts[1] = T.QFILTER_ALL
+	end
+	if f.high then
+		parts[#parts + 1] = T.QFILTER_HIGH
+	end
+	if f.shared then
+		parts[#parts + 1] = T.QFILTER_SHARED
+	end
+	return table.concat(parts, ", ")
 end
 
 local function QFilterTooltip(self)
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 	GameTooltip:SetText(T.QFILTER_TITLE, 1, 1, 1)
-	local last = ns.charDB and ns.charDB.questFilter
-	if last ~= nil then
-		GameTooltip:AddLine(T.QFILTER_NOW:format(last or T.QFILTER_ALL), 1, 0.82, 0)
-	end
-	GameTooltip:AddLine(T.QFILTER_HINT_ZONE, 0.8, 0.8, 0.8)
+	GameTooltip:AddLine(T.QFILTER_NOW:format(FilterText()), 1, 0.82, 0, true)
+	GameTooltip:AddLine(T.QFILTER_HINT_APPLY, 0.8, 0.8, 0.8)
 	GameTooltip:AddLine(T.QFILTER_HINT_MENU, 0.8, 0.8, 0.8)
 	GameTooltip:Show()
+end
+
+-- the menu stays open, so several choices can be made in one go
+local function MenuStay()
+	return MenuResponse and MenuResponse.Refresh
+end
+
+local function Tip(desc, title, text)
+	if desc and desc.SetTooltip then
+		desc:SetTooltip(function(tooltip)
+			GameTooltip_SetTitle(tooltip, title)
+			GameTooltip_AddNormalLine(tooltip, text)
+		end)
+	end
 end
 
 local function QFilterMenu(self)
 	if not (MenuUtil and MenuUtil.CreateContextMenu) then
 		return
 	end
-	MenuUtil.CreateContextMenu(self, function(_, root)
-		local last = ns.charDB and ns.charDB.questFilter
-		root:CreateRadio(T.QFILTER_ALL, function()
-			return last == false
-		end, function()
-			FilterTo(nil)
-		end)
-		for _, z in ipairs(QuestZones()) do
-			root:CreateRadio(("%s (%d)"):format(z.zone, #z.ids), function()
-				return last == z.zone
-			end, function()
-				FilterTo(z.zone)
-			end)
-		end
+	local Divider = function(root)
 		if root.CreateDivider then
 			root:CreateDivider()
 		end
-		local high = root:CreateButton(T.QFILTER_HIGH, UntrackHigh)
-		if high and high.SetTooltip then
-			high:SetTooltip(function(tooltip)
-				GameTooltip_SetTitle(tooltip, T.QFILTER_HIGH)
-				GameTooltip_AddNormalLine(tooltip, T.QFILTER_HIGH_DESC)
-			end)
+	end
+	MenuUtil.CreateContextMenu(self, function(_, root)
+		local f = Filter()
+		-- choosing the one already chosen clears it
+		local function Pick(key, value)
+			return function()
+				if f[key] == value then
+					f[key] = nil
+				else
+					f[key] = value
+				end
+				ApplyFilter()
+				return MenuStay()
+			end
+		end
+		root:CreateRadio(T.QFILTER_ALL, function()
+			return f.status == nil and f.place == nil
+		end, function()
+			f.status, f.place = nil, nil
+			ApplyFilter()
+			return MenuStay()
+		end)
+		Divider(root)
+		root:CreateRadio(T.QFILTER_DONE, function()
+			return f.status == "done"
+		end, Pick("status", "done"))
+		root:CreateRadio(T.QFILTER_OPEN, function()
+			return f.status == "open"
+		end, Pick("status", "open"))
+		Divider(root)
+		root:CreateRadio(T.QFILTER_HERE, function()
+			return f.place == "here"
+		end, Pick("place", "here"))
+		for _, z in ipairs(QuestZones()) do
+			root:CreateRadio(("%s (%d)"):format(z.zone, #z.ids), function()
+				return f.place == z.zone
+			end, Pick("place", z.zone))
+		end
+		Divider(root)
+		local high = root:CreateCheckbox(T.QFILTER_HIGH, function()
+			return f.high and true or false
+		end, function()
+			f.high = not f.high or nil
+			ApplyFilter()
+			return MenuStay()
+		end)
+		Tip(high, T.QFILTER_HIGH, T.QFILTER_HIGH_DESC)
+		Divider(root)
+		local shared = root:CreateCheckbox(T.QFILTER_SHARED, function()
+			return f.shared and true or false
+		end, function()
+			f.shared = not f.shared or nil
+			ApplyFilter()
+			return MenuStay()
+		end)
+		Tip(shared, T.QFILTER_SHARED, T.QFILTER_SHARED_DESC)
+		if shared and shared.SetEnabled and not Q.IsUnitOnQuest then
+			shared:SetEnabled(false)
 		end
 	end)
 end
@@ -1350,7 +1741,7 @@ local function MakeQFilterButton()
 		if button == "RightButton" then
 			QFilterMenu(self)
 		else
-			FilterHere()
+			ApplyFilter()
 		end
 	end)
 	b:SetScript("OnEnter", QFilterTooltip)
@@ -1448,6 +1839,209 @@ end
 -- All of them, as the profile in use has them
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+-- Hidden Buffs Icon: while the buff frame's arrow is collapsed, an icon on
+-- the outer side of the arrow, with the number of buffs it hides (Blizzard's
+-- rule: no duration, or more than BUFF_DURATION_WARNING_TIME left; weapon
+-- enchants too), drawn as Cataclysm's consolidated buffs. The tooltip lists
+-- them. Only a frame of ours anchored to the arrow, and hooks after
+-- Blizzard's own updates: the buff frame isn't touched (its right click to
+-- cancel a buff stays Blizzard's).
+--------------------------------------------------------------------------------
+
+local VAR_HIDDEN_BUFFS = "SETGO_TWEAK_HIDDENBUFFS"
+local hbIcon, hbHooked
+
+local function LongTime(left)
+	return left == nil or left > (BUFF_DURATION_WARNING_TIME or 60)
+end
+
+local function TimeText(left)
+	if not left then
+		return ""
+	end
+	if left >= 3600 then
+		return ("%dh"):format(math.floor(left / 3600 + 0.5))
+	elseif left >= 60 then
+		return ("%dm"):format(math.floor(left / 60 + 0.5))
+	end
+	return ("%ds"):format(math.floor(left))
+end
+
+-- { { name, icon, left } } of the buffs the arrow hides
+local function HiddenBuffs()
+	local list = {}
+	local now = GetTime()
+	-- weapon enchants, as Blizzard counts them
+	if GetWeaponEnchantInfo then
+		local info = { GetWeaponEnchantInfo() }
+		local slots = { { info[1], info[2], 16 }, { info[5], info[6], 17 }, { info[9], info[10], 18 } }
+		for _, e in ipairs(slots) do
+			if e[1] and e[2] then
+				local left = e[2] / 1000
+				if LongTime(left) then
+					local link = GetInventoryItemLink("player", e[3])
+					list[#list + 1] = {
+						name = link and link:match("%[(.-)%]") or "?",
+						icon = GetInventoryItemTexture("player", e[3]),
+						left = left,
+					}
+				end
+			end
+		end
+	end
+	for i = 1, 40 do
+		local name, icon, duration, expiration
+		if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+			local a = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+			if a then
+				name, icon, duration, expiration = a.name, a.icon, a.duration, a.expirationTime
+			end
+		elseif UnitBuff then
+			local _
+			name, icon, _, _, duration, expiration = UnitBuff("player", i)
+		end
+		if not name then
+			break
+		end
+		local left = (duration and duration > 0 and expiration and expiration > 0) and (expiration - now) or nil
+		if LongTime(left) then
+			list[#list + 1] = { name = name, icon = icon, left = left }
+		end
+	end
+	return list
+end
+
+local function Collapsed()
+	local f = BuffFrame
+	local arrow = f and f.CollapseAndExpandButton
+	if not (arrow and arrow:IsShown()) then
+		return false
+	end
+	if f.isExpanded ~= nil then
+		return not f.isExpanded
+	end
+	return arrow.GetChecked and not arrow:GetChecked()
+end
+
+local function HiddenBuffsTooltip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+	GameTooltip:SetText(T.HIDDEN_BUFFS_TITLE, 1, 1, 1)
+	for _, b in ipairs(HiddenBuffs()) do
+		GameTooltip:AddDoubleLine(("|T%s:16:16:0:0:64:64:5:59:5:59|t %s"):format(tostring(b.icon or 134400), b.name),
+			TimeText(b.left), 1, 0.82, 0, 0.8, 0.8, 0.8)
+	end
+	GameTooltip:AddLine(T.HIDDEN_BUFFS_HINT, 0.6, 0.6, 0.6)
+	GameTooltip:Show()
+end
+
+local function PlaceHiddenBuffs()
+	local f = BuffFrame
+	local arrow = f and f.CollapseAndExpandButton
+	local box = f and f.AuraContainer
+	if not (hbIcon and arrow) then
+		return
+	end
+	local size = 30
+	local first = f.auraFrames and f.auraFrames[1]
+	if first and first.GetWidth and first:GetWidth() > 0 then
+		size = first:GetWidth()
+	end
+	hbIcon:SetSize(size, size)
+	hbIcon:SetScale((box and box.iconScale) or 1)
+	hbIcon:ClearAllPoints()
+	-- on the side of the arrow away from the buffs
+	local horizontal = not (box and box.isHorizontal == false)
+	if horizontal then
+		if box and box.addIconsToRight then
+			hbIcon:SetPoint("RIGHT", arrow, "LEFT", -2, 0)
+		else
+			hbIcon:SetPoint("LEFT", arrow, "RIGHT", 2, 0)
+		end
+	else
+		if box and box.addIconsToTop then
+			hbIcon:SetPoint("TOP", arrow, "BOTTOM", 0, -2)
+		else
+			hbIcon:SetPoint("BOTTOM", arrow, "TOP", 0, 2)
+		end
+	end
+end
+
+local function UpdateHiddenBuffs()
+	if not hbIcon then
+		return
+	end
+	local n = 0
+	if On(VAR_HIDDEN_BUFFS) and Collapsed() then
+		n = #HiddenBuffs()
+	end
+	if n > 0 then
+		hbIcon.count:SetText(n)
+		PlaceHiddenBuffs()
+		hbIcon:Show()
+		if GameTooltip:IsOwned(hbIcon) then
+			HiddenBuffsTooltip(hbIcon)
+		end
+	else
+		hbIcon:Hide()
+	end
+end
+
+local function MakeHiddenBuffs()
+	if hbIcon or not (BuffFrame and BuffFrame.CollapseAndExpandButton) then
+		return hbIcon
+	end
+	local b = CreateFrame("Frame", nil, BuffFrame)
+	b:SetFrameLevel(BuffFrame.CollapseAndExpandButton:GetFrameLevel() + 1)
+	b.icon = b:CreateTexture(nil, "ARTWORK")
+	b.icon:SetAllPoints()
+	b.icon:SetTexture("Interface\\Buttons\\BuffConsolidation")
+	b.icon:SetTexCoord(0.109375, 0.390625, 0.21875, 0.78125)
+	b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+	b.count:SetPoint("BOTTOMRIGHT", -1, 1)
+	b:EnableMouse(true)
+	b:SetScript("OnEnter", HiddenBuffsTooltip)
+	b:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+	-- the times in the tooltip, once a second while it shows
+	local wait = 0
+	b:SetScript("OnUpdate", function(self, elapsed)
+		wait = wait - elapsed
+		if wait <= 0 then
+			wait = 1
+			if GameTooltip:IsOwned(self) then
+				HiddenBuffsTooltip(self)
+			end
+		end
+	end)
+	b:Hide()
+	hbIcon = b
+	return b
+end
+
+local function ApplyHiddenBuffs()
+	if not On(VAR_HIDDEN_BUFFS) and not hbIcon then
+		return
+	end
+	if MakeHiddenBuffs() and not hbHooked then
+		hbHooked = true
+		for _, method in ipairs({ "Update", "UpdateAuraButtons", "SetBuffsExpandedState", "UpdateAuraContainerAnchor" }) do
+			if type(BuffFrame[method]) == "function" then
+				hooksecurefunc(BuffFrame, method, function()
+					Try(UpdateHiddenBuffs)
+				end)
+			end
+		end
+		local watch = CreateFrame("Frame")
+		watch:RegisterUnitEvent("UNIT_AURA", "player")
+		watch:SetScript("OnEvent", function()
+			Try(UpdateHiddenBuffs)
+		end)
+	end
+	UpdateHiddenBuffs()
+end
+
 function ns.ApplyTweaks()
 	if not ns.db then
 		return
@@ -1459,6 +2053,7 @@ function ns.ApplyTweaks()
 	Try(ApplyBags)
 	Try(ApplyQuestFilter)
 	Try(ApplyTrackerMinTweak)
+	Try(ApplyHiddenBuffs)
 end
 
 -- another profile in use here: its tweaks
@@ -1624,7 +2219,16 @@ function ns.TweaksItems()
 		end
 		Try(ApplyTracking)
 	end)
-	items[#items + 1] = { kind = "checkbox", setting = track, settings = { track }, name = T.TRACK, tooltip = T.TRACK_DESC }
+	items[#items + 1] = { kind = "checkbox", setting = track, settings = { track }, name = T.TRACK, tooltip = T.TRACK_DESC, newKey = "tracker" }
+	-- buffs
+	items[#items + 1] = { kind = "header", name = T.BUFFS }
+	local hidden = ns.Pseudo(VAR_HIDDEN_BUFFS, T.HIDDEN_BUFFS, T.HIDDEN_BUFFS_DESC, false, function()
+		return On(VAR_HIDDEN_BUFFS)
+	end, function(on)
+		Keep(VAR_HIDDEN_BUFFS, on)
+		Try(ApplyHiddenBuffs)
+	end)
+	items[#items + 1] = { kind = "checkbox", setting = hidden, settings = { hidden }, name = T.HIDDEN_BUFFS, tooltip = T.HIDDEN_BUFFS_DESC, newKey = "hiddenbuffs" }
 	-- bags
 	items[#items + 1] = { kind = "header", name = T.BAGS }
 	local bagsAll = ns.Pseudo(VAR_BAGS, T.BAGS_ALL, T.BAGS_ALL_DESC, false, function()
@@ -1642,7 +2246,7 @@ function ns.TweaksItems()
 		Keep(VAR_QFILTER, on)
 		Try(ApplyQuestFilter)
 	end)
-	items[#items + 1] = { kind = "checkbox", setting = qfilter, settings = { qfilter }, name = T.QFILTER, tooltip = T.QFILTER_DESC }
+	items[#items + 1] = { kind = "checkbox", setting = qfilter, settings = { qfilter }, name = T.QFILTER, tooltip = T.QFILTER_DESC, newKey = "qfilter" }
 	local qmin = ns.Pseudo(VAR_QMIN, T.QMIN, T.QMIN_DESC, false, function()
 		return On(VAR_QMIN)
 	end, function(on)

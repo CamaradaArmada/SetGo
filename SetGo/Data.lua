@@ -356,6 +356,10 @@ local function Flags()
 end
 
 function ns.ModuleOn(key)
+	-- SetGo!'s settings: the modules all off
+	if ns.db and ns.db.modulesOff then
+		return false
+	end
 	local flags = Flags()
 	if type(flags) ~= "table" then
 		return true

@@ -320,6 +320,25 @@ function ns.TourAfterFirst()
 	Play(list)
 end
 
+-- "See the tour" (SetGo!'s settings): the minimap button's tip, then every
+-- module's that is on, seen before or not
+function ns.PlayTour()
+	if not CanShow() then
+		ns.Print(L.MSG_TOUR_NONE)
+		return
+	end
+	local list = { { text = L.TOUR_QUICK, frame = _G.LibDBIcon10_SetGo } }
+	for _, m in ipairs(ns.KNOWN_MODULES) do
+		local def = ModuleDef(m.key)
+		if def and def.tour and ns.ModuleOn(m.key) then
+			for _, step in ipairs(StepsOf(def.tour)) do
+				list[#list + 1] = step
+			end
+		end
+	end
+	Play(list)
+end
+
 local function AfterLogin()
 	if ns.charDB and ns.charDB.tourPending then
 		ns.TourAfterFirst()
@@ -350,13 +369,10 @@ local function OnTab(tab)
 	return OnForm() and not ns.creating.edit and not ns.form.choosing and ns.form.tab == tab
 end
 
+-- other addons besides SetGo!'s (the Addons tab lists them under the
+-- modules)
 local function HasAddonsTab()
-	for _, tab in ipairs(ns.FormTabs and ns.FormTabs() or {}) do
-		if tab == "addons" then
-			return true
-		end
-	end
-	return false
+	return ns.FormHasOtherAddons and ns.FormHasOtherAddons() or false
 end
 
 -- kind: "click" (the tip goes when done() is true; X stops the guide) or
@@ -365,7 +381,8 @@ local STEPS = {
 	{ text = "GUIDE_SLOT", kind = "click", point = "right",
 		at = function() return ns.creating == nil or ns.creating.edit ~= nil end,
 		frame = function() return ns.NewProfileSlot and ns.NewProfileSlot() end,
-		done = Choosing },
+		-- + New's menu: the presets menu, or an empty profile's tabs
+		done = function() return OnForm() and not ns.creating.edit end },
 	{ text = "GUIDE_PRESETS", kind = "click", point = "left", at = Choosing,
 		frame = function() return Form().customize end,
 		done = function() return OnTab("layout") end },
@@ -377,20 +394,14 @@ local STEPS = {
 		frame = function() return Form().bars end },
 	{ text = "GUIDE_FRAMES", kind = "info", point = "left", at = function() return OnTab("layout") end,
 		frame = function() return Form().frames end },
-	{ text = "GUIDE_TO_SETTINGS", kind = "click", point = "bottom", at = function() return OnTab("layout") end,
-		frame = function() return Form().next end,
-		done = function() return OnTab("settings") end },
-	{ text = "GUIDE_SETTINGS", kind = "info", point = "left", at = function() return OnTab("settings") end,
+	-- the settings: on the Layout tab, under the frames
+	{ text = "GUIDE_SETTINGS", kind = "info", point = "left", at = function() return OnTab("layout") end,
 		frame = function() return Form().settings end },
-	{ text = "GUIDE_TO_MODULES", kind = "click", point = "bottom", at = function() return OnTab("settings") end,
-		frame = function() return Form().next end,
-		done = function() return OnTab("modules") end },
-	{ text = "GUIDE_MODULES", kind = "info", point = "left", at = function() return OnTab("modules") end,
-		frame = function() return Form().modules end },
-	{ text = "GUIDE_TO_ADDONS", kind = "click", point = "bottom", addons = true,
-		at = function() return OnTab("modules") end,
+	{ text = "GUIDE_TO_MODULES", kind = "click", point = "bottom", at = function() return OnTab("layout") end,
 		frame = function() return Form().next end,
 		done = function() return OnTab("addons") end },
+	{ text = "GUIDE_MODULES", kind = "info", point = "left", at = function() return OnTab("addons") end,
+		frame = function() return Form().modules end },
 	{ text = "GUIDE_ADDONS", kind = "info", point = "left", addons = true,
 		at = function() return OnTab("addons") end,
 		frame = function() return Form().addons end },

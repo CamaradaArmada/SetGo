@@ -7,7 +7,6 @@ local L = {
 	-- book
 	HOME = "Quick settings",
 	HOME_SHORT = "Home",
-	HOME_DESC = "Back to the first page. Changes not applied yet stay pending.",
 	CONTENTS = "Contents",
 	PENDING = "%d changes not applied yet.",
 	NO_PENDING = "No changes yet.",
@@ -43,7 +42,6 @@ local L = {
 	MOD_SPEAK_DESC = "A cleaner chat in the style of the new interface, soft or with tooltip borders: Blizzard fonts, fading tabs and one settings button.",
 	MOD_HIDE = "Hide!",
 	MOD_HIDE_DESC = "Hides Blizzard frames like a macro: always, or only when (or except when) you are in combat, mounted, holding a key and more.",
-	MODULE_NO_PROFILE = "This module has no profile options.",
 	NO_MODULES = "No modules installed. They come as separate folders (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) in the AddOns folder.",
 	POPUP_RELOAD_MODULES = "Reload the interface now to switch the module on or off?",
 
@@ -61,8 +59,6 @@ local L = {
 	MSG_NOT_READY = "The game's settings are still loading. Try again in a moment.",
 
 	-- tabs and our own pages
-	TAB_MODULES = "Modules",
-	TAB_SETTINGS = "SetGo!",
 	DISCARD = "Discard",
 	DISCARD_DESC = "Forgets every change not applied yet.",
 	SETGO_TITLE = "SetGo! settings",
@@ -92,8 +88,6 @@ local L = {
 	BINDING_TOGGLE = "Open or close SetGo!",
 
 	-- welcome parchment
-	WELCOME_HEADLINE = "Welcome to Azeroth",
-	WELCOME_SUB = "Let's get you ready to explore",
 
 	-- profile cards and layouts
 	SLOT_IN_USE = "In use on this character.",
@@ -102,15 +96,12 @@ local L = {
 	-- presets
 	MSG_PRESET_ACTIVE = "\"%s\" is in use on this character. Nothing had to change.",
 	MSG_LAYOUT_FAILED = "That Edit Mode layout couldn't be read.",
-	NP_NAME = "Name",
-	NP_LAYOUT_FULL = "No room for a new layout (%d account layouts)",
 	GLOBAL_TAG = "(account)",
 	SAVE_AND_APPLY = "Save and apply",
 	MSG_BAD_LAYOUT = "That text is not an Edit Mode layout.",
 	NP_IMPORT = "Import",
 	NP_TEMPLATE_ENTRY = "SetGo!: %s",
 	NP_UNDO = "Undo",
-	NP_NEW_CELL = "+ New",
 	MSG_LAYOUT_DELETED = "Edit Mode layout \"%s\" deleted.",
 }
 
@@ -119,7 +110,6 @@ if GetLocale() == "ptBR" then
 
 	L.HOME = "Definições rápidas"
 	L.HOME_SHORT = "Início"
-	L.HOME_DESC = "Volta à primeira página. As alterações por aplicar mantêm-se."
 	L.CONTENTS = "Índice"
 	L.PENDING = "%d alterações por aplicar."
 	L.NO_PENDING = "Sem alterações."
@@ -150,7 +140,6 @@ if GetLocale() == "ptBR" then
 	L.MOD_SPEAK_DESC = "Um chat mais limpo, no estilo da nova interface, esbatido ou com a moldura das tooltips: fontes da Blizzard, separadores que desvanecem e um só botão de definições."
 	L.MOD_HIDE = "Hide!"
 	L.MOD_HIDE_DESC = "Esconde frames da Blizzard como uma macro: sempre, ou só quando (ou excepto quando) estás em combate, montado, a carregar numa tecla e mais."
-	L.MODULE_NO_PROFILE = "Este módulo não tem opções de perfil."
 	L.NO_MODULES = "Não há módulos instalados. Vêm em pastas separadas (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) na pasta AddOns."
 	L.POPUP_RELOAD_MODULES = "Recarregar a interface agora para ligar ou desligar o módulo?"
 
@@ -167,8 +156,6 @@ if GetLocale() == "ptBR" then
 	L.MSG_NOT_READY = "As definições do jogo ainda estão a carregar. Tenta daqui a pouco."
 
 
-	L.TAB_MODULES = "Módulos"
-	L.TAB_SETTINGS = "SetGo!"
 	L.DISCARD = "Descartar"
 	L.DISCARD_DESC = "Esquece todas as alterações que ainda não aplicaste."
 	L.SETGO_TITLE = "Opções do SetGo!"
@@ -196,16 +183,12 @@ if GetLocale() == "ptBR" then
 	L.SETGO_KEY_DESC = "Clica e carrega numa tecla. O clique direito apaga-a."
 	L.BINDING_TOGGLE = "Abrir ou fechar o SetGo!"
 
-	L.WELCOME_HEADLINE = "Bem-vindo a Azeroth"
-	L.WELCOME_SUB = "Vamos preparar-te para explorar"
 
 	L.SLOT_IN_USE = "Em uso nesta personagem."
 	L.SLOT_DATES = "Criado a %s  |  Alterado a %s"
 
 	L.MSG_PRESET_ACTIVE = "\"%s\" está em uso nesta personagem. Não foi preciso mudar nada."
 	L.MSG_LAYOUT_FAILED = "Não foi possível ler esse layout do Edit Mode."
-	L.NP_NAME = "Nome"
-	L.NP_LAYOUT_FULL = "Não há espaço para um layout novo (%d layouts de conta)"
 	L.GLOBAL_TAG = "(conta)"
 	L.SAVE_AND_APPLY = "Guardar e aplicar"
 	L.MSG_BAD_LAYOUT = "Esse texto não é um layout do Edit Mode."

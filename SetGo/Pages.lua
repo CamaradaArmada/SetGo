@@ -32,7 +32,7 @@ end
 --------------------------------------------------------------------------------
 
 ns.SCALE_MIN, ns.SCALE_MAX, ns.SCALE_STEP = 0.75, 1.5, 0.05
-ns.SCALED = { "SetGoFrame", "SetGoQuickFrame", "SetGoIconPicker" }
+ns.SCALED = { "SetGoFrame", "SetGoQuickFrame" }
 -- the ones the player moves: they keep their centre where it is
 local KEEP_CENTRE = { SetGoFrame = true }
 
@@ -67,8 +67,7 @@ function ns.ApplyScale()
 	local s = ns.UIScale()
 	for _, name in ipairs(ns.SCALED) do
 		local f = _G[name]
-		-- the icon picker inside the book follows the book
-		if f and f.SetScale and not (name == "SetGoIconPicker" and f:GetParent() ~= UIParent) then
+		if f and f.SetScale then
 			ScaleOne(f, name, s)
 		end
 	end
@@ -162,18 +161,10 @@ function ns.SetGoItems()
 		formatters = MinimalSliderWithSteppersMixin and MinimalSliderWithSteppersMixin.Label and FormatPercentageRounded
 			and { [MinimalSliderWithSteppersMixin.Label.Right] = FormatPercentageRounded } or nil,
 	}
-	local function TabOptions()
-		local list = {}
-		for _, t in ipairs(ns.TABS) do
-			list[#list + 1] = { value = t, label = L["TAB_" .. t:upper()] }
-		end
-		return list
-	end
 	-- the window size waits for Apply, at the bottom of the page (as the
 	-- options of the modules' pages)
 	setgo = {
 		{ kind = "header", name = L.SETGO_GENERAL },
-		{ kind = "dropdown", setting = tab, settings = { tab }, name = L.SETGO_TAB, tooltip = L.SETGO_TAB_DESC, options = TabOptions },
 		{ kind = "checkbox", setting = minimap, settings = { minimap }, name = L.SETGO_MINIMAP, tooltip = L.SETGO_MINIMAP_DESC },
 		{ kind = "checkbox", setting = mute, settings = { mute }, name = L.SETGO_MUTE, tooltip = L.SETGO_MUTE_DESC },
 		{ kind = "header", name = L.SETGO_SCALE },
@@ -199,7 +190,7 @@ function ns.SetGoItems()
 				return
 			end
 			-- the guide, from the Profiles page
-			ns.StartGuide()
+			ns.PlayTour()
 		end, 24)
 		tour:SetPoint("TOPLEFT", page, "TOPLEFT", math.floor(width / 2 - bw - gap / 2), -(y + 4))
 		W.TipScripts(tour, L.TOUR_BUTTON, L.TOUR_BUTTON_DESC)

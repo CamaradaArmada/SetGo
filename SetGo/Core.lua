@@ -13,6 +13,11 @@ local function Try(func, ...)
 	if results[1] then
 		return unpack(results, 2)
 	end
+	-- caught quietly: kept in SetGo!'s errors when it is SetGo!'s own code
+	-- (Settings.lua)
+	if ns.LogError then
+		pcall(ns.LogError, results[2], nil, true)
+	end
 end
 ns.Try = Try
 

@@ -7,10 +7,8 @@ local L = ns.L
 
 local EN = {
 
-	TAB_PRESETS = "Profiles",
 	YOUR_PRESETS = "Profiles",
 	NEW_PRESET = "New profile",
-	CRUMB_PRESET = "Profile: %s",
 	PRESET_APPLY = "Apply",
 	POPUP_UPRESET_APPLY = "Apply the profile \"%s\" to this character? The interface reloads if settings change.",
 	DIFF_LAYOUT_GONE = "Its Edit Mode layout no longer exists. Edit the profile to pick another.",
@@ -19,7 +17,6 @@ local EN = {
 	DIFF_SKILLS = "%d action bar slots",
 	PROFILE_MATCHES = "This character matches the profile.",
 	NONE = "None",
-	COPY = "Copy",
 	COPY_NAME = "%s (copy)",
 	MSG_SKILLS_RESTORED = "%d action bar slots put back.",
 	MSG_SKILLS_FAILED = "%d action bar slots could not be put back: spells not known here, or macros and items no longer there.",
@@ -36,12 +33,8 @@ local EN = {
 	UI_BAR_SHORT = "Bar %d",
 	NP_UI = "UI elements",
 	NP_BARS = "Action bars",
-	BAR1_LOCKED = "Action Bar 1 cannot be disabled.",
 	CURRENT_LAYOUT = "Current layout",
 	NP_COPY_FROM = "Copy from:",
-	NP_ICON = "Icon",
-	NP_ICON_DESC = "Pick the profile's icon from the game's icons.",
-	PICK_ICON = "Pick an icon",
 	FAVORITE = "Favorite",
 	FAVORITE_DESC = "Up to three favorites, applied from the minimap button's menu.",
 	MSG_FAVORITES_FULL = "There are already %d favorites. Remove one first.",
@@ -53,8 +46,6 @@ local EN = {
 	SHORT_ON = "%s: on",
 	SHORT_OFF = "%s: off",
 	SHORT_OPTIONS = "%d options",
-	STATE_ON = "On",
-	STATE_OFF = "Off",
 	SHORT_KEYS = "%d keybinds",
 	DIFF_KEYS = "%d keybinds",
 }
@@ -62,10 +53,8 @@ local EN = {
 
 local PT = {
 
-	TAB_PRESETS = "Perfis",
 	YOUR_PRESETS = "Perfis",
 	NEW_PRESET = "Novo perfil",
-	CRUMB_PRESET = "Perfil: %s",
 	PRESET_APPLY = "Aplicar",
 	POPUP_UPRESET_APPLY = "Aplicar o perfil \"%s\" a esta personagem? A interface recarrega se mudarem definições.",
 	DIFF_LAYOUT_GONE = "O layout do Edit Mode já não existe. Edita o perfil para escolheres outro.",
@@ -74,7 +63,6 @@ local PT = {
 	DIFF_SKILLS = "%d espaços das barras de acção",
 	PROFILE_MATCHES = "Esta personagem está igual ao perfil.",
 	NONE = "Nenhum",
-	COPY = "Copiar",
 	COPY_NAME = "%s (cópia)",
 	MSG_SKILLS_RESTORED = "%d espaços das barras de acção repostos.",
 	MSG_SKILLS_FAILED = "%d espaços das barras de acção não foram repostos: feitiços que esta personagem não conhece, ou macros e itens que já não existem.",
@@ -90,27 +78,20 @@ local PT = {
 	UI_BAR_SHORT = "Barra %d",
 	NP_UI = "Elementos da interface",
 	NP_BARS = "Barras de acção",
-	BAR1_LOCKED = "A barra de acção 1 não pode ser desligada.",
 	CURRENT_LAYOUT = "Layout actual",
 	NP_COPY_FROM = "Copiar de:",
-	NP_ICON = "Ícone",
-	NP_ICON_DESC = "Escolhe o ícone do perfil entre os ícones do jogo.",
-	PICK_ICON = "Escolhe um ícone",
 	FAVORITE = "Favorito",
 	FAVORITE_DESC = "Até três favoritos, que aplicas a partir do menu do botão do minimapa.",
 	MSG_FAVORITES_FULL = "Já há %d favoritos. Retira um primeiro.",
 	MENU_FAVORITE_ACTIVE = "%s (em uso)",
 	MENU_NO_FAVORITES = "Ainda não há perfis favoritos",
 	IMPORTED = "Importado",
-	NP_NEW_CELL = "+ Novo",
 	EXPORT = "Exportar",
 	SHORT_LAYOUT = "Layout: %s",
 	SHORT_LAYOUT_GONE = "Layout em falta",
 	SHORT_ON = "%s: ligar",
 	SHORT_OFF = "%s: desligar",
 	SHORT_OPTIONS = "%d opções",
-	STATE_ON = "Ligado",
-	STATE_OFF = "Desligado",
 	SHORT_KEYS = "%d keybinds",
 	DIFF_KEYS = "%d keybinds",
 	SAVE = "Guardar",
@@ -135,7 +116,6 @@ local EN17 = {
 	FORM_TAB_LAYOUT = "Layout",
 	FORM_TAB_MODULES = "Modules",
 	NP_COPY_PROFILE = "Copy from",
-	NP_NAME_DESC = "The profile's name.",
 	NEW_PRESET_DESC = "A new profile: its layout, what it switches on, its modules and, if you want, its own settings. Save keeps it; Apply puts it on this character.",
 	PRESET_OPEN_DESC = "Opens the profile: what it holds, and Apply.",
 	SLOT_MENU_HINT = "Right click: apply, favorite, rename, copy, export, delete.",
@@ -144,14 +124,6 @@ local EN17 = {
 	NP_SAVE_NEWLAYOUT = "Saves the profile and makes its new Edit Mode layout (not active yet). Apply puts it on, reloads the interface and opens Edit Mode.",
 	GUIDE_NEXT = "Next",
 	POPUP_GUIDE_NOTE = "Edit Mode opens after the reload, to set up the layout.",
-	PICK_ALL = "All",
-	PICK_SPELLS = "Spells",
-	PICK_ITEMS = "Items",
-	WELCOME_START = "Make your first profile",
-	WELCOME_START_DESC = "Opens SetGo! on a new profile, with tips that walk you through it.",
-	WELCOME_PICK = "Apply one of your profiles:",
-	WELCOME_CHOOSE = "Choose a profile",
-	HELLO_FULL_DESC = "Opens SetGo!.",
 }
 
 local PT17 = {
@@ -159,7 +131,6 @@ local PT17 = {
 	FORM_TAB_LAYOUT = "Layout",
 	FORM_TAB_MODULES = "Módulos",
 	NP_COPY_PROFILE = "Copiar de",
-	NP_NAME_DESC = "O nome do perfil.",
 	NEW_PRESET_DESC = "Um perfil novo: o layout, o que liga, os módulos e, se quiseres, definições próprias. Guardar fica com ele; Aplicar põe-no nesta personagem.",
 	PRESET_OPEN_DESC = "Abre o perfil: o que tem, e Aplicar.",
 	SLOT_MENU_HINT = "Clique direito: aplicar, favorito, mudar o nome, copiar, exportar, apagar.",
@@ -168,14 +139,6 @@ local PT17 = {
 	NP_SAVE_NEWLAYOUT = "Guarda o perfil e cria o novo layout do Edit Mode (ainda não activo). Aplicar põe-no, recarrega a interface e abre o Edit Mode.",
 	GUIDE_NEXT = "Seguinte",
 	POPUP_GUIDE_NOTE = "O Edit Mode abre depois do reload, para acertares o layout.",
-	PICK_ALL = "Todos",
-	PICK_SPELLS = "Feitiços",
-	PICK_ITEMS = "Itens",
-	WELCOME_START = "Criar o primeiro perfil",
-	WELCOME_START_DESC = "Abre o SetGo! num perfil novo, com dicas que te levam passo a passo.",
-	WELCOME_PICK = "Aplica um dos teus perfis:",
-	WELCOME_CHOOSE = "Escolhe um perfil",
-	HELLO_FULL_DESC = "Abre o SetGo!.",
 }
 
 for key, value in pairs(EN17) do
@@ -194,13 +157,9 @@ end
 
 local EN18 = {
 	COPY_CURRENT = "Current",
-	NP_COPY_LAYOUT_DESC = "Current: the layout in use and what the game shows now. Or another profile's layout and what it switches on. Nothing is kept until you save.",
-	NP_COPY_MODULES_DESC = "Current: the modules and their options as they are now. Or another profile's. Ticks Change modules. Nothing is kept until you save.",
 	NP_SAVE_APPLY_DESC = "Saves the profile and puts it on this character. The interface reloads when something needs it.",
 	FORM_STEP = "New profile: tab %d of %d",
 	POPUP_NP_SAVE_APPLY = "Save the profile \"%s\" and apply it to this character? The interface reloads if something needs it.",
-	NP_NEW_FROM = "+ New: %s",
-	NP_LAYOUTS_FULL_CELL = "No room for another layout",
 	FORM_CUSTOM_MODULES = "Change modules",
 	FORM_CUSTOM_MODULES_DESC = "This profile switches the modules on or off and sets their options.",
 	FORM_MODULES_OFF = "Tick Change modules to set them for this profile.",
@@ -216,13 +175,9 @@ local EN18 = {
 
 local PT18 = {
 	COPY_CURRENT = "Actual",
-	NP_COPY_LAYOUT_DESC = "Actual: o layout em uso e o que o jogo mostra agora. Ou o layout de outro perfil e o que ele liga. Nada fica guardado até guardares.",
-	NP_COPY_MODULES_DESC = "Actual: os módulos e as suas opções como estão agora. Ou os de outro perfil. Marca Alterar módulos. Nada fica guardado até guardares.",
 	NP_SAVE_APPLY_DESC = "Guarda o perfil e põe-no nesta personagem. A interface recarrega quando é preciso.",
 	FORM_STEP = "Perfil novo: aba %d de %d",
 	POPUP_NP_SAVE_APPLY = "Guardar o perfil \"%s\" e aplicá-lo a esta personagem? A interface recarrega se for preciso.",
-	NP_NEW_FROM = "+ Novo: %s",
-	NP_LAYOUTS_FULL_CELL = "Não há espaço para mais layouts",
 	FORM_CUSTOM_MODULES = "Alterar módulos",
 	FORM_CUSTOM_MODULES_DESC = "Este perfil liga ou desliga os módulos e acerta as opções deles.",
 	FORM_MODULES_OFF = "Marca Alterar módulos para os definir neste perfil.",
@@ -258,7 +213,6 @@ local EN19 = {
 	MSG_USE_IMPORT_LAYOUT = "That is a Blizzard layout: import it with right click on + New, on the Layout tab.",
 	MSG_BAD_PROFILE = "That text is not a SetGo! profile.",
 	MSG_PROFILE_IMPORTED = "Profile \"%s\" read. Go through its tabs, then Save and Apply makes it.",
-	NP_NEW_CELL_TIP = "Click: a new account layout, copied from the one in use and named after the profile. Right click: copy another layout, a template, or import a Blizzard layout. It is made when you save.",
 }
 
 local PT19 = {
@@ -270,7 +224,6 @@ local PT19 = {
 	MSG_USE_IMPORT_LAYOUT = "Isso é um layout da Blizzard: importa-o com o clique direito em + Novo, na aba Layout.",
 	MSG_BAD_PROFILE = "Esse texto não é um perfil do SetGo!.",
 	MSG_PROFILE_IMPORTED = "Perfil \"%s\" lido. Passa pelas abas e Guardar e aplicar cria-o.",
-	NP_NEW_CELL_TIP = "Clique: um layout novo da conta, copiado do que está em uso e com o nome do perfil. Clique direito: copiar outro layout, um template, ou importar um layout da Blizzard. É criado quando guardares.",
 }
 
 for key, value in pairs(EN19) do
@@ -321,9 +274,6 @@ local EN22 = {
 	SCOPE_PROFILE_SETTINGS_DESC = "Uses settings of its own.",
 	SCOPE_PROFILE_KEYS_DESC = "Uses keybinds of its own.",
 	SCOPE_PROFILE_BARS_DESC = "Remembers your action bars and puts them back.",
-	SCOPE_COPY_SETTINGS_DESC = "Current: this character's settings as they are now. Or what another profile applies. Nothing is kept until you save.",
-	SCOPE_COPY_KEYS_DESC = "Current: the keybinds as they are now. Or what another profile applies. Nothing is kept until you save.",
-	SCOPE_COPY_BARS_DESC = "Current: the action bars as they are when it is applied. Or another profile's, on this character. Nothing is kept until you save.",
 	SCOPE_GLOBAL_SETTINGS_NOTE = "Uses the shared settings.",
 	SCOPE_GLOBAL_KEYS_NOTE = "Uses the shared keybinds.",
 	SCOPE_GLOBAL_BARS_NOTE = "The action bars are left as they are.",
@@ -351,9 +301,6 @@ local PT22 = {
 	SCOPE_PROFILE_SETTINGS_DESC = "Usa definições próprias.",
 	SCOPE_PROFILE_KEYS_DESC = "Usa atalhos próprios.",
 	SCOPE_PROFILE_BARS_DESC = "Lembra-se das barras de acção e repõe-nas.",
-	SCOPE_COPY_SETTINGS_DESC = "Actual: as definições desta personagem como estão agora. Ou as que outro perfil aplica. Nada fica guardado até guardares.",
-	SCOPE_COPY_KEYS_DESC = "Actual: os atalhos como estão agora. Ou os que outro perfil aplica. Nada fica guardado até guardares.",
-	SCOPE_COPY_BARS_DESC = "Actual: as barras de acção como estiverem quando for aplicado. Ou as de outro perfil, nesta personagem. Nada fica guardado até guardares.",
 	SCOPE_GLOBAL_SETTINGS_NOTE = "Usa as definições partilhadas.",
 	SCOPE_GLOBAL_KEYS_NOTE = "Usa os atalhos partilhados.",
 	SCOPE_GLOBAL_BARS_NOTE = "As barras de acção ficam como estão.",
@@ -386,7 +333,6 @@ end
 local EN23 = {
 	SETGO_PAGE_DESC = "SetGo!'s own settings: the tab it opens on, the minimap button, its sounds and its key.",
 	SCOPE_COPY_DEFAULT = "Copy from...",
-	SCOPE_COPY_GLOBAL_NOTE = "On Global it replaces the shared set: every profile using Global gets it.",
 	POPUP_COPY_GLOBAL = "This change will apply to all profiles using the Global option. Do you wish to continue?",
 	SCOPE_GLOBAL_PENDING = "Uses the shared set: the copy replaces it when you save.",
 	SAVE_AND_EXIT = "Apply and Exit",
@@ -397,7 +343,6 @@ local EN23 = {
 local PT23 = {
 	SETGO_PAGE_DESC = "As definições do próprio SetGo!: a aba onde abre, o botão do minimapa, os sons e a tecla.",
 	SCOPE_COPY_DEFAULT = "Copiar de...",
-	SCOPE_COPY_GLOBAL_NOTE = "Em Global substitui o conjunto partilhado: todos os perfis que usam Global ficam com ele.",
 	POPUP_COPY_GLOBAL = "Esta alteração aplica-se a todos os perfis que usam a opção Global. Queres continuar?",
 	SCOPE_GLOBAL_PENDING = "Usa o conjunto partilhado: a cópia substitui-o quando guardares.",
 	SAVE_AND_EXIT = "Aplicar e sair",
@@ -423,14 +368,12 @@ local EN24 = {
 	WIZ_BACK = "Back",
 	WIZ_PRESET_TIP = "Click to apply this preset. You are asked first.",
 	RELOAD_LEGEND = "* These changes require a reload.",
-	IMPORT_PROFILE_DESC = "Paste a profile someone shared with you. It opens as a new profile; nothing is kept until you save.",
 }
 
 local PT24 = {
 	WIZ_BACK = "Voltar",
 	WIZ_PRESET_TIP = "Clica para aplicar este preset. Pergunta primeiro.",
 	RELOAD_LEGEND = "* Estas alterações obrigam a recarregar.",
-	IMPORT_PROFILE_DESC = "Cola um perfil que alguém partilhou contigo. Abre como um perfil novo; nada fica guardado até guardares.",
 }
 
 for key, value in pairs(EN24) do
@@ -454,8 +397,6 @@ local EN25 = {
 	SCOPE_BARS = "Bar Slots",
 	SHORT_BARS_COPIED = "Copied bar slots",
 	POPUP_EXPORT_PROFILE = "The profile \"%s\" as text: name, icon, layout, the action bars and Blizzard frames it shows, and its modules. Character settings, keybinds and bar slots stay with you. Copy it with Ctrl+C:",
-	IMPORT_REPLACE_DESC = "Paste a profile someone shared with you. It replaces this profile's layout, what it shows and its modules (its name stays); nothing is kept until you save.",
-	POPUP_IMPORT_REPLACE = "The imported profile replaces the layout, what it shows and the modules of \"%s\". Nothing is kept until you save. Continue?",
 	MSG_OLD_QUICK = "Quick! is now part of SetGo! (the Quick Menu). The SetGo_Quick folder in your AddOns is no longer used: you can delete it.",
 	TOUR_STEP = "%d of %d",
 	TOUR_BUTTON = "Show the tour",
@@ -470,8 +411,6 @@ local PT25 = {
 	SCOPE_BARS = "Conteúdo das barras",
 	SHORT_BARS_COPIED = "Conteúdo das barras copiado",
 	POPUP_EXPORT_PROFILE = "O perfil \"%s\" em texto: nome, ícone, layout, as barras de acção e janelas da Blizzard que mostra, e os módulos. As definições da personagem, os atalhos e o conteúdo das barras ficam contigo. Copia com Ctrl+C:",
-	IMPORT_REPLACE_DESC = "Cola um perfil que alguém partilhou contigo. Substitui o layout, o que mostra e os módulos deste perfil (o nome fica); nada fica guardado até guardares.",
-	POPUP_IMPORT_REPLACE = "O perfil importado substitui o layout, o que mostra e os módulos de \"%s\". Nada fica guardado até guardares. Continuar?",
 	MSG_OLD_QUICK = "O Quick! faz agora parte do SetGo! (o Menu rápido). A pasta SetGo_Quick nos teus AddOns já não é usada: podes apagá-la.",
 	TOUR_STEP = "%d de %d",
 	TOUR_BUTTON = "Ver o tour",
@@ -592,7 +531,6 @@ local EN32 = {
 	ADDON_VERSION = "Version %s",
 	ADDON_AUTHOR = "by %s",
 	ADDON_OUTDATED = "Out of date",
-	ADDON_CHILDREN = "%d addons that go with it. Its box switches them too.",
 	ADDON_PROFILE = "Profile: %s",
 	ADDON_MORE = "%s %d addons",
 	MSG_IMPORT_NO_LAYOUT = "The layout in this code doesn't load in this version of the game. Everything else was imported: pick a layout on the Layout tab.",
@@ -609,7 +547,6 @@ local PT32 = {
 	ADDON_VERSION = "Versão %s",
 	ADDON_AUTHOR = "por %s",
 	ADDON_OUTDATED = "Desactualizado",
-	ADDON_CHILDREN = "%d addons que vão com este. A caixa deste também os liga e desliga.",
 	ADDON_PROFILE = "Perfil: %s",
 	ADDON_MORE = "%s %d addons",
 	MSG_IMPORT_NO_LAYOUT = "O layout deste código não carrega nesta versão do jogo. O resto foi importado: escolhe um layout na aba Layout.",
@@ -646,11 +583,9 @@ local EN11 = {
 	GUIDE_LAYOUT = "Choose a layout, or create a new one.",
 	GUIDE_BARS = "Choose which action bars are visible in this layout.",
 	GUIDE_FRAMES = "Choose which Blizzard frames are visible.",
-	GUIDE_TO_SETTINGS = "Click Next to set up your settings.",
 	GUIDE_SETTINGS = "For each part, choose Global, one set shared by every profile set to Global, or Profile, a set of this profile's own.",
 	GUIDE_TO_MODULES = "Click Next to set up your modules.",
 	GUIDE_MODULES = "Choose which modules are active in this profile and set up their options.",
-	GUIDE_TO_ADDONS = "Click Next to set up your addons.",
 	GUIDE_ADDONS = "Choose which addons are active in this profile and which profile each one uses.",
 	TOUR_QUICK = "Click to open the Quick Menu. Right-click to switch between your favorite profiles. Shift+click to open SetGo!.",
 	TOUR_BUTTON_DESC = "Blizzard's help tips that walk you through making a profile, one at a time.",
@@ -678,11 +613,9 @@ local PT11 = {
 	GUIDE_LAYOUT = "Escolhe um layout, ou cria um novo.",
 	GUIDE_BARS = "Escolhe que barras de acção aparecem neste layout.",
 	GUIDE_FRAMES = "Escolhe que janelas da Blizzard aparecem.",
-	GUIDE_TO_SETTINGS = "Clica em Seguinte para configurares as definições.",
 	GUIDE_SETTINGS = "Para cada parte, escolhe Global, um conjunto partilhado por todos os perfis em Global, ou Perfil, um conjunto só deste perfil.",
 	GUIDE_TO_MODULES = "Clica em Seguinte para configurares os módulos.",
 	GUIDE_MODULES = "Escolhe que módulos ficam activos neste perfil e configura as opções de cada um.",
-	GUIDE_TO_ADDONS = "Clica em Seguinte para configurares os addons.",
 	GUIDE_ADDONS = "Escolhe que addons ficam activos neste perfil e que perfil usa cada um.",
 	TOUR_QUICK = "Clica para abrir o Quick Menu. Clique direito para trocar entre os teus perfis favoritos. Shift+clique para abrir o SetGo!.",
 	TOUR_BUTTON_DESC = "As dicas da Blizzard que te levam, uma a uma, pela criação de um perfil.",
@@ -809,6 +742,74 @@ for key, value in pairs(ENK) do
 end
 if GetLocale() == "ptBR" then
 	for key, value in pairs(PTK) do
+		L[key] = value
+	end
+end
+
+--------------------------------------------------------------------------------
+-- The new window (build 47): the profiles' column, + New's menu, the gear,
+-- the backup card and the form's three tabs
+--------------------------------------------------------------------------------
+
+local ENW = {
+	GEAR = "SetGo!",
+	GEAR_DESC = "SetGo!'s own options, the modules' pages (their keys and what a profile doesn't keep) and the backups.",
+	BACKUP_LAST = "Last: %s",
+	BACKUP_NONE_YET = "None made yet",
+	FORM_TAB_TWEAKS = "Interface Tweaks",
+	IN_USE = "In use",
+	YOUR_LAYOUTS = "Your layouts",
+	OTHER_ADDONS = "Other addons",
+	POPUP_NEW_NAME = "Name of the profile:",
+	POPUP_COPY_ALL = "Copy everything from %s? It replaces this profile's layout, bars, frames, modules, addons, character settings, keybinds and bar slots. Nothing is kept until you save.",
+	NP_COPY_ALL_DESC = "Everything from another profile, or from the game as it is now: the layout, bars and frames, the modules and addons, the character settings, keybinds and bar slots. You are asked first; nothing is kept until you save.",
+	RENAME_DESC = "Give the profile another name.",
+	MOD_FETCH_SHORT = "A bar of up to 12 buttons, each with a six slot flyout.",
+	MOD_LOOK_SHORT = "A key turns the mouse into camera control.",
+	MOD_SPEAK_SHORT = "A cleaner chat, in the style of the new interface.",
+	MOD_HIDE_SHORT = "Hides Blizzard frames, always or by condition.",
+	LAYOUT_OWN = "%s Layout",
+	SCOPE_PROFILE_NEW = "Profile: new",
+	SCOPE_PROFILE_COPY = "Profile: copy of %s",
+	LAYOUT_KEEP = "This profile's own layout",
+	LAYOUT_NEW = "New layout",
+	LAYOUT_NEW_FROM = "New layout from: %s",
+	LAYOUT_DD_DESC = "The Edit Mode layout this profile uses: one of Blizzard's, one of your account's, or a new one made from another (the profile keeps it as its own).",
+	BAR1_ALWAYS = "Action bar 1 is always shown.",
+}
+
+local PTW = {
+	GEAR = "SetGo!",
+	GEAR_DESC = "As opções do SetGo!, as páginas dos módulos (as teclas e o que um perfil não guarda) e os backups.",
+	BACKUP_LAST = "Último: %s",
+	BACKUP_NONE_YET = "Ainda nenhum",
+	FORM_TAB_TWEAKS = "Interface Tweaks",
+	IN_USE = "Em uso",
+	YOUR_LAYOUTS = "Os teus layouts",
+	OTHER_ADDONS = "Outros addons",
+	POPUP_NEW_NAME = "Nome do perfil:",
+	POPUP_COPY_ALL = "Copiar tudo de %s? Substitui o layout, as barras, as janelas, os módulos, os addons, as definições da personagem, os atalhos e o conteúdo das barras deste perfil. Nada fica guardado até guardares.",
+	NP_COPY_ALL_DESC = "Tudo de outro perfil, ou do jogo como está agora: o layout, as barras e as janelas, os módulos e os addons, as definições da personagem, os atalhos e o conteúdo das barras. Pergunta primeiro; nada fica guardado até guardares.",
+	RENAME_DESC = "Dar outro nome ao perfil.",
+	MOD_FETCH_SHORT = "Uma barra de até 12 botões, cada um com um menu de seis espaços.",
+	MOD_LOOK_SHORT = "Uma tecla põe o rato a controlar a câmara.",
+	MOD_SPEAK_SHORT = "Um chat mais limpo, no estilo da nova interface.",
+	MOD_HIDE_SHORT = "Esconde frames da Blizzard, sempre ou por condição.",
+	LAYOUT_OWN = "%s Layout",
+	SCOPE_PROFILE_NEW = "Perfil: novo",
+	SCOPE_PROFILE_COPY = "Perfil: cópia de %s",
+	LAYOUT_KEEP = "O layout próprio deste perfil",
+	LAYOUT_NEW = "Novo layout",
+	LAYOUT_NEW_FROM = "Novo layout a partir de: %s",
+	LAYOUT_DD_DESC = "O layout do Edit Mode que este perfil usa: um da Blizzard, um da tua conta, ou um novo feito a partir de outro (o perfil guarda-o como seu).",
+	BAR1_ALWAYS = "A barra de acção 1 está sempre visível.",
+}
+
+for key, value in pairs(ENW) do
+	L[key] = value
+end
+if GetLocale() == "ptBR" then
+	for key, value in pairs(PTW) do
 		L[key] = value
 	end
 end

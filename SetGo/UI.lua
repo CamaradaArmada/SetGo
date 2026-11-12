@@ -3,19 +3,24 @@ local L, W = ns.L, ns.Widgets
 local Try = ns.Try
 
 --------------------------------------------------------------------------------
--- The window: a book. Left page: three tabs (Profiles, Modules, SetGo!);
--- Profiles holds the player's profiles as cards, Modules a button per
--- module, SetGo! a list of pages. Right page: what is chosen (a profile's form is in
--- ProfileForm.lua).
+-- The window: Blizzard's portrait frame, as its collections. On the left a
+-- narrow column: the player's profiles as cards, + New (a menu: Blizzard's
+-- layouts, SetGo!'s presets, a copy, an import, an empty one), and the
+-- backup at the bottom. On the right, what is chosen: a profile (its form is
+-- in ProfileForm.lua: Layout, Addons, Interface Tweaks), or a page the gear
+-- opens (SetGo!'s, a module's, the backups).
 --------------------------------------------------------------------------------
 
-local FRAME_W, FRAME_H = 980, 640
-local TOP_BAR = 51
-local PAD = 46
-local PAD_TOP = 30
-local PAGE_W = (FRAME_W - 6) / 2
-local CW = PAGE_W - PAD * 2 - 24 -- content width on the right page
-local LW = PAGE_W - PAD * 2 -- content width on the left page
+local COL_W = 200 -- the profiles' column
+local PAGE_W = 538 -- the right panel
+local PANEL_H = 564
+local PANELS_TOP = 60 -- under the portrait, as Blizzard's insets
+local FRAME_W = 8 + COL_W + 6 + PAGE_W + 8
+local FRAME_H = PANELS_TOP + PANEL_H + 8
+local PAD = 14
+local PAD_TOP = 10
+local CW = PAGE_W - PAD * 2 - 24 -- content width on the right panel
+local LW = COL_W - 12 -- content width in the column
 
 local frame, book, leftPage, rightPage
 -- hiding it: keeping (combat, a Blizzard window: nothing asked, the place
@@ -27,7 +32,7 @@ local function HasChanges()
 	return (ns.FormHasChanges and ns.FormHasChanges()) or ns.CountStaged() > 0
 end
 
--- Esc belongs to something else first: a popup, the icon picker
+-- Esc belongs to something else first: a popup
 local function EscapeBusy()
 	if StaticPopup_Visible and StaticPopup_Visible("SETGO_UNSAVED") then
 		return true
@@ -38,8 +43,7 @@ local function EscapeBusy()
 			return true
 		end
 	end
-	local picker = _G.SetGoIconPicker
-	return picker and picker:IsShown() or false
+	return false
 end
 
 -- In combat SetGo! can't take Esc: the game's own list closes it then
@@ -174,50 +178,73 @@ local function PageTurn()
 	ns.Sound("IG_ABILITY_PAGE_TURN", 836)
 end
 
+-- a dark inset, as Blizzard's panels (its template where the client has it)
+local function Inset(parent)
+	local template = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("InsetFrameTemplate")
+		and "InsetFrameTemplate" or nil
+	local f = CreateFrame("Frame", nil, parent, template)
+	if not template then
+		local bg = f:CreateTexture(nil, "BACKGROUND")
+		bg:SetAllPoints()
+		bg:SetColorTexture(0.05, 0.04, 0.03, 0.9)
+	end
+	return f
+end
+
 local function CreateBook()
 	book = CreateFrame("Frame", nil, frame)
-	book:SetPoint("TOPLEFT", frame, "TOPLEFT", 3, -22)
-	book:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, 3)
+	book:SetAllPoints()
 
-	local top = book:CreateTexture(nil, "BACKGROUND", nil, 1)
-	if not Atlas(top, "spellbook-background-evergreen-header") then
-		top:SetColorTexture(0.18, 0.12, 0.07, 1)
-	end
-	top:SetPoint("TOPLEFT")
-	top:SetPoint("TOPRIGHT")
-	top:SetHeight(54)
-
-	local left = book:CreateTexture(nil, "BACKGROUND", nil, 1)
-	local right = book:CreateTexture(nil, "BACKGROUND", nil, 1)
-	if not (Atlas(left, "spellbook-background-evergreen-left") and Atlas(right, "spellbook-background-evergreen-right")) then
-		left:SetColorTexture(0.86, 0.79, 0.64, 1)
-		right:SetColorTexture(0.86, 0.79, 0.64, 1)
-	end
-	left:SetPoint("TOPLEFT", 0, -TOP_BAR)
-	left:SetPoint("BOTTOMRIGHT", book, "BOTTOM")
-	right:SetPoint("TOPLEFT", book, "TOP", 0, -TOP_BAR)
-	right:SetPoint("BOTTOMRIGHT")
-
-	-- back to the first page, right side of the banner
-	book.home = W.IconButton(book, 30, {
-		normal = "gamepad-switch-128x-home-normal",
-		hover = "gamepad-switch-128x-home-hover",
-		pressed = "gamepad-switch-128x-home-pressed",
-	}, L.HOME_SHORT, function()
-		ns.GoHome()
-	end)
-	book.home:SetPoint("RIGHT", book, "TOPRIGHT", -20, -26)
-	W.TipScripts(book.home, L.HOME, L.HOME_DESC)
+	-- what is open, in the band next to the portrait
 	book.crumb = book:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	-- clear of the portrait in the window's corner
-	book.crumb:SetPoint("LEFT", book, "TOPLEFT", 64, -26)
+	book.crumb:SetPoint("LEFT", book, "TOPLEFT", 70, -40)
+	-- the old Home button, kept for the code that hides it
+	book.home = CreateFrame("Frame", nil, book)
+	book.home:Hide()
+
+	-- the gear: SetGo!'s page, the modules' pages, the backups
+	book.gear = CreateFrame("Button", nil, book)
+	book.gear:SetSize(26, 26)
+	book.gear:SetPoint("RIGHT", book, "TOPRIGHT", -14, -40)
+	book.gear.icon = book.gear:CreateTexture(nil, "ARTWORK")
+	book.gear.icon:SetAllPoints()
+	book.gear.icon:SetTexture(ns.ICON)
+	book.gear.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	book.gear:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+	book.gear:SetScript("OnClick", function(self)
+		ns.GearMenu(self)
+	end)
+	W.TipScripts(book.gear, L.GEAR, L.GEAR_DESC)
+
+	-- the column: a plain dark ground, see-through
+	local left = CreateFrame("Frame", nil, book)
+	left:SetPoint("TOPLEFT", 8, -PANELS_TOP)
+	left:SetSize(COL_W, PANEL_H)
+	local shade = left:CreateTexture(nil, "BACKGROUND")
+	shade:SetAllPoints()
+	shade:SetColorTexture(0, 0, 0, 0.45)
+	-- the right: the collections' ground (stone, shadowed corners), as the
+	-- transmog's; else an inset
+	local right
+	if C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("CollectionsBackgroundTemplate") then
+		right = CreateFrame("Frame", nil, book, "CollectionsBackgroundTemplate")
+	else
+		right = Inset(book)
+	end
+	right:ClearAllPoints()
+	right:SetPoint("TOPLEFT", left, "TOPRIGHT", 6, 0)
+	right:SetSize(PAGE_W, PANEL_H)
+	-- the stone and its shadows, without the ornaments in the corners
+	for _, key in ipairs({ "BGCornerTopLeft", "BGCornerTopRight", "BGCornerBottomLeft", "BGCornerBottomRight" }) do
+		if right[key] then
+			right[key]:Hide()
+		end
+	end
 
 	leftPage = CreateFrame("Frame", nil, book)
-	leftPage:SetPoint("TOPLEFT", 0, -TOP_BAR)
-	leftPage:SetPoint("BOTTOMRIGHT", book, "BOTTOM")
+	leftPage:SetAllPoints(left)
 	rightPage = CreateFrame("Frame", nil, book)
-	rightPage:SetPoint("TOPLEFT", book, "TOP", 0, -TOP_BAR)
-	rightPage:SetPoint("BOTTOMRIGHT")
+	rightPage:SetAllPoints(right)
 	U.frame, U.leftPage, U.rightPage = frame, leftPage, rightPage
 end
 
@@ -350,7 +377,6 @@ end
 --------------------------------------------------------------------------------
 
 local TAB_H, ROW_H = 26, 22
-local LIST_TOP = PAD_TOP + TAB_H + 16
 
 -- what the Modules and SetGo! tabs list; group = the right page
 local function Entries(tab)
@@ -372,7 +398,7 @@ end
 
 -- the tab a group lives in
 local TAB_OF = {
-	newpreset = "presets", modules = "modules", setgo = "settings",
+	newpreset = "presets", modules = "modules", setgo = "settings", settings = "settings",
 }
 
 -- groups paged with the arrows (none now: the game's option pages are
@@ -435,36 +461,13 @@ local function Rule(parent, x, y, width)
 	return rule
 end
 
-local rows = {}
-
-local function Row(i)
-	if rows[i] then
-		return rows[i]
-	end
-	local b = CreateFrame("Button", nil, leftPage.nav)
-	b:SetSize(LW, ROW_H)
-	b.text = W.Text(b, W.FONT_BODY, LW - 30, "")
-	b.text:SetPoint("LEFT", 10, 0)
-	local hl = b:CreateTexture(nil, "HIGHLIGHT")
-	hl:SetAllPoints()
-	local r, g, bl = W.Ink()
-	hl:SetColorTexture(r, g, bl, 0.12)
-	b.mark = b:CreateTexture(nil, "ARTWORK")
-	b.mark:SetSize(3, 16)
-	b.mark:SetPoint("LEFT", 2, 0)
-	b.mark:SetColorTexture(r, g, bl, 0.9)
-	rows[i] = b
-	return b
-end
-
 --------------------------------------------------------------------------------
--- Profile cards: as many as fit on the page (ns.MAX_PROFILES), like Edit
--- Mode's layouts: the player's profiles in their order, + New profile on
--- the first free one, the rest empty. The one this character uses is
--- marked; the one open on the right page is highlighted.
+-- Profile cards, in the column: the player's profiles in their order (up to
+-- ns.MAX_PROFILES), then + New while there is room. The one this character
+-- uses is marked; the one open on the right is highlighted.
 --------------------------------------------------------------------------------
 
-local OPTION_H, GAP = 68, 4
+local OPTION_H, GAP = 52, 4 -- the character select card, scaled
 local SLOT_W = LW
 local slots = { options = {} }
 
@@ -485,6 +488,9 @@ local function SlotTip(b)
 		GameTooltip:SetText(name, 1, 1, 1)
 		if b.active then
 			GameTooltip:AddLine(L.SLOT_IN_USE, 0.4, 0.8, 0.4, true)
+		end
+		if b.datesText and b.datesText ~= "" then
+			GameTooltip:AddLine(b.datesText, 0.8, 0.8, 0.8, true)
 		end
 		GameTooltip:AddLine(L.PRESET_OPEN_DESC, nil, nil, nil, true)
 		GameTooltip:AddLine(L.SLOT_MENU_HINT, 0.6, 0.6, 0.6, true)
@@ -558,20 +564,131 @@ local function RoundIcon(parent, size)
 end
 ns.RoundIcon = RoundIcon
 
+-- The cards of Blizzard's character select: its ground, the hover, the
+-- selected frame and the empty card (+ New); scaled to the column
+local CARD_ART = {
+	normal = "glues-characterselect-card-singles",
+	hover = "glues-characterselect-card-singles-hover",
+	selected = "glues-characterselect-card-selected",
+	empty = "glues-characterselect-card-empty",
+	emptyHover = "glues-characterselect-card-empty-hover",
+	move = "glues-characterselect-button-card",
+	movePressed = "glues-characterselect-button-card-pressed",
+	moveHover = "glues-characterselect-button-card-hover",
+	moveUpOff = "glues-characterSelect-button-card-up-disabled",
+	moveDownOff = "glues-characterselect-button-card-down-disabled",
+	-- the arrow drawn over the button
+	arrowUp = "glues-characterselect-icon-arrowup",
+	arrowDown = "glues-characterselect-icon-arrowdown",
+}
+
+local function CardArt(b)
+	b.ground = b:CreateTexture(nil, "BACKGROUND")
+	b.ground:SetAllPoints()
+	if not Atlas(b.ground, CARD_ART.normal) then
+		b.ground:SetColorTexture(0.1, 0.08, 0.06, 0.9)
+	end
+	-- the hover under the text (the art is opaque: on the highlight layer it
+	-- would cover the name)
+	b.hover = b:CreateTexture(nil, "BACKGROUND", nil, 1)
+	b.hover:SetAllPoints()
+	if not Atlas(b.hover, CARD_ART.hover) then
+		b.hover:SetColorTexture(1, 1, 1, 0.08)
+	end
+	b.hover:Hide()
+	b:HookScript("OnEnter", function(self)
+		self.hover:Show()
+	end)
+	b:HookScript("OnLeave", function(self)
+		self.hover:Hide()
+	end)
+	b.selected = b:CreateTexture(nil, "BACKGROUND", nil, 2)
+	b.selected:SetAllPoints()
+	if not Atlas(b.selected, CARD_ART.selected) then
+		b.selected:SetColorTexture(1, 0.82, 0, 0.15)
+	end
+	b.selected:Hide()
+	-- empty (+ New) or a profile's
+	function b:SetEmpty(empty)
+		if empty then
+			if not Atlas(self.ground, CARD_ART.empty) then
+				self.ground:SetColorTexture(0.05, 0.05, 0.05, 0.6)
+			end
+			Atlas(self.hover, CARD_ART.emptyHover)
+		else
+			if not Atlas(self.ground, CARD_ART.normal) then
+				self.ground:SetColorTexture(0.1, 0.08, 0.06, 0.9)
+			end
+			Atlas(self.hover, CARD_ART.hover)
+		end
+	end
+end
+
+-- the character select's move buttons: its box, its arrow over it, inside
+-- the card's border. Disabled: the same, greyed (Blizzard's disabled art is
+-- another size). Else Blizzard's plain arrows.
+local function MoveButton(parent, down, onClick)
+	local a = CreateFrame("Button", nil, parent)
+	a:SetSize(21, 21)
+	local function Tex(layer, atlas, sub)
+		local t = a:CreateTexture(nil, layer, nil, sub)
+		t:SetAllPoints()
+		if Atlas(t, atlas) then
+			return t
+		end
+		t:Hide()
+	end
+	local box = Tex("ARTWORK", CARD_ART.move, 0)
+	local pressed = Tex("ARTWORK", CARD_ART.movePressed, 0)
+	if pressed then
+		pressed:Hide()
+	end
+	local hover = Tex("HIGHLIGHT", CARD_ART.moveHover)
+	local base = down and "glues-characterselect-icon-arrowdown" or "glues-characterselect-icon-arrowup"
+	local arrow = a:CreateTexture(nil, "ARTWORK", nil, 2)
+	arrow:SetSize(15, 15)
+	arrow:SetPoint("CENTER")
+	if not Atlas(arrow, base) then
+		arrow:SetTexture(down and "Interface\\Buttons\\Arrow-Down-Up" or "Interface\\Buttons\\Arrow-Up-Up")
+	end
+	if not hover then
+		a:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	end
+	if box and pressed then
+		a:SetScript("OnMouseDown", function(self)
+			if self:IsEnabled() then
+				box:Hide()
+				pressed:Show()
+			end
+		end)
+		a:SetScript("OnMouseUp", function()
+			pressed:Hide()
+			box:Show()
+		end)
+	end
+	hooksecurefunc(a, "SetEnabled", function(self, on)
+		for _, t in ipairs({ box, arrow }) do
+			if t then
+				t:SetDesaturated(not on)
+				t:SetAlpha(on and 1 or 0.4)
+			end
+		end
+	end)
+	a:SetScript("OnClick", onClick)
+	return a
+end
+
 local function SlotButton(parent)
 	local b = CreateFrame("Button", nil, parent)
 	b.kind = "options"
 	b:SetSize(SLOT_W, OPTION_H)
 	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-	Card(b)
-	-- a profile: its icon (round), the favourite star and the name on one
-	-- line, the dates under them; the book's page arrows to order the list
-	local size = OPTION_H - 10
-	b.icon = RoundIcon(b, size)
-	b.icon:SetPoint("LEFT", 8, 0)
+	CardArt(b)
+	-- a profile: the favourite star and its name, In use under it; the
+	-- move buttons on the right order the list
 	b.star = CreateFrame("Button", nil, b)
-	b.star:SetSize(18, 18)
-	b.star:SetPoint("TOPLEFT", b.icon, "TOPRIGHT", 10, -8)
+	b.star:SetSize(16, 16)
+	b.star:SetPoint("LEFT", 12, 0)
 	b.star.tex = b.star:CreateTexture(nil, "ARTWORK")
 	b.star.tex:SetAllPoints()
 	b.star:SetScript("OnClick", function()
@@ -582,46 +699,53 @@ local function SlotButton(parent)
 		end
 	end)
 	W.TipScripts(b.star, L.FAVORITE, L.FAVORITE_DESC)
-	local textW = SLOT_W - size - 70
-	b.name = W.Text(b, W.FONT_HEADER, textW - 24, "")
-	b.name:SetPoint("LEFT", b.star, "RIGHT", 4, 0)
+	b.name = W.Text(b, W.FONT_BODY, SLOT_W - 12 - 16 - 6 - 40, "")
+	b.name:SetPoint("LEFT", b.star, "RIGHT", 6, 0)
 	Try(b.name.SetWordWrap, b.name, false)
-	b.dates = W.Text(b, W.FONT_SMALL, textW, "", 0.75)
-	b.dates:SetPoint("TOPLEFT", b.star, "BOTTOMLEFT", 0, -8)
-	Try(b.dates.SetWordWrap, b.dates, false)
-	b.new = W.Text(b, W.FONT_HEADER, SLOT_W - 20, "", 0.6)
+	b.use = W.Text(b, W.FONT_SMALL, SLOT_W - 70, L.IN_USE)
+	b.use:SetTextColor(0.4, 0.85, 0.4)
+	b.use:SetPoint("TOPLEFT", b.name, "BOTTOMLEFT", 0, -2)
+	b.new = W.Text(b, W.FONT_BODY, SLOT_W - 20, "", 0.8)
 	b.new:SetJustifyH("CENTER")
 	b.new:SetPoint("CENTER")
-	-- the spellbook's page arrows, turned to point up and down
-	local function Arrow(dir, delta)
-		local a = W.PageArrow(b, dir, function()
-			if b.profile and ns.MoveProfile(b.profile, delta) then
-				ns.Refresh()
-			end
-		end)
-		for _, get in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture", "GetHighlightTexture" }) do
-			local t = a[get] and a[get](a)
-			if t and t.SetRotation then
-				t:SetRotation(-math.pi / 2)
-			end
+	b.up = MoveButton(b, false, function()
+		if b.profile and ns.MoveProfile(b.profile, -1) then
+			ns.Refresh()
 		end
-		return a
-	end
-	b.up = Arrow("Prev", -1)
-	b.up:SetPoint("TOPRIGHT", -4, -2)
-	b.down = Arrow("Next", 1)
-	b.down:SetPoint("BOTTOMRIGHT", -4, 2)
+	end)
+	b.up:SetPoint("RIGHT", b, "RIGHT", -10, 11)
+	b.down = MoveButton(b, true, function()
+		if b.profile and ns.MoveProfile(b.profile, 1) then
+			ns.Refresh()
+		end
+	end)
+	b.down:SetPoint("RIGHT", b, "RIGHT", -10, -11)
+
+	-- drag a profile to another place in the list
+	b:RegisterForDrag("LeftButton")
+	b:SetScript("OnDragStart", function(self)
+		if self.profile then
+			ns.StartProfileDrag(self)
+		end
+	end)
+	b:SetScript("OnDragStop", function(self)
+		ns.StopProfileDrag(self)
+	end)
 
 	b:SetScript("OnClick", function(self, button)
 		GameTooltip:Hide()
 		if button == "RightButton" then
 			ns.SlotMenu(self)
+		elseif not self.profile then
+			-- + New: its name, then its form (its layout, a preset or a copy
+			-- are picked on its tabs)
+			ns.AskNewProfile()
 		else
 			ns.SlotClick(self.kind, self.profile)
 		end
 	end)
-	b:SetScript("OnEnter", SlotTip)
-	b:SetScript("OnLeave", function()
+	b:HookScript("OnEnter", SlotTip)
+	b:HookScript("OnLeave", function()
 		GameTooltip:Hide()
 	end)
 	return b
@@ -644,229 +768,195 @@ local function FillSlots()
 	local names = ns.ProfileSlots()
 	local store = ns.db.profiles
 	local active = ns.ActivePreset()
-	-- the one open on the right page
+	-- the one open on the right
 	local chosen = ns.creating and ns.creating.edit or nil
 	local full = #names >= ns.MAX_PROFILES
-	for i = 1, math.max(#names, ns.MAX_PROFILES) do
+	for i = 1, math.max(#names + 1, #slots.options) do
 		local b = Slot(i)
 		local name = names[i]
 		b.profile = name
 		b.active = name ~= nil and name == active
 		if name then
 			local p = type(store[name]) == "table" and store[name] or {}
+			b:SetEmpty(false)
 			b.name:SetText(name)
+			-- In use under the name: the name moves up to make room
+			b.name:ClearAllPoints()
+			b.name:SetPoint(b.active and "BOTTOMLEFT" or "LEFT", b.star, b.active and "RIGHT" or "RIGHT", 6, b.active and 1 or 0)
+			b.use:SetShown(b.active)
 			local created, saved = Stamp(p.created), Stamp(p.saved, true)
 			if created and saved then
-				b.dates:SetText(L.SLOT_DATES:format(created, saved))
+				b.datesText = L.SLOT_DATES:format(created, saved)
 			else
-				b.dates:SetText(created or saved or "")
+				b.datesText = created or saved or ""
 			end
 			b.name:Show()
-			b.dates:Show()
 			b.new:Hide()
-			b.icon:SetTexture(p.icon or 134400)
-			b.icon:SetRoundShown(true)
-			-- the star in blue: the yellow one is hard to see on the page
 			if not Atlas(b.star.tex, "auctionhouse-icon-favorite") then
 				b.star.tex:SetTexture("Interface\\Common\\ReputationStar")
 				b.star.tex:SetTexCoord(0, 0.5, 0, 0.5)
 			end
-			Try(b.star.tex.SetDesaturated, b.star.tex, true)
+			Try(b.star.tex.SetDesaturated, b.star.tex, not p.favorite)
 			if p.favorite then
-				b.star.tex:SetVertexColor(0.3, 0.6, 1)
+				b.star.tex:SetVertexColor(1, 1, 1)
 				b.star.tex:SetAlpha(1)
 			else
-				b.star.tex:SetVertexColor(0.45, 0.4, 0.35)
-				b.star.tex:SetAlpha(0.45)
+				b.star.tex:SetVertexColor(0.6, 0.6, 0.6)
+				b.star.tex:SetAlpha(0.4)
 			end
 			b.star:Show()
 			b.up:Show()
 			b.down:Show()
 			b.up:SetEnabled(i > 1)
 			b.down:SetEnabled(i < #names)
-			b:Look(name == chosen and 0.16 or 0.07, name == chosen and 0.8 or 0.35, b.active)
-			b:SetEnabled(true)
+			b.selected:SetShown(name == chosen)
 			b:Show()
 		elseif i == #names + 1 and not full then
-			-- the first free card makes a new one; the rest stay hidden
+			-- + New: a menu of what the new one starts from
+			b.datesText = nil
 			local making = ns.creating ~= nil and not ns.creating.edit
+			b:SetEmpty(true)
+			b.use:Hide()
 			b.name:Hide()
-			b.dates:Hide()
-			b.icon:SetRoundShown(false)
 			b.star:Hide()
 			b.up:Hide()
 			b.down:Hide()
 			b.new:SetText("+  " .. L.NEW_PRESET)
 			b.new:Show()
-			b:Look(making and 0.16 or 0.03, making and 0.8 or 0.2, false)
-			b:SetEnabled(true)
+			b.selected:SetShown(making)
 			b:Show()
 		else
-			-- an empty slot
-			b.name:Hide()
-			b.dates:Hide()
-			b.icon:SetRoundShown(false)
-			b.star:Hide()
-			b.up:Hide()
-			b.down:Hide()
-			b.new:Hide()
-			b:Look(0.01, 0.12, false)
-			-- a free slot: a new profile, or right click to import one
-			b:SetEnabled(true)
-			b:Show()
+			b:Hide()
 		end
 	end
 end
 
-local function RefreshList()
-	local nav = leftPage.nav
-	for tab, t in pairs(nav.tabs) do
-		t:SetOn(tab == state.tab)
+-- Dragging a profile: the card fades, a gold line shows where it goes, and
+-- it is moved there when dropped
+local drag
+
+local function DropIndex()
+	local list = leftPage.nav.optionsList
+	local names = ns.ProfileSlots()
+	local top = list:GetTop()
+	if not (top and drag) then
+		return drag and drag.from
 	end
-	local presets = state.tab == "presets"
-	local modules = state.tab == "modules"
-	nav.presetsBox:SetShown(presets)
-	nav.modulesBox:SetShown(modules)
-	if presets then
-		FillSlots()
-	elseif modules then
-		ns.RefreshModuleButtons()
-	end
-	local n = 0
-	if not (presets or modules) then
-		local y = LIST_TOP
-		for _, entry in ipairs(Entries(state.tab)) do
-			local open = entry.group == state.group and (not entry.index or entry.index == state.index)
-			n = n + 1
-			local b = Row(n)
-			b:ClearAllPoints()
-			b:SetPoint("TOPLEFT", nav, "TOPLEFT", PAD, -y)
-			b.text:SetText(entry.label)
-			b.text:SetAlpha(open and 1 or 0.7)
-			b.mark:SetShown(open)
-			b:SetScript("OnClick", function()
-				ns.Select(entry.group, entry.index)
-			end)
-			b:Show()
-			y = y + ROW_H + 2
+	local _, cy = GetCursorPosition()
+	local rel = top - cy / list:GetEffectiveScale()
+	local i = math.floor(rel / (OPTION_H + GAP)) + 1
+	return math.max(1, math.min(#names, i))
+end
+
+function ns.StartProfileDrag(b)
+	local list = leftPage.nav.optionsList
+	local from
+	for i, name in ipairs(ns.ProfileSlots()) do
+		if name == b.profile then
+			from = i
 		end
 	end
-	for i = n + 1, #rows do
-		rows[i]:Hide()
+	if not from then
+		return
 	end
+	GameTooltip:Hide()
+	drag = { card = b, from = from }
+	if not list.dropLine then
+		list.dropLine = list:CreateTexture(nil, "OVERLAY")
+		list.dropLine:SetHeight(2)
+		list.dropLine:SetColorTexture(1, 0.82, 0, 1)
+	end
+	b:SetAlpha(0.5)
+	b:SetScript("OnUpdate", function()
+		local to = DropIndex()
+		local line = list.dropLine
+		line:ClearAllPoints()
+		-- over the card it goes before, under the one it goes after
+		local edge = to > drag.from and to or to - 1
+		local y = -(edge * (OPTION_H + GAP) - GAP / 2)
+		line:SetPoint("TOPLEFT", list, "TOPLEFT", 0, y + 1)
+		line:SetPoint("TOPRIGHT", list, "TOPLEFT", SLOT_W, y + 1)
+		line:SetShown(to ~= drag.from)
+	end)
+end
+
+function ns.StopProfileDrag(b)
+	b:SetScript("OnUpdate", nil)
+	b:SetAlpha(1)
+	local list = leftPage.nav.optionsList
+	if list.dropLine then
+		list.dropLine:Hide()
+	end
+	if not drag then
+		return
+	end
+	local to, from, name = DropIndex(), drag.from, drag.card.profile
+	drag = nil
+	if to and name and to ~= from then
+		local step = to > from and 1 or -1
+		for _ = 1, math.abs(to - from) do
+			ns.MoveProfile(name, step)
+		end
+		ns.Refresh()
+	end
+end
+
+-- the backup card at the bottom of the column: when the last one was made
+local function FillBackup()
+	local card = leftPage.nav.backup
+	if not card then
+		return
+	end
+	local list = ns.Backups and ns.Backups() or {}
+	local last = list[1] and list[1].at
+	card.when:SetText(last and L.BACKUP_LAST:format(date("%d/%m/%Y", last)) or L.BACKUP_NONE_YET)
+	local open = state.group == "setgo" and state.index == 3 and not ns.creating
+	card.selected:SetShown(open)
+end
+
+local function RefreshList()
+	FillSlots()
+	FillBackup()
 end
 
 local function CreateNav()
 	local nav = CreateFrame("Frame", nil, leftPage)
 	nav:SetAllPoints()
 	nav.refreshers = {}
+	nav.tabs = {}
+	nav.moduleButtons = {}
 	leftPage.nav = nav
 
-	nav.tabs = {}
-	local list = {}
-	for _, tab in ipairs(ns.TABS) do
-		local t = MakeTab(nav, L["TAB_" .. tab:upper()], 60, function()
-			ns.SelectTab(tab)
-		end)
-		nav.tabs[tab] = t
-		list[#list + 1] = t
-	end
-	PlaceTabs(nav, list, PAD, PAD_TOP, LW)
-	Rule(nav, PAD, PAD_TOP + TAB_H + 1, LW)
-
-	local box = CreateFrame("Frame", nil, nav)
-	box:SetPoint("TOPLEFT", PAD, -LIST_TOP)
-	box:SetSize(LW, 470)
-	nav.presetsBox = box
-	local y = W.Header(box, 0, LW, L.YOUR_PRESETS)
-	local cards = CreateFrame("Frame", nil, box)
-	cards:SetPoint("TOPLEFT", 0, -y)
-	cards:SetSize(SLOT_W, ns.MAX_PROFILES * (OPTION_H + GAP))
+	-- no title of its own: the band next to the portrait says Profiles
+	local cards = CreateFrame("Frame", nil, nav)
+	cards:SetPoint("TOPLEFT", 6, -6)
+	cards:SetSize(SLOT_W, (ns.MAX_PROFILES + 1) * (OPTION_H + GAP))
 	nav.optionsList = cards
 
-	-- Modules: a big button per module (its picture, name and a few words),
-	-- with its switch on the right; the button opens its options
-	-- in a list that scrolls (mouse wheel or the bar) when they don't fit
-	local scrollTemplate = C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo("ScrollFrameTemplate")
-		and "ScrollFrameTemplate" or "UIPanelScrollFrameTemplate"
-	local mbox = CreateFrame("Frame", nil, nav)
-	mbox:SetPoint("TOPLEFT", PAD, -LIST_TOP)
-	mbox:SetSize(LW, 468)
-	nav.modulesBox = mbox
-	local BW = LW - 22 -- room for the scroll bar
-	local mscroll = CreateFrame("ScrollFrame", nil, mbox, scrollTemplate)
-	mscroll:SetPoint("TOPLEFT")
-	mscroll:SetSize(BW, 468)
-	if mscroll.ScrollBar and mscroll.ScrollBar.SetHideIfUnscrollable then
-		mscroll.ScrollBar:SetHideIfUnscrollable(true)
-	end
-	local mlist = CreateFrame("Frame", nil, mscroll)
-	mlist:SetSize(BW, 10)
-	mscroll:SetScrollChild(mlist)
-	nav.moduleButtons = {}
-	local MOD_H, PIC = 112, 72
-	local y = 0
-	for _, m in ipairs(ns.KNOWN_MODULES) do
-		if ns.AddonInstalled(m.addon) then
-			local b = CreateFrame("Button", nil, mlist)
-			b:SetSize(BW, MOD_H)
-			b:SetPoint("TOPLEFT", 0, -y)
-			Card(b)
-			b.key = m.key
-			-- its icon (the one its .toc gives the addon list), round
-			b.pic = RoundIcon(b, PIC)
-			b.pic:SetPoint("LEFT", 16, 0)
-			b.pic:SetTexture(ns.ModuleIcon(m.addon))
-			-- clear of the switch on the right
-			local textW = BW - 16 - PIC - 12 - 48
-			b.title = W.Text(b, W.FONT_HEADER, textW, L[m.title])
-			b.title:SetPoint("TOPLEFT", b.pic, "TOPRIGHT", 12, -6)
-			b.desc = W.Text(b, W.FONT_SMALL, textW, L[m.desc], 0.8)
-			b.desc:SetPoint("TOPLEFT", b.title, "BOTTOMLEFT", 0, -6)
-			Try(b.desc.SetMaxLines, b.desc, 4)
-			b.on = CreateFrame("CheckButton", nil, b, "UICheckButtonTemplate")
-			b.on:SetSize(26, 26)
-			b.on:SetPoint("RIGHT", -10, 0)
-			W.TipScripts(b.on, L[m.title], L.MODULE_SWITCH_DESC)
-			b.on:SetScript("OnClick", function(self)
-				ns.Sound("IG_MAINMENU_OPTION_CHECKBOX_ON", 856)
-				ns.SetModuleOn(m.key, self:GetChecked() and true or false)
-				ns.OnModuleToggled()
-				ns.Refresh()
-			end)
-			b:SetScript("OnClick", function()
-				for i, page in ipairs(ns.BuildPath("modules")) do
-					if page.key == "module_" .. m.key then
-						ns.Select("modules", i)
-						return
-					end
-				end
-			end)
-			nav.moduleButtons[#nav.moduleButtons + 1] = b
-			y = y + MOD_H + 8
-		end
-	end
-	mlist:SetHeight(math.max(y - 8, 10))
-	if #nav.moduleButtons == 0 then
-		local note = W.Text(mbox, W.FONT_BODY, LW, L.NO_MODULES, 0.8)
-		note:SetPoint("TOPLEFT")
-	end
+	-- the backups, at the bottom: when the last one was made
+	local card = CreateFrame("Button", nil, nav)
+	card:SetSize(SLOT_W, OPTION_H)
+	card:SetPoint("BOTTOMLEFT", 6, 6)
+	CardArt(card)
+	card.title = W.Text(card, W.FONT_BODY, SLOT_W - 20, L.BACKUP_TITLE)
+	card.title:SetPoint("BOTTOMLEFT", card, "LEFT", 14, 1)
+	card.when = W.Text(card, W.FONT_SMALL, SLOT_W - 20, "", 0.8)
+	card.when:SetPoint("TOPLEFT", card.title, "BOTTOMLEFT", 0, -3)
+	card:SetScript("OnClick", function()
+		ns.LeaveForm(function()
+			ns.Select("setgo", 3)
+		end)
+	end)
+	W.TipScripts(card, L.BACKUP_TITLE, L.BACKUP_NOTE, true)
+	nav.backup = card
 end
 
--- the module buttons: on or off, and the one open on the right page
-function ns.RefreshModuleButtons()
-	local nav = leftPage and leftPage.nav
-	if not nav then
-		return
-	end
-	local page = state.group == "modules" and state.pages and state.pages[state.index]
-	for _, b in ipairs(nav.moduleButtons) do
-		b.on:SetChecked(ns.ModuleOn(b.key))
-		local open = page and page.key == "module_" .. b.key
-		b:Look(open and 0.16 or 0.06, open and 0.8 or 0.35, open)
-	end
+-- The gear: SetGo!'s settings page (Settings.lua), on the right
+function ns.GearMenu()
+	ns.LeaveForm(function()
+		ns.Select("settings")
+	end)
 end
-
 
 --------------------------------------------------------------------------------
 -- Right page: title (with the page arrows and Defaults on its line),
@@ -1123,9 +1213,15 @@ local GROUP_NAMES = {
 	modules = "MODULES", setgo = "SETGO_TITLE",
 }
 
+-- the gear's pages: their own name in the band
+local function PageName()
+	local page = state.pages and state.index and state.pages[state.index]
+	return page and page.title
+end
+
 -- the right page's own frames, one per mode
-local MODES = { "pages", "newpreset" }
-local SPECIAL = { newpreset = true }
+local MODES = { "pages", "newpreset", "settings" }
+local SPECIAL = { newpreset = true, settings = true }
 
 -- the profile form shows on the right page (any of its tabs)
 local function OnForm()
@@ -1135,8 +1231,14 @@ ns.OnForm = OnForm
 
 local function Crumb()
 	local group = state.group
-	if OnForm() and ns.creating then
-		return ns.creating.edit and L.CRUMB_PRESET:format(ns.creating.edit) or L.NEW_PRESET
+	if OnForm() then
+		return L.YOUR_PRESETS
+	end
+	if group == "settings" then
+		return ns.SETTINGS_L and ns.SETTINGS_L.TITLE or L.SETGO_TITLE
+	end
+	if PageName() then
+		return PageName()
 	end
 	return L[GROUP_NAMES[group]] or L.ADDON
 end
@@ -1148,7 +1250,7 @@ local function SyncDraft()
 	local f = ns.form
 	local open = frame and frame:IsShown() and ns.creating and f
 	ns.optionsDraft = nil
-	if open and state.group == "newpreset" and f.tab == "modules" and f.customModules then
+	if open and state.group == "newpreset" and f.tab == "addons" and f.customModules then
 		if ns.ModuleVars and not ns.moduleVars then
 			ns.ModuleVars()
 		end
@@ -1231,6 +1333,8 @@ function ns.Refresh()
 		Refreshers(state.current.refreshers)
 	elseif state.mode == "newpreset" then
 		ns.RefreshNewPreset()
+	elseif state.mode == "settings" and ns.RefreshSettingsPage then
+		ns.RefreshSettingsPage()
 	end
 	book.crumb:SetText(Crumb())
 	UpdateChrome()
@@ -1363,16 +1467,16 @@ end
 -- the first page of the book: the tab SetGo! opens on (Profiles unless the
 -- player chose another)
 function ns.GoHome(quiet)
-	ns.SelectTab(ns.DefaultTab and ns.DefaultTab() or "presets")
+	ns.SelectTab("presets")
 end
 
 --------------------------------------------------------------------------------
 -- Profiles: open, rename, copy, export, delete
 --------------------------------------------------------------------------------
 
-local function AskName(text, onName)
+local function AskName(text, onName, default)
 	C_Timer.After(0, function()
-		Popup("SETGO_NAME", text, { onName = onName })
+		Popup("SETGO_NAME", text, { onName = onName, default = default })
 	end)
 end
 
@@ -1414,6 +1518,48 @@ local function Rename(old)
 				ns.OpenForm(new)
 			end
 			ns.Refresh()
+		end, old)
+	end
+	Ask()
+end
+
+-- Rename, from the header: a profile of the list now; a new one (not saved
+-- yet) gets the name on its form
+function ns.AskRename()
+	local edit = ns.creating and ns.creating.edit
+	if edit then
+		Rename(edit)
+		return
+	end
+	local function Ask()
+		AskName(L.POPUP_NEW_NAME, function(name)
+			if not FreeName(ns.db.profiles, name, Ask) then
+				return
+			end
+			ns.SetFormName(name)
+		end, ns.FormName and ns.FormName() or nil)
+	end
+	Ask()
+end
+
+-- + New: its name first (as a new macro), then its form
+function ns.AskNewProfile()
+	if ns.ProfilesFull() then
+		ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
+		return
+	end
+	local function Ask()
+		AskName(L.POPUP_NEW_NAME, function(name)
+			if not FreeName(ns.db.profiles, name, Ask) then
+				return
+			end
+			ns.LeaveForm(function()
+				ns.OpenForm(nil)
+			end)
+			if ns.FormStartEmpty then
+				ns.FormStartEmpty()
+			end
+			ns.SetFormName(name)
 		end)
 	end
 	Ask()
@@ -1451,31 +1597,15 @@ function ns.SlotMenu(b)
 	MenuUtil.CreateContextMenu(b, function(_, root)
 		local name = b.profile
 		if name then
-			local p = ns.db.profiles[name]
+			-- Rename, Delete, then Export (what goes too, off until ticked)
 			root:CreateTitle(name)
-			root:CreateButton(L.PRESET_APPLY, function()
-				ns.ConfirmApply(name)
-			end)
-			root:CreateCheckbox(L.FAVORITE, function()
-				return p and p.favorite and true or false
-			end, function()
-				ns.SetFavorite(name, not (p and p.favorite))
-				ns.Refresh()
-			end)
-			root:CreateDivider()
 			root:CreateButton(L.RENAME, function()
 				Rename(name)
 			end)
-			root:CreateButton(L.COPY, function()
-				local copy = ns.CopyProfile(name)
-				if copy then
-					ns.Print(L.MSG_SAVED:format(copy))
-					ns.LeaveForm(function()
-						ns.OpenForm(copy)
-					end)
-				end
+			root:CreateButton(L.DELETE, function()
+				Delete(name)
 			end)
-			-- Export: what goes too, off until ticked (each time)
+			root:CreateDivider()
 			local export = root:CreateButton(L.EXPORT)
 			local with = { keys = false, settings = false }
 			local function Box(label, key)
@@ -1491,27 +1621,24 @@ function ns.SlotMenu(b)
 			Box(L.SCOPE_SETTINGS, "settings")
 			Box(ns.G("KEY_BINDINGS", L.SCOPE_KEYS), "keys")
 			export:CreateDivider()
-			export:CreateButton(L.EXPORT, function()
+			export:CreateButton(L.EXPORT .. "...", function()
 				ns.ExportProfileText(name, with)
 			end)
-			root:CreateButton(L.DELETE, function()
-				Delete(name)
-			end)
-			root:CreateDivider()
+			return
 		end
+		-- + New: a new one, or one from a code
 		local full = ns.ProfilesFull()
 		local new = root:CreateButton(L.NEW_PRESET, function()
-			ns.SlotClick("options", nil)
+			ns.AskNewProfile()
 		end)
-		-- Import: what of the code comes in too (as Export)
 		local import = root:CreateButton(L.IMPORT_PROFILE)
 		ns.ImportMenuItems(import, function(opts)
-			ns.AskImportProfile(nil, opts)
+			ns.AskImportProfile(opts)
 		end)
 		if full then
-			for _, b in ipairs({ new, import }) do
-				if b and b.SetEnabled then
-					b:SetEnabled(false)
+			for _, d in ipairs({ new, import }) do
+				if d and d.SetEnabled then
+					d:SetEnabled(false)
 				end
 			end
 		end
@@ -1630,6 +1757,7 @@ local function CreateWindow()
 	CreateNav()
 	CreatePages()
 	ns.CreateProfileForm()
+	ns.CreateSettingsPage()
 
 	-- keys or Edit Mode layouts changed elsewhere: the preset's differences
 	-- follow, while the book is open
@@ -1696,9 +1824,46 @@ end
 
 -- The book always opens on its first page (the tab SetGo! opens on; on
 -- Profiles, the profile in use). Already open: it stays where it is.
+-- Where Blizzard's windows open (its panels' place: 16 from the left, 116
+-- from the top), or on the right of the ones open there
+local function PlaceWindow()
+	local ui = UIParent:GetEffectiveScale()
+	local x = 16
+	if GetUIPanel then
+		for _, key in ipairs({ "left", "center", "doublewide", "right" }) do
+			local panel = GetUIPanel(key)
+			local right = panel and panel:IsShown() and panel:GetRight()
+			if right then
+				x = math.max(x, right * panel:GetEffectiveScale() / ui + 8)
+			end
+		end
+	end
+	local s = frame:GetScale()
+	frame:ClearAllPoints()
+	frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x / s, -116 / s)
+end
+
+-- Once, for players coming from the old window: where things are now
+local function NewWindowTip()
+	if ns.db.newWindowSeen or not (HelpTip and HelpTip.Show) then
+		return
+	end
+	ns.db.newWindowSeen = true
+	-- only for players who knew the old one
+	if not (ns.db.guideSeen or ns.db.tourSeen) then
+		return
+	end
+	local L2 = ns.SETTINGS_L or {}
+	HelpTip:Show(frame, {
+		text = L2.NEW_WINDOW_TIP or L.NEW_WINDOW_TIP,
+		buttonStyle = HelpTip.ButtonStyle and HelpTip.ButtonStyle.Close,
+		targetPoint = HelpTip.Point and HelpTip.Point.RightEdgeCenter,
+		alignment = HelpTip.Alignment and HelpTip.Alignment.Center,
+		offsetX = -10,
+	})
+end
+
 function ns.Open()
-	-- no profile yet, the first time: the guide's tips over the form
-	local guide = #ns.ProfileSlots() == 0 and not ns.db.guideSeen
 	if not frame then
 		CreateWindow()
 	end
@@ -1706,14 +1871,13 @@ function ns.Open()
 		return
 	end
 	resumeAfterCombat = false
+	PlaceWindow()
 	keeping = true
 	frame:Show()
 	keeping = false
 	ns.LeaveForm()
 	ns.GoHome(true)
-	if guide and ns.StartGuide then
-		ns.StartGuide()
-	end
+	Try(NewWindowTip)
 end
 
 -- Back where it was (after combat, or a Blizzard window it waited on)
