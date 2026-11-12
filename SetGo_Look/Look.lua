@@ -128,7 +128,7 @@ end
 -- manages (UIPanelWindows) or closes with Escape (UISpecialFrames)
 local WINDOWS = {
 	-- game menu, options, popups, quick keybind mode
-	"QuickKeybindFrame", "GameMenuFrame", "SettingsPanel", "SetGoFrame", "SetGoWelcome", "StaticPopup1", "StaticPopup2", "StaticPopup3",
+	"QuickKeybindFrame", "GameMenuFrame", "SettingsPanel", "SetGoFrame", "StaticPopup1", "StaticPopup2", "StaticPopup3",
 	-- micro menu
 	"CharacterFrame", "PlayerSpellsFrame", "SpellBookFrame", "ProfessionsBookFrame", "ProfessionsFrame",
 	"TalentFrame", "ClassTalentFrame", "PlayerTalentFrame", "AchievementFrame", "QuestLogFrame",
