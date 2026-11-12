@@ -2,11 +2,11 @@ local _, ns = ...
 
 local L = {
 	TOGGLE = "Show abilities on cooldown",
-	TOGGLE_DESC = "While Hide! hides an action bar, the abilities on it that are on cooldown still show: their icon, the cooldown swipe and the charges left, right where the button is. They can't be clicked; keys still use the real buttons. The global cooldown doesn't count.",
+	TOGGLE_DESC = "While Hide! hides this bar (and the bars that follow it), the abilities on it that are on cooldown still show: their icon, the cooldown swipe and the charges left, right where the button is. They can't be clicked; keys still use the real buttons. The global cooldown doesn't count.",
 }
 if GetLocale() == "ptBR" then
 	L.TOGGLE = "Mostrar habilidades em recarga"
-	L.TOGGLE_DESC = "Enquanto o Hide! esconde uma barra de acção, as habilidades dela que estão em recarga continuam à vista: o ícone, a espiral da recarga e as cargas que faltam, no sítio do botão. Não se clicam; as teclas continuam a usar os botões reais. A recarga global não conta."
+	L.TOGGLE_DESC = "Enquanto o Hide! esconde esta barra (e as barras que a seguem), as habilidades dela que estão em recarga continuam à vista: o ícone, a espiral da recarga e as cargas que faltam, no sítio do botão. Não se clicam; as teclas continuam a usar os botões reais. A recarga global não conta."
 end
 ns.CooldownL = L
 
@@ -125,6 +125,8 @@ end
 local function Hidden(bar)
 	return ns.HideManaged and ns.HideManaged(bar) and bar:IsShown() and not bar:IsVisible()
 		and UIParent:IsVisible()
+		-- the bar's rule (or the one of the bar it follows) has them on
+		and ns.HideCooldownsFor and ns.HideCooldownsFor(bar)
 end
 
 local function Slot(button)
@@ -284,7 +286,9 @@ end
 function Update(button, hidden, def)
 	local ov = overlays[button]
 	local start, duration, modRate, charges
-	if on and hidden then
+	-- a button the bar doesn't use (fewer buttons set in Edit Mode) is hidden
+	-- by Blizzard and has no place on the screen: nothing for it
+	if on and hidden and button:IsShown() then
 		start, duration, modRate, charges = State(Slot(button))
 	end
 	if not start then
