@@ -2,7 +2,7 @@
 
 ## 1.2.0
 
-SetGo! (builds 42 to 70)
+SetGo! (builds 42 to 72)
 - New window (build 55): Blizzard's portrait frame with the collections'
   background and white text; a narrow column of profiles drawn as the
   character select's cards, dragged or moved with their arrows to reorder
@@ -27,12 +27,16 @@ SetGo! (builds 42 to 70)
   the first profile's guide are gone (build 66).
 - New features are marked as Blizzard does: "New" on the Interface Tweaks
   tab and a blue dot on each new option, gone once seen; a one-time tip for
-  players who knew the old window (build 66).
+  players who knew the old window (build 66). "New" also beside the gear
+  until the settings page opens, and beside Hide!'s "In an instance" in the
+  conditions menu until pointed at; the tab's "New" sits where Blizzard
+  puts it on its top tabs (build 72).
 - Interface Tweaks, Hidden Buffs Icon (build 45): while the buffs' arrow
   hides the long buffs, an icon next to it shows how many there are; mouse
   over it for the list with the time left on each.
-- Interface Tweaks, Sort quests by proximity (build 66): the tracked quests
-  are sorted nearest first as you move.
+- Interface Tweaks, Shared Quests in Blue (build 71): in the objective
+  tracker, the titles of the quests someone in your group is on too show in
+  the party's blue.
 - Quest filter button (build 51): the right click menu combines Current
   Zone or one zone, Untrack High Level and Track Shared Quests (the quests
   your group is on), with Completed or Not Completed over all of them; the
@@ -46,7 +50,9 @@ SetGo! (builds 42 to 70)
   skill on the next left click without turning the first one off (46);
   the Better XP bar's dividers move with its width (67), and with Unified
   Bar the bar shown over the first keeps its size and place when Status
-  Bar 2 has another size in Edit Mode (70).
+  Bar 2 has another size in Edit Mode (70); the Unified Bar no longer
+  triggers a blocked action when first set up in combat, and the Tracker's
+  icon no longer turns grey in combat (71).
 - Cleanup: the old form's pieces (the icon picker, the old tabs' cards and
   helpers), the old window's leftovers, importing over an open profile
   (Import always makes a new profile) and about 50 strings nothing used.
@@ -54,7 +60,7 @@ SetGo! (builds 42 to 70)
   profiles' menus, no first profile guide; Changelog.lua and Settings.lua
   in the load list; the mock frames have a scale.
 
-Hide! (builds 18 to 24)
+Hide! (builds 18 to 25)
 - Cards (builds 19 to 24): the page shows a card for each frame you hide
   and a "Hide frame" card that picks another one by kind; the X takes it
   out. Each card has the conditions, Show or Hide, an "Anchored frames"
