@@ -15,9 +15,9 @@ ns.CHANGELOG = {
 • New SetGo! window: Blizzard's portrait frame with a narrow column of profile cards (drag or use the arrows to reorder them), + New to start a profile at once, and three tabs per profile: Layout, Addons and Interface Tweaks. It opens where Blizzard's windows open.
 • Settings page: the gear opens SetGo!'s settings: minimap icon, addon compartment, sounds, window size and keybinds; which chat messages show; switching all modules off; the last 20 errors, ready to copy for a report; and About, with this Changelog.
 • Hidden Buffs Icon: a new Interface Tweak. While the buffs' arrow hides the long buffs, an icon next to it shows how many there are; mouse over it for the list with the time left on each.
-• Sort quests by proximity: a new Interface Tweak. Tracked quests are sorted nearest first as you move.
+• Shared Quests in Blue: a new Interface Tweak. In the objective tracker, the titles of the quests someone in your group is on too show in the party's blue.
 • Hide! In an instance: a new condition for dungeons, raids, battlegrounds, arenas and scenarios.
-• What's new: new options show Blizzard's blue dot until you've seen them.
+• What's new: new features show Blizzard's "New" or blue dot until you've seen them.
 
 |cffffd100Improvements|r
 • A profile from the start: every character gets a profile at once, with nothing changed in the game, so there is always somewhere to keep your settings. The welcome window and first profile guide are gone.
@@ -27,7 +27,7 @@ ns.CHANGELOG = {
 • SetGo! Tracker: now drawn like the minimap's day and night indicator and placed opposite it, so it looks like part of Blizzard's minimap.
 
 |cffffd100Fixes|r
-• 8 performance improvements or bug fixes.]],
+• 10 performance improvements or bug fixes.]],
 	},
 	{
 		version = "1.1.0",
@@ -76,10 +76,17 @@ ns.CHANGELOG = {
 -- next one.
 --------------------------------------------------------------------------------
 
+-- key = where its mark is: "tweaks" (a dot on the Interface Tweaks tab, and
+-- "New" on the tab), "gear" ("New" beside the gear until the settings page
+-- opens), "hide" ("New" beside the condition in Hide!'s menu until it is
+-- pointed at)
 ns.NEW_FEATURES = {
-	qfilter = true, -- Interface Tweaks: quest filter (zones, completed, shared)
-	tracker = true, -- Interface Tweaks: the minimap Tracker, as the day and night indicator
-	hiddenbuffs = true, -- Interface Tweaks: hidden buffs icon
+	qfilter = "tweaks", -- Interface Tweaks: quest filter (zones, completed, shared)
+	tracker = "tweaks", -- Interface Tweaks: the minimap Tracker, as the day and night indicator
+	hiddenbuffs = "tweaks", -- Interface Tweaks: hidden buffs icon
+	qshared = "tweaks", -- Interface Tweaks: shared quests in blue
+	settings = "gear", -- SetGo!'s settings page
+	instance = "hide", -- Hide!: the "In an instance" condition
 }
 
 -- new and not seen yet by this account

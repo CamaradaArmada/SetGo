@@ -4,7 +4,7 @@
 ## Notes-ptBR: Configuração rápida da interface da Blizzard: perfis com um layout do Edit Mode, o que ligam, módulos, teclas, barras de acção e definições próprias da personagem.
 ## Author: Armada
 ## Version: 1.2.0
-## X-Build: 70
+## X-Build: 72
 ## SavedVariables: SetGoDB, SetGoQuickDB
 ## SavedVariablesPerCharacter: SetGoCharDB, SetGoQuickCharDB
 ## IconTexture: Interface\Icons\inv_misc_gear_01

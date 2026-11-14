@@ -215,6 +215,14 @@ local function CreateBook()
 		ns.GearMenu(self)
 	end)
 	W.TipScripts(book.gear, L.GEAR, L.GEAR_DESC)
+	-- Blizzard's "New" beside it until the settings page is opened
+	if ns.IsNew and ns.IsNew("settings") and C_XMLUtil and C_XMLUtil.GetTemplateInfo
+		and C_XMLUtil.GetTemplateInfo("NewFeatureLabelNoAnimateTemplate") then
+		local label = CreateFrame("Frame", nil, book.gear, "NewFeatureLabelNoAnimateTemplate")
+		label:SetPoint("RIGHT", book.gear, "LEFT", -4, 0)
+		label:Show()
+		book.gear.newLabel = label
+	end
 
 	-- the column: a plain dark ground, see-through
 	local left = CreateFrame("Frame", nil, book)
@@ -955,6 +963,11 @@ end
 function ns.GearMenu()
 	ns.LeaveForm(function()
 		ns.Select("settings")
+		ns.SeeNew("settings")
+		local gear = book and book.gear
+		if gear and gear.newLabel then
+			gear.newLabel:Hide()
+		end
 	end)
 end
 

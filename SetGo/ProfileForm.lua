@@ -1130,7 +1130,8 @@ local function CreateHead(rightPage, width)
 		if tab == "tweaks" and C_XMLUtil and C_XMLUtil.GetTemplateInfo
 			and C_XMLUtil.GetTemplateInfo("NewFeatureLabelNoAnimateTemplate") then
 			local label = CreateFrame("Frame", nil, t, "NewFeatureLabelNoAnimateTemplate")
-			label:SetPoint("BOTTOM", t, "TOP", 0, -6)
+			-- where Blizzard puts it on its top tabs (the friends list's)
+			label:SetPoint("RIGHT", t, "BOTTOMRIGHT", 28, 0)
 			label:SetFrameLevel(t:GetFrameLevel() + 5)
 			head.newLabel = label
 		end
@@ -1285,8 +1286,8 @@ function ns.RefreshFormHead(onForm)
 	end
 	if head.newLabel then
 		local any = false
-		for key in pairs(ns.NEW_FEATURES or {}) do
-			any = any or ns.IsNew(key)
+		for key, where in pairs(ns.NEW_FEATURES or {}) do
+			any = any or (where == "tweaks" and ns.IsNew(key))
 		end
 		head.newLabel:SetShown(any)
 	end

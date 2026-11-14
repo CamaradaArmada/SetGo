@@ -65,6 +65,8 @@ local T = {
 	HIDDEN_BUFFS_HINT = "Click the arrow to show them.",
 	QMIN = "Simplified Minimized Tracker",
 	QMIN_DESC = "While the objective tracker is minimized, only its minimize button shows: no title, no background, no other buttons.",
+	QSHARED = "Shared Quests in Blue",
+	QSHARED_DESC = "In the objective tracker, the titles of the quests someone in your group is on too show in the party's blue.",
 	TRACK_DESC = "A button next to the minimap's day and night button for your tracking skills (herbs, minerals, treasure, beasts and others). In colour while one is on, in grey while it is off; none, while you have no tracking skill. Left click: on or off. Right click: choose which.",
 	TRACK_HINT_TOGGLE = "Left click: on or off",
 	TRACK_HINT_CHOOSE = "Right click: choose",
@@ -122,6 +124,8 @@ if GetLocale() == "ptBR" then
 	T.HIDDEN_BUFFS_HINT = "Clica na seta para os mostrar."
 	T.QMIN = "Tracker minimizado simplificado"
 	T.QMIN_DESC = "Com o tracker de objectivos minimizado, só se vê o botão de minimizar: sem título, sem fundo e sem outros botões."
+	T.QSHARED = "Missões partilhadas a azul"
+	T.QSHARED_DESC = "No tracker de objectivos, os títulos das missões que alguém do teu grupo também tem ficam no azul da party."
 	T.TRACK_DESC = "Um botão ao lado do botão do dia e da noite do minimapa para as tuas habilidades de tracking (ervas, minérios, tesouros, bestas e outras). A cores com uma ligada, a cinzento com ela desligada; não aparece se não tiveres nenhuma. Clique esquerdo: ligar ou desligar. Clique direito: escolher qual."
 	T.TRACK_HINT_TOGGLE = "Clique esquerdo: ligar ou desligar"
 	T.TRACK_HINT_CHOOSE = "Clique direito: escolher"
@@ -637,8 +641,22 @@ local function Catcher(main)
 	catcher:SetFrameStrata("MEDIUM")
 	catcher:SetFrameLevel(main:GetFrameLevel() + 20)
 	catcher:RegisterForClicks("RightButtonUp")
+	-- left clicks go on to the bar. Blizzard blocks this call in combat,
+	-- so then it waits for combat to end
 	if catcher.SetPassThroughButtons then
-		pcall(catcher.SetPassThroughButtons, catcher, "LeftButton")
+		local function PassLeft()
+			pcall(catcher.SetPassThroughButtons, catcher, "LeftButton")
+		end
+		if InCombatLockdown() then
+			local wait = CreateFrame("Frame")
+			wait:RegisterEvent("PLAYER_REGEN_ENABLED")
+			wait:SetScript("OnEvent", function(self)
+				self:UnregisterAllEvents()
+				PassLeft()
+			end)
+		else
+			PassLeft()
+		end
 	end
 	catcher:SetScript("OnClick", function(self)
 		if UnifiedActive() then
@@ -894,6 +912,12 @@ local seenActive
 local function UpdateTrack()
 	local b = trackButton
 	if not b then
+		return
+	end
+	-- in combat the game doesn't always say which tracking is on: the icon
+	-- stays as it was and catches up when combat ends
+	if InCombatLockdown() then
+		trackPending = true
 		return
 	end
 	local list = KnownTracking()
@@ -1836,6 +1860,162 @@ local function ApplyTrackerMinTweak()
 end
 
 --------------------------------------------------------------------------------
+-- Shared Quests in Blue: in Blizzard's objective tracker, the title of each
+-- quest someone in the group is on too, in the party's blue (brighter under
+-- the mouse). Only the title's colour: after each of Blizzard's updates and
+-- highlights, and when the group or its quests change. Off, or no longer
+-- shared: Blizzard's own colour back.
+--------------------------------------------------------------------------------
+
+local VAR_QSHARED = "SETGO_TWEAK_QUESTSHARED"
+local SHARED_COLOR = { 0.55, 0.6, 1 }
+local SHARED_HIGHLIGHT = { 0.75, 0.8, 1 }
+local qsharedHooked = false
+local qsharedQueued = false
+local hookedBlocks = {}
+local TintBlock
+
+local function QuestModules()
+	local list = {}
+	for _, name in ipairs({ "CampaignQuestObjectiveTracker", "QuestObjectiveTracker", "QUEST_TRACKER_MODULE" }) do
+		local m = _G[name]
+		if type(m) == "table" then
+			list[#list + 1] = m
+		end
+	end
+	return list
+end
+
+-- the quest blocks a module shows: its used blocks (by template, then id,
+-- or by id alone: the clients differ)
+local function EachBlock(module, fn)
+	local used = module.usedBlocks
+	if type(used) ~= "table" then
+		return
+	end
+	for _, v in pairs(used) do
+		if type(v) == "table" then
+			if v.HeaderText then
+				fn(v)
+			else
+				for _, block in pairs(v) do
+					if type(block) == "table" and block.HeaderText then
+						fn(block)
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Blizzard's own colour for the title, as it last set it
+local function BlizzardColor(block)
+	if block.UpdateHighlight then
+		block.sgTinting = true
+		pcall(block.UpdateHighlight, block)
+		block.sgTinting = nil
+		return
+	end
+	local colors = OBJECTIVE_TRACKER_COLOR
+	local c = colors and (block.isHighlighted and colors.HeaderHighlight or colors.Header)
+	if c then
+		block.HeaderText:SetTextColor(c.r, c.g, c.b)
+	end
+end
+
+local function HookBlock(block)
+	if hookedBlocks[block] then
+		return
+	end
+	hookedBlocks[block] = true
+	for _, method in ipairs({ "UpdateHighlight", "SetHeader" }) do
+		if type(block[method]) == "function" then
+			hooksecurefunc(block, method, function(self)
+				if not self.sgTinting then
+					Try(TintBlock, self)
+				end
+			end)
+		end
+	end
+end
+
+function TintBlock(block)
+	local text = block.HeaderText
+	local id = tonumber(block.id or block.questID)
+	if not (text and id) then
+		return
+	end
+	HookBlock(block)
+	if On(VAR_QSHARED) and block:IsShown() and SharedWithGroup(id) then
+		local hi = block.isHighlighted
+		if hi == nil then
+			local r = text:GetTextColor()
+			hi = r and r > 0.9 or false
+		end
+		local c = hi and SHARED_HIGHLIGHT or SHARED_COLOR
+		text:SetTextColor(c[1], c[2], c[3])
+		block.sgShared = true
+	elseif block.sgShared then
+		block.sgShared = nil
+		BlizzardColor(block)
+	end
+end
+
+local function TintAll()
+	for _, m in ipairs(QuestModules()) do
+		EachBlock(m, function(block)
+			Try(TintBlock, block)
+		end)
+	end
+end
+
+local function QueueTint()
+	if qsharedQueued then
+		return
+	end
+	qsharedQueued = true
+	C_Timer.After(0.2, function()
+		qsharedQueued = false
+		Try(TintAll)
+	end)
+end
+
+local function HookQuestShared()
+	if qsharedHooked then
+		return
+	end
+	qsharedHooked = true
+	for _, m in ipairs(QuestModules()) do
+		for _, method in ipairs({ "Update", "LayoutContents", "OnBlockHeaderEnter", "OnBlockHeaderLeave" }) do
+			if type(m[method]) == "function" then
+				hooksecurefunc(m, method, function(_, block)
+					if type(block) == "table" and block.HeaderText then
+						Try(TintBlock, block)
+					else
+						QueueTint()
+					end
+				end)
+			end
+		end
+	end
+	if type(ObjectiveTracker_Update) == "function" then
+		hooksecurefunc("ObjectiveTracker_Update", QueueTint)
+	end
+	local watch = CreateFrame("Frame")
+	watch:RegisterEvent("GROUP_ROSTER_UPDATE")
+	watch:RegisterEvent("QUEST_LOG_UPDATE")
+	pcall(watch.RegisterEvent, watch, "UNIT_QUEST_LOG_CHANGED")
+	watch:SetScript("OnEvent", QueueTint)
+end
+
+local function ApplyQuestShared()
+	if On(VAR_QSHARED) then
+		HookQuestShared()
+	end
+	TintAll()
+end
+
+--------------------------------------------------------------------------------
 -- All of them, as the profile in use has them
 --------------------------------------------------------------------------------
 
@@ -2053,6 +2233,7 @@ function ns.ApplyTweaks()
 	Try(ApplyBags)
 	Try(ApplyQuestFilter)
 	Try(ApplyTrackerMinTweak)
+	Try(ApplyQuestShared)
 	Try(ApplyHiddenBuffs)
 end
 
@@ -2254,5 +2435,12 @@ function ns.TweaksItems()
 		Try(ApplyTrackerMinTweak)
 	end)
 	items[#items + 1] = { kind = "checkbox", setting = qmin, settings = { qmin }, name = T.QMIN, tooltip = T.QMIN_DESC }
+	local qshared = ns.Pseudo(VAR_QSHARED, T.QSHARED, T.QSHARED_DESC, false, function()
+		return On(VAR_QSHARED)
+	end, function(on)
+		Keep(VAR_QSHARED, on)
+		Try(ApplyQuestShared)
+	end)
+	items[#items + 1] = { kind = "checkbox", setting = qshared, settings = { qshared }, name = T.QSHARED, tooltip = T.QSHARED_DESC, newKey = "qshared" }
 	return items
 end
