@@ -4,7 +4,7 @@
 ## Notes-ptBR: Esconde frames da Blizzard com condições de macro: sempre, ou só quando (ou excepto quando) estás em combate, montado, a carregar numa tecla e mais. Um módulo do SetGo!.
 ## Author: Armada
 ## Version: 1.2.0
-## X-Build: 24
+## X-Build: 25
 ## Dependencies: SetGo
 ## DefaultState: enabled
 ## SavedVariables: SetGoHideDB

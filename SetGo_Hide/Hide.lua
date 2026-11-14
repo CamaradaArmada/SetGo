@@ -863,6 +863,29 @@ local function SliderFormatters()
 	end
 end
 
+-- Blizzard's "New" beside a menu entry (as its dungeon finder does), until
+-- the mouse goes over it (SetGo!'s NEW_FEATURES)
+local function NewMark(item, key)
+	if not (item and item.AddInitializer and SetGo.IsNew and SetGo.IsNew(key)) then
+		return
+	end
+	item:AddInitializer(function(button)
+		if not SetGo.IsNew(key) or not (MenuTemplates and MenuTemplates.AttachNewFeatureFrame) then
+			return
+		end
+		local ok, label = pcall(MenuTemplates.AttachNewFeatureFrame, button)
+		if ok and label and button.fontString then
+			local w = label.GetTextWidth and label:GetTextWidth() or 30
+			label:SetPoint("LEFT", button.fontString, "RIGHT", w / 2 + 5, 0)
+		end
+	end)
+	if item.SetOnEnter then
+		item:SetOnEnter(function()
+			SetGo.SeeNew(key)
+		end)
+	end
+end
+
 -- one frame's card, built once and shown while the frame is in the list
 local function BuildCard(parent, e, set, shown, width, settings)
 	local W = SetGo.Widgets
@@ -907,13 +930,16 @@ local function BuildCard(parent, e, set, shown, width, settings)
 		for _, i in ipairs(ORDER) do
 			local cond = CONDS[i]
 			local bitValue = Bit(i)
-			root:CreateCheckbox(L["C_" .. cond.key], function()
+			local item = root:CreateCheckbox(L["C_" .. cond.key], function()
 				return bit.band(Current(), bitValue) ~= 0
 			end, function()
 				Put(set.when, Toggle(Current(), bitValue))
 				-- the list stays open to pick more than one
 				return MenuResponse and MenuResponse.Refresh
 			end)
+			if cond.key == "instance" then
+				NewMark(item, "instance")
+			end
 		end
 	end)
 	local md = CreateFrame("DropdownButton", nil, c, "WowStyle1DropdownTemplate")
