@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="SETGO_SPEAK_CHANNELS" category="BINDING_HEADER_SETGO">
+		SetGo_SpeakChannels()
+	</Binding>
+</Bindings>
