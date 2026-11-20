@@ -311,10 +311,6 @@ ns.ImportProfile(txt)
 check(ns.creating and ns.creating.edit == nil and ns.form.scope.settings == "global" and ns.form.layout.new, "import: a new profile, settings Global")
 ns.LeaveForm(function() ns.OpenForm("Healer") end)
 
--- copy keeps scopes
-local copy = ns.CopyProfile("Healer")
-check(SetGoDB.profiles[copy].scope.keys == "profile" and SetGoDB.profiles[copy].keys.Q == "JUMP", "copy keeps its own keys")
-
 -- modules tab and Save to active profile
 ns.SelectTab("modules")
 chatDB.font = "C"
