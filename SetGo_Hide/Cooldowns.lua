@@ -2,11 +2,11 @@ local _, ns = ...
 
 local L = {
 	TOGGLE = "Show abilities on cooldown",
-	TOGGLE_DESC = "While Hide! hides this bar (and the bars that follow it), the abilities on it that are on cooldown still show: their icon, the cooldown swipe and the charges left, right where the button is. They can't be clicked; keys still use the real buttons. The global cooldown doesn't count.",
+	TOGGLE_DESC = "While Hide! hides the action bars of this rule, the abilities on them that are on cooldown still show: their icon, the cooldown swipe and the charges left, right where the button is. They can't be clicked; keys still use the real buttons. The global cooldown doesn't count.",
 }
 if GetLocale() == "ptBR" then
 	L.TOGGLE = "Mostrar habilidades em recarga"
-	L.TOGGLE_DESC = "Enquanto o Hide! esconde esta barra (e as barras que a seguem), as habilidades dela que estão em recarga continuam à vista: o ícone, a espiral da recarga e as cargas que faltam, no sítio do botão. Não se clicam; as teclas continuam a usar os botões reais. A recarga global não conta."
+	L.TOGGLE_DESC = "Enquanto o Hide! esconde as barras de acção desta regra, as habilidades delas que estão em recarga continuam à vista: o ícone, a espiral da recarga e as cargas que faltam, no sítio do botão. Não se clicam; as teclas continuam a usar os botões reais. A recarga global não conta."
 end
 ns.CooldownL = L
 
