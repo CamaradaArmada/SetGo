@@ -314,6 +314,106 @@ local function FormDefaults(edit)
 		aceProfiles = Copy(form.aceProfiles),
 		customAddons = form.customAddons, addonStates = Copy(form.addonStates),
 	}
+	-- the profile in use here: what the Layout tab switches shows at once
+	-- (see Preview below); the screen as it was, to go back to
+	if edit and p and edit == ns.ActivePreset() then
+		form.liveBase = ns.UILive()
+	end
+end
+
+--------------------------------------------------------------------------------
+-- Preview: on the profile in use here, the bars and Blizzard's frames ticked
+-- on the Layout tab show or hide at once. The frames are CVars: no taint.
+-- The bars go through Blizzard's own setting, which marks them as touched by
+-- an addon: leaving without saving puts them back and asks for a reload, and
+-- Apply always reloads (ns.previewTouched). In combat the bars wait.
+--------------------------------------------------------------------------------
+
+local previewWait, previewPending
+-- bars written since the form was last saved or left
+local previewBarsNow = false
+
+local function WriteLive(target)
+	local live = ns.UILive()
+	local waiting = false
+	for _, e in ipairs(ns.UIElements()) do
+		local want = target[e.key]
+		if want ~= nil and want ~= live[e.key] then
+			if e.cvar then
+				Try(C_CVar.SetCVar, e.cvar, want and "1" or "0")
+				ns.previewTouched = true
+			elseif InCombatLockdown() then
+				waiting = true
+			else
+				local setting = Settings and Settings.GetSetting and Settings.GetSetting(e.var)
+				if setting then
+					Try(setting.SetValue, setting, want and true or false)
+				else
+					local bars = { GetActionBarToggles() }
+					bars[e.bar] = want and true or false
+					Try(SetActionBarToggles, unpack(bars, 1, select("#", GetActionBarToggles())))
+				end
+				ns.previewTouched, previewBarsNow = true, true
+			end
+		end
+	end
+	if waiting then
+		previewPending = target
+		if not previewWait then
+			previewWait = CreateFrame("Frame")
+			previewWait:SetScript("OnEvent", function(self)
+				self:UnregisterAllEvents()
+				local t = previewPending
+				previewPending = nil
+				if t then
+					Try(WriteLive, t)
+				end
+			end)
+		end
+		previewWait:RegisterEvent("PLAYER_REGEN_ENABLED")
+	else
+		previewPending = nil
+	end
+end
+
+-- the screen as the form says: what changed on it, the rest as it was
+local function SyncPreview()
+	local base = form.liveBase
+	if not (base and form.edit and form.edit == ns.ActivePreset()) then
+		return
+	end
+	local orig = form.orig and form.orig.ui or {}
+	local target = {}
+	for key, on in pairs(base) do
+		local want = form.ui and form.ui[key]
+		if want ~= nil and want ~= orig[key] then
+			target[key] = want
+		else
+			target[key] = on
+		end
+	end
+	WriteLive(target)
+end
+ns.SyncPreview = SyncPreview
+
+-- the screen back as it was when the form opened
+local function UndoPreview()
+	local base = form.liveBase
+	if base then
+		WriteLive(base)
+	end
+end
+ns.UndoPreview = UndoPreview
+
+-- leaving without saving: the screen back as it was, and a reload offered
+-- when the bars were touched
+local function RevertPreview()
+	UndoPreview()
+	form.liveBase = nil
+	if previewBarsNow then
+		previewBarsNow = false
+		U.Confirm(L.POPUP_PREVIEW_RELOAD, ReloadUI)
+	end
 end
 
 -- something on the form differs from the profile (a new one always does)
@@ -374,6 +474,9 @@ end
 
 -- Leaves the form (nothing on it is kept until saved)
 function ns.LeaveForm(after)
+	if ns.creating then
+		Try(RevertPreview)
+	end
 	ns.creating = nil
 	ns.optionsDraft, ns.moduleDraft = nil, nil
 	if after then
@@ -773,6 +876,9 @@ end
 -- apply: also put it on this character (a new profile)
 local function FormSave(name, apply)
 	local first = #ns.ProfileSlots() == 0
+	-- saved: what shows is now the profile's (no going back on leaving)
+	form.liveBase = nil
+	previewBarsNow = false
 	local opts = {
 		name = name, replace = form.edit, icon = form.icon, ui = Copy(form.ui), modules = form.modules,
 		scope = Copy(form.scope), settings = form.settings, skillsFrom = form.skillsFrom, shared = form.shared,
@@ -1180,6 +1286,8 @@ local function CreateFoot(rightPage, width)
 	-- Undo: next to the button, in the header
 	foot.undo = U.IconBox(foot, { "common-icon-undo" }, "<", function()
 		local edit, tab = form.edit, form.tab
+		-- what the form showed goes back too
+		Try(UndoPreview)
 		ns.creating = nil
 		ns.OpenForm(edit, tab)
 	end)
@@ -1563,6 +1671,7 @@ local function CreateLayoutBody(width)
 		local label = ns.G("OPTION_SHOW_ACTION_BAR", L.UI_BAR):format(n)
 		local cb = CheckRow(body, col * colW, y + row * 26, colW, label, n == 1 and L.BAR1_ALWAYS or nil, function(on)
 			form.ui["bar" .. n] = on
+			Try(SyncPreview)
 			ns.Refresh()
 		end)
 		if n == 1 then
@@ -1582,6 +1691,7 @@ local function CreateLayoutBody(width)
 			local col, row = i % 2, math.floor(i / 2)
 			local cb = CheckRow(body, col * colW, y + row * 26, colW, label, nil, function(on)
 				form.ui[e.key] = on
+				Try(SyncPreview)
 				ns.Refresh()
 			end)
 			cb.element = e
@@ -1602,6 +1712,8 @@ local function RefreshLayoutBody()
 	-- the text: the radio picked, else the default (the profile's own, a
 	-- new one)
 	Try(np.layoutDD.GenerateMenu, np.layoutDD)
+	-- what the form switches, on screen (Copy from, a preset's bars, Undo)
+	Try(SyncPreview)
 	for n, cb in ipairs(np.bars) do
 		cb:SetChecked(n == 1 or (form.ui["bar" .. n] and true or false))
 	end
@@ -1716,6 +1828,18 @@ end
 -- arrow that opens what is under it (a module's options, an addon's
 -- companions) and, for Ace3 addons, its profile
 local ROW_TEXT_H = 40
+-- Blizzard's blue dot for a new option (its newer atlas, else the
+-- communities' one)
+local function NewDot(parent)
+	local dot = parent:CreateTexture(nil, "OVERLAY", nil, 7)
+	dot:SetSize(12, 12)
+	if not (C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("plunderstorm-new-dot-sm")
+		and dot:SetAtlas("plunderstorm-new-dot-sm") ~= false) then
+		dot:SetAtlas("communities-icon-notification")
+	end
+	return dot
+end
+
 local function ListRow(list, width)
 	local row = CreateFrame("Button", nil, list)
 	row:SetSize(width, ROW_TEXT_H)
@@ -1804,11 +1928,34 @@ local function CreateModulesBody(parent, width)
 				local panel = CreateFrame("Frame", nil, list)
 				panel:SetWidth(width)
 				panel.refreshers = {}
-				panel:SetHeight(U.RenderItems(panel, items, 8, width - 8) + 8)
+				-- item by item: Blizzard's blue dot on the corner of each new
+				-- option, and on the module's icon, until the options are opened
+				local h, newKeys = 8, {}
+				for _, item in ipairs(items) do
+					local at = h
+					h = U.RenderItems(panel, { item }, h, width - 8)
+					if item.newKey and ns.IsNew and ns.IsNew(item.newKey) then
+						NewDot(panel):SetPoint("CENTER", panel, "TOPLEFT", 0, -(at - 2))
+						newKeys[#newKeys + 1] = item.newKey
+					end
+				end
+				panel:SetHeight(h + 8)
 				panel:Hide()
 				row.panel = panel
+				if #newKeys > 0 then
+					row.newDot = NewDot(row)
+					row.newDot:SetPoint("CENTER", row.icon, "TOPRIGHT", -3, -3)
+				end
 				row:SetScript("OnClick", function()
 					np.openModule = np.openModule ~= m.key and m.key or nil
+					if np.openModule == m.key and #newKeys > 0 then
+						for _, key in ipairs(newKeys) do
+							ns.SeeNew(key)
+						end
+						if row.newDot then
+							row.newDot:Hide()
+						end
+					end
 					ns.Refresh()
 				end)
 			end

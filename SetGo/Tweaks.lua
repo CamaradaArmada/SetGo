@@ -44,7 +44,10 @@ local T = {
 	BAGS_ALL_DESC = "A right click on the backpack button opens or closes all your bags at once. A left click still opens only the backpack.",
 	QUESTS = "Objective tracker",
 	QFILTER = "Quest filter button",
-	QFILTER_DESC = "A button next to the objective tracker's minimize button. Right click: choose which quests to track (completed or not, a zone, high level, shared with your group). Left click: apply that filter again, for example after changing zone.",
+	QFILTER_DESC = "A button next to the objective tracker's minimize button. Right click: choose which quests to track (completed or not, a zone, high level, shared with your group). Left click: apply that filter again, for example after changing zone. While the tracker is empty, the button stays where it was. In a group, a second button shares your tracked quests.",
+	QSHARE_TITLE = "Share tracked quests",
+	QSHARE_COUNT = "Click: share %d with your group",
+	QSHARE_NONE = "Your group already has every tracked quest that can be shared.",
 	QFILTER_TITLE = "Quest filter",
 	QFILTER_ALL = "All",
 	QFILTER_DONE = "Completed",
@@ -53,7 +56,7 @@ local T = {
 	QFILTER_NOW = "Filter: %s",
 	QFILTER_HINT_APPLY = "Left click: apply the filter",
 	QFILTER_HINT_MENU = "Right click: choose",
-	QFILTER_EMPTY = "No quest in your log matches this filter: the tracker stays as it was.",
+	QFILTER_SKIPPED = "%s (no quests)",
 	QFILTER_HIGH = "Untrack High Level",
 	QFILTER_HIGH_DESC = "Leaves out the quests the game shows in orange or red: 3 or more levels above yours.",
 	QFILTER_SHARED = "Track Shared Quests",
@@ -65,8 +68,8 @@ local T = {
 	HIDDEN_BUFFS_HINT = "Click the arrow to show them.",
 	QMIN = "Simplified Minimized Tracker",
 	QMIN_DESC = "While the objective tracker is minimized, only its minimize button shows: no title, no background, no other buttons.",
-	QSHARED = "Shared Quests in Blue",
-	QSHARED_DESC = "In the objective tracker, the titles of the quests someone in your group is on too show in the party's blue.",
+	QSHARED = "Highlight Shared Quests",
+	QSHARED_DESC = "In the objective tracker, a soft glow in the party's blue behind the titles of the quests someone in your group is on too.",
 	TRACK_DESC = "A button next to the minimap's day and night button for your tracking skills (herbs, minerals, treasure, beasts and others). In colour while one is on, in grey while it is off; none, while you have no tracking skill. Left click: on or off. Right click: choose which.",
 	TRACK_HINT_TOGGLE = "Left click: on or off",
 	TRACK_HINT_CHOOSE = "Right click: choose",
@@ -103,7 +106,10 @@ if GetLocale() == "ptBR" then
 	T.BAGS_ALL_DESC = "Um clique direito no botão da mochila abre ou fecha todos os teus sacos de uma vez. O clique esquerdo continua a abrir só a mochila."
 	T.QUESTS = "Tracker de objectivos"
 	T.QFILTER = "Botão de filtro das missões"
-	T.QFILTER_DESC = "Um botão ao lado do botão de minimizar do tracker de objectivos. Clique direito: escolher que missões seguir (acabadas ou não, uma zona, de nível alto, partilhadas com o grupo). Clique esquerdo: aplicar outra vez esse filtro, por exemplo depois de mudar de zona."
+	T.QFILTER_DESC = "Um botão ao lado do botão de minimizar do tracker de objectivos. Clique direito: escolher que missões seguir (acabadas ou não, uma zona, de nível alto, partilhadas com o grupo). Clique esquerdo: aplicar outra vez esse filtro, por exemplo depois de mudar de zona. Com o tracker vazio, o botão fica onde estava. Em grupo, um segundo botão partilha as missões seguidas."
+	T.QSHARE_TITLE = "Partilhar as missões seguidas"
+	T.QSHARE_COUNT = "Clique: partilhar %d com o grupo"
+	T.QSHARE_NONE = "O grupo já tem todas as missões seguidas que se podem partilhar."
 	T.QFILTER_TITLE = "Filtro das missões"
 	T.QFILTER_ALL = "Todas"
 	T.QFILTER_DONE = "Acabadas"
@@ -112,7 +118,7 @@ if GetLocale() == "ptBR" then
 	T.QFILTER_NOW = "Filtro: %s"
 	T.QFILTER_HINT_APPLY = "Clique esquerdo: aplicar o filtro"
 	T.QFILTER_HINT_MENU = "Clique direito: escolher"
-	T.QFILTER_EMPTY = "Nenhuma missão do diário passa neste filtro: o tracker fica como estava."
+	T.QFILTER_SKIPPED = "%s (sem missões)"
 	T.QFILTER_HIGH = "Deixar de seguir as de nível alto"
 	T.QFILTER_HIGH_DESC = "Deixa de fora as missões que o jogo mostra a laranja ou a vermelho: 3 ou mais níveis acima do teu."
 	T.QFILTER_SHARED = "Seguir as missões partilhadas"
@@ -124,8 +130,8 @@ if GetLocale() == "ptBR" then
 	T.HIDDEN_BUFFS_HINT = "Clica na seta para os mostrar."
 	T.QMIN = "Tracker minimizado simplificado"
 	T.QMIN_DESC = "Com o tracker de objectivos minimizado, só se vê o botão de minimizar: sem título, sem fundo e sem outros botões."
-	T.QSHARED = "Missões partilhadas a azul"
-	T.QSHARED_DESC = "No tracker de objectivos, os títulos das missões que alguém do teu grupo também tem ficam no azul da party."
+	T.QSHARED = "Missões partilhadas em destaque"
+	T.QSHARED_DESC = "No tracker de objectivos, um brilho suave no azul da party por trás dos títulos das missões que alguém do teu grupo também tem."
 	T.TRACK_DESC = "Um botão ao lado do botão do dia e da noite do minimapa para as tuas habilidades de tracking (ervas, minérios, tesouros, bestas e outras). A cores com uma ligada, a cinzento com ela desligada; não aparece se não tiveres nenhuma. Clique esquerdo: ligar ou desligar. Clique direito: escolher qual."
 	T.TRACK_HINT_TOGGLE = "Clique esquerdo: ligar ou desligar"
 	T.TRACK_HINT_CHOOSE = "Clique direito: escolher"
@@ -142,7 +148,7 @@ ns.TWEAKS_ICON = "Interface\\Icons\\INV_Misc_Wrench_01"
 --------------------------------------------------------------------------------
 
 -- the messages SetGo!'s settings can switch off (Settings.lua)
-ns.TWEAK_MESSAGES = { T.TRACK_AT, T.QFILTER_EMPTY }
+ns.TWEAK_MESSAGES = { T.TRACK_AT }
 
 local function Key()
 	local name = ns.ActivePreset and ns.ActivePreset()
@@ -1443,11 +1449,13 @@ end
 --   one zone; Untrack High Level; Track Shared Quests. Each choice is kept
 --   per character and applied at once.
 --   Left click: applies the kept filter again (Current Zone after moving).
---   A filter that leaves nothing to track leaves the tracker as it was.
+--   A zone with no quest in the log keeps the quests already tracked; high
+--   level and Completed or Not Completed are skipped when they would leave
+--   nothing to track. The tooltip shows the skipped parts in grey.
 --------------------------------------------------------------------------------
 
 local VAR_QFILTER = "SETGO_TWEAK_QUESTFILTER"
-local qButton
+local qButton, qShare, qEmpty
 local Q = C_QuestLog
 
 -- { { zone, ids = { questID, ... }, levels, done } } in the log's order
@@ -1555,54 +1563,121 @@ end
 -- quests 3 or more levels above yours (orange and red in the game)
 local HIGH_LEVEL = 3
 
+-- the parts skipped at the last apply (they left nothing to track)
+local skipped = {}
+
+-- Each click: first what to start from, then what to take out.
+--   Start: the zone's quests; with no zone chosen, every quest; with a zone
+--   that has none in the log, the quests already tracked (the zone is
+--   skipped). The quests shared with the group join in.
+--   Take out: high level (shared ones stay), then Completed or Not
+--   Completed, each only if something is left; else it is skipped.
+local filterWait
+
 local function ApplyFilter()
+	-- in combat the tracker's redraw, started from here, would read secret
+	-- auras (Blizzard's scenario module): the filter waits for combat to end
+	if InCombatLockdown() then
+		if not filterWait then
+			filterWait = CreateFrame("Frame")
+			filterWait:SetScript("OnEvent", function(self)
+				self:UnregisterAllEvents()
+				Try(ApplyFilter)
+			end)
+		end
+		filterWait:RegisterEvent("PLAYER_REGEN_ENABLED")
+		return
+	end
 	local f = Filter()
 	local zones = QuestZones()
 	local place = f.place
 	if place == "here" then
 		local names = HereNames()
-		place = false -- no header for this zone: no quest passes
+		place = false -- no header for this zone
 		for _, z in ipairs(zones) do
 			if names[z.zone] then
 				place = z.zone
 				break
 			end
 		end
-	end
-	local me = UnitLevel("player") or 0
-	local want, any = {}, false
-	for _, z in ipairs(zones) do
-		for _, id in ipairs(z.ids) do
-			local ok = place == nil or z.zone == place
-			if ok and f.high then
-				local level = z.levels[id]
-				ok = not (level and level - me >= HIGH_LEVEL)
+	elseif place then
+		local found = false
+		for _, z in ipairs(zones) do
+			if z.zone == place then
+				found = true
+				break
 			end
-			-- shared with the group: in, whatever the zone or level (out of a
-			-- group, none is)
-			if not ok and f.shared then
-				ok = SharedWithGroup(id)
-			end
-			-- Completed or Not Completed: over everything else
-			if ok and f.status == "done" then
-				ok = z.done[id]
-			elseif ok and f.status == "open" then
-				ok = not z.done[id]
-			end
-			want[id] = ok
-			any = any or ok
+		end
+		if not found then
+			place = false
 		end
 	end
-	if not any then
-		ns.Print(T.QFILTER_EMPTY)
+	skipped = {}
+	if place == false then
+		skipped.place = true
+	end
+	local me = UnitLevel("player") or 0
+	-- every quest in the log: { id, level, done, shared }, and the start
+	local all, keep = {}, {}
+	for _, z in ipairs(zones) do
+		for _, id in ipairs(z.ids) do
+			local q = { id = id, level = z.levels[id], done = z.done[id] }
+			q.shared = f.shared and SharedWithGroup(id) or false
+			all[#all + 1] = q
+			local start
+			if place == nil then
+				start = true
+			elseif place == false then
+				start = Watched(id)
+			else
+				start = z.zone == place
+			end
+			if start or q.shared then
+				keep[#keep + 1] = q
+			end
+		end
+	end
+	if #keep == 0 then
+		-- nothing to start from: the tracker stays as it was
 		return
 	end
-	for id, ok in pairs(want) do
-		local on = Watched(id)
-		if ok and not on then
-			Try(Q.AddQuestWatch, id)
-		elseif not ok and on then
-			Try(Q.RemoveQuestWatch, id)
+	local function TakeOut(part, drop)
+		local left = {}
+		for _, q in ipairs(keep) do
+			if not drop(q) then
+				left[#left + 1] = q
+			end
+		end
+		if #left > 0 then
+			keep = left
+		else
+			skipped[part] = true
+		end
+	end
+	if f.high then
+		TakeOut("high", function(q)
+			return not q.shared and q.level and q.level - me >= HIGH_LEVEL
+		end)
+	end
+	if f.status == "done" then
+		TakeOut("status", function(q)
+			return not q.done
+		end)
+	elseif f.status == "open" then
+		TakeOut("status", function(q)
+			return q.done
+		end)
+	end
+	local want = {}
+	for _, q in ipairs(keep) do
+		want[q.id] = true
+	end
+	for _, q in ipairs(all) do
+		local on = Watched(q.id)
+		if want[q.id] and not on then
+			Try(Q.AddQuestWatch, q.id)
+		elseif not want[q.id] and on then
+			Try(Q.RemoveQuestWatch, q.id)
 		end
 	end
 end
@@ -1610,21 +1685,28 @@ end
 local function FilterText()
 	local f = Filter()
 	local parts = {}
+	-- a part skipped at the last apply: in grey
+	local function Add(text, part)
+		if skipped[part] then
+			text = "|cff999999" .. T.QFILTER_SKIPPED:format(text) .. "|r"
+		end
+		parts[#parts + 1] = text
+	end
 	if f.status == "done" then
-		parts[#parts + 1] = T.QFILTER_DONE
+		Add(T.QFILTER_DONE, "status")
 	elseif f.status == "open" then
-		parts[#parts + 1] = T.QFILTER_OPEN
+		Add(T.QFILTER_OPEN, "status")
 	end
 	if f.place == "here" then
-		parts[#parts + 1] = T.QFILTER_HERE
+		Add(T.QFILTER_HERE, "place")
 	elseif f.place then
-		parts[#parts + 1] = f.place
+		Add(f.place, "place")
 	end
 	if #parts == 0 then
 		parts[1] = T.QFILTER_ALL
 	end
 	if f.high then
-		parts[#parts + 1] = T.QFILTER_HIGH
+		Add(T.QFILTER_HIGH, "high")
 	end
 	if f.shared then
 		parts[#parts + 1] = T.QFILTER_SHARED
@@ -1666,14 +1748,10 @@ local function QFilterMenu(self)
 	end
 	MenuUtil.CreateContextMenu(self, function(_, root)
 		local f = Filter()
-		-- choosing the one already chosen clears it
+		-- choosing the one already chosen keeps it (All clears)
 		local function Pick(key, value)
 			return function()
-				if f[key] == value then
-					f[key] = nil
-				else
-					f[key] = value
-				end
+				f[key] = value
 				ApplyFilter()
 				return MenuStay()
 			end
@@ -1777,14 +1855,279 @@ local function MakeQFilterButton()
 	return b
 end
 
+--------------------------------------------------------------------------------
+-- Share tracked quests: a button left of the filter, in a group. Shares each
+-- tracked quest that can be shared and that someone in the group hasn't got,
+-- one a second (the server turns down several at once).
+--------------------------------------------------------------------------------
+
+local QSHARE_ATLASES = { "socialqueuing-icon-group", "groupfinder-icon-friend", "UI-LFG-RoleIcon-Leader" }
+local shareQueue, shareTicker = {}, nil
+
+local function CanShare()
+	return InGroup() and Q.SetSelectedQuest and QuestLogPushQuest and Q.IsPushableQuest and Q.IsUnitOnQuest
+end
+
+-- someone in the group hasn't got it
+local function SomeoneLacks(id)
+	local raid = IsInRaid and IsInRaid()
+	local n = raid and (GetNumGroupMembers and GetNumGroupMembers() or 0) or 4
+	for i = 1, n do
+		local unit = raid and ("raid" .. i) or ("party" .. i)
+		if UnitExists(unit) and not UnitIsUnit(unit, "player") and not Try(Q.IsUnitOnQuest, unit, id) then
+			return true
+		end
+	end
+	return false
+end
+
+local function ToShare()
+	local list = {}
+	if not CanShare() then
+		return list
+	end
+	for _, z in ipairs(QuestZones()) do
+		for _, id in ipairs(z.ids) do
+			if Watched(id) and Try(Q.IsPushableQuest, id) and SomeoneLacks(id) then
+				list[#list + 1] = id
+			end
+		end
+	end
+	return list
+end
+
+local function ShareNext()
+	local id = table.remove(shareQueue, 1)
+	if not id then
+		if shareTicker then
+			shareTicker:Cancel()
+			shareTicker = nil
+		end
+		return
+	end
+	Try(Q.SetSelectedQuest, id)
+	Try(QuestLogPushQuest)
+end
+
+local function ShareTracked()
+	shareQueue = ToShare()
+	if #shareQueue == 0 then
+		return
+	end
+	ShareNext()
+	if #shareQueue > 0 and not shareTicker then
+		shareTicker = C_Timer.NewTicker(1, ShareNext)
+	end
+end
+
+local function QShareTooltip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+	GameTooltip:SetText(T.QSHARE_TITLE, 1, 1, 1)
+	local n = #ToShare()
+	if n > 0 then
+		GameTooltip:AddLine(T.QSHARE_COUNT:format(n), 0.8, 0.8, 0.8)
+	else
+		GameTooltip:AddLine(T.QSHARE_NONE, 0.6, 0.6, 0.6, true)
+	end
+	GameTooltip:Show()
+end
+
+local function MakeQShareButton()
+	if qShare or not qButton then
+		return qShare
+	end
+	local b = CreateFrame("Button", nil, qButton:GetParent())
+	b:SetSize(qButton:GetSize())
+	b:SetPoint("RIGHT", qButton, "LEFT", -2, 0)
+	b:SetFrameLevel(qButton:GetFrameLevel())
+	local done = false
+	for _, atlas in ipairs(QSHARE_ATLASES) do
+		if Art.AtlasExists(atlas) then
+			b:SetNormalAtlas(atlas)
+			b:SetHighlightAtlas(atlas, "ADD")
+			done = true
+			break
+		end
+	end
+	if not done then
+		b:SetNormalTexture("Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon")
+		b:SetHighlightTexture("Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon", "ADD")
+	end
+	b:SetScript("OnClick", function(self)
+		ShareTracked()
+		if GameTooltip:IsOwned(self) then
+			QShareTooltip(self)
+		end
+	end)
+	b:SetScript("OnEnter", QShareTooltip)
+	b:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+	b:Hide()
+	qShare = b
+	return b
+end
+
+--------------------------------------------------------------------------------
+-- The filter while the tracker is empty: Blizzard hides the whole tracker,
+-- the filter with it. A button of our own, on UIParent, where the filter
+-- was (kept as an offset from the tracker's top right, which holds its place
+-- while hidden): only the filter's shape, white, with a light shadow.
+--------------------------------------------------------------------------------
+
+local EMPTY_ATLASES = { "questlog-icon-filter", "Map-Filter-Button", "ui-questtrackerbutton-filter" }
+local emptyAt = { x = -38, y = -14 }
+
+-- where the filter is now, from the tracker's top right
+local function KeepFilterPlace()
+	local t = ObjectiveTrackerFrame
+	if not (qButton and qButton:IsVisible() and t) then
+		return
+	end
+	local bx, by = qButton:GetCenter()
+	local right, top = t:GetRight(), t:GetTop()
+	if not (bx and right) then
+		return
+	end
+	local bs, ts = qButton:GetEffectiveScale(), t:GetEffectiveScale()
+	emptyAt.x = (bx * bs - right * ts) / ts
+	emptyAt.y = (by * bs - top * ts) / ts
+end
+
+-- no quest tracked, and the tracker (or its header) not showing: clients
+-- differ in which one they hide
+local function TrackerEmpty()
+	local t = ObjectiveTrackerFrame
+	if not t then
+		return false
+	end
+	local n = Q.GetNumQuestWatches and Q.GetNumQuestWatches() or 0
+	if n > 0 then
+		return false
+	end
+	return not t:IsVisible() or not (t.Header and t.Header:IsVisible())
+end
+
+local function PlaceEmpty()
+	local b, t = qEmpty, ObjectiveTrackerFrame
+	if not (b and t) then
+		return
+	end
+	local show = On(VAR_QFILTER) and TrackerEmpty()
+	if show then
+		-- the tracker's own scale, so the offset holds
+		b:SetScale(t:GetEffectiveScale() / UIParent:GetEffectiveScale())
+		b:ClearAllPoints()
+		b:SetPoint("CENTER", t, "TOPRIGHT", emptyAt.x, emptyAt.y)
+	end
+	b:SetShown(show)
+end
+
+local function MakeQEmptyButton()
+	if qEmpty or not ObjectiveTrackerFrame then
+		return qEmpty
+	end
+	local b = CreateFrame("Button", nil, UIParent)
+	local w, h = 16, 16
+	if qButton then
+		w, h = qButton:GetSize()
+	end
+	b:SetSize(w, h)
+	b:SetFrameStrata("LOW")
+	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	local atlas
+	for _, a in ipairs(EMPTY_ATLASES) do
+		if Art.AtlasExists(a) then
+			atlas = a
+			break
+		end
+	end
+	local function Shape(layer, sub)
+		local t = b:CreateTexture(nil, layer, nil, sub)
+		if atlas then
+			t:SetAtlas(atlas)
+		else
+			t:SetTexture("Interface\\Minimap\\Tracking\\None")
+		end
+		t:SetDesaturated(true)
+		return t
+	end
+	b.shadow = Shape("BACKGROUND", 0)
+	b.shadow:SetPoint("TOPLEFT", 1, -1)
+	b.shadow:SetPoint("BOTTOMRIGHT", 1, -1)
+	b.shadow:SetVertexColor(0, 0, 0, 0.7)
+	b.shape = Shape("ARTWORK", 0)
+	b.shape:SetAllPoints()
+	b.shape:SetVertexColor(1, 1, 1, 0.9)
+	b:SetScript("OnEnter", function(self)
+		self.shape:SetVertexColor(1, 1, 1, 1)
+		QFilterTooltip(self)
+	end)
+	b:SetScript("OnLeave", function(self)
+		self.shape:SetVertexColor(1, 1, 1, 0.9)
+		GameTooltip:Hide()
+	end)
+	b:SetScript("OnClick", function(self, button)
+		if button == "RightButton" then
+			QFilterMenu(self)
+		else
+			ApplyFilter()
+		end
+	end)
+	b:Hide()
+	qEmpty = b
+	return b
+end
+
+local qHooked = false
+
+local function UpdateQButtons()
+	local on = On(VAR_QFILTER)
+	if qButton then
+		qButton:SetShown(on)
+	end
+	if qShare then
+		qShare:SetShown(on and CanShare() and true or false)
+	end
+	KeepFilterPlace()
+	PlaceEmpty()
+end
+
 local function ApplyQuestFilter()
 	if not On(VAR_QFILTER) and not qButton then
 		return
 	end
-	local b = MakeQFilterButton()
-	if b then
-		b:SetShown(On(VAR_QFILTER))
+	MakeQFilterButton()
+	MakeQShareButton()
+	MakeQEmptyButton()
+	if not qHooked and ObjectiveTrackerFrame then
+		qHooked = true
+		ObjectiveTrackerFrame:HookScript("OnShow", function()
+			Try(UpdateQButtons)
+		end)
+		ObjectiveTrackerFrame:HookScript("OnHide", function()
+			Try(UpdateQButtons)
+		end)
+		local header = ObjectiveTrackerFrame.Header
+		if header then
+			header:HookScript("OnShow", function()
+				Try(UpdateQButtons)
+			end)
+			header:HookScript("OnHide", function()
+				Try(UpdateQButtons)
+			end)
+		end
+		local watch = CreateFrame("Frame")
+		watch:RegisterEvent("GROUP_ROSTER_UPDATE")
+		watch:RegisterEvent("PLAYER_ENTERING_WORLD")
+		pcall(watch.RegisterEvent, watch, "QUEST_WATCH_LIST_CHANGED")
+		watch:SetScript("OnEvent", function()
+			C_Timer.After(0, function()
+				Try(UpdateQButtons)
+			end)
+		end)
 	end
+	UpdateQButtons()
 end
 
 --------------------------------------------------------------------------------
@@ -1804,7 +2147,7 @@ local function TrackerParts()
 	if not header then
 		return nil
 	end
-	local parts = { header.Background, header.Text, header.FilterButton, tracker.NineSlice, qButton }
+	local parts = { header.Background, header.Text, header.FilterButton, tracker.NineSlice, qButton, qShare }
 	return tracker, header, parts
 end
 
@@ -1815,7 +2158,7 @@ local function ApplyTrackerMin()
 	end
 	local simple = On(VAR_QMIN) and tracker.IsCollapsed and tracker:IsCollapsed()
 	-- some may be missing (nil): every slot, not ipairs
-	for i = 1, 5 do
+	for i = 1, 6 do
 		local part = parts[i]
 		if part then
 			if simple then
@@ -1860,16 +2203,16 @@ local function ApplyTrackerMinTweak()
 end
 
 --------------------------------------------------------------------------------
--- Shared Quests in Blue: in Blizzard's objective tracker, the title of each
--- quest someone in the group is on too, in the party's blue (brighter under
--- the mouse). Only the title's colour: after each of Blizzard's updates and
--- highlights, and when the group or its quests change. Off, or no longer
--- shared: Blizzard's own colour back.
+-- Highlight Shared Quests: in Blizzard's objective tracker, a glow in the
+-- party's blue behind the title of each quest someone in the group is on
+-- too: a texture of ours under the block's text, as wide as the title,
+-- fading at both ends (the title's own colour can't be used: this client
+-- draws the text shown elsewhere). After each of Blizzard's updates, and
+-- when the group or its quests change.
 --------------------------------------------------------------------------------
 
 local VAR_QSHARED = "SETGO_TWEAK_QUESTSHARED"
-local SHARED_COLOR = { 0.55, 0.6, 1 }
-local SHARED_HIGHLIGHT = { 0.75, 0.8, 1 }
+local GLOW = { 0.35, 0.45, 1, 0.35 }
 local qsharedHooked = false
 local qsharedQueued = false
 local hookedBlocks = {}
@@ -1893,14 +2236,14 @@ local function EachBlock(module, fn)
 	if type(used) ~= "table" then
 		return
 	end
-	for _, v in pairs(used) do
+	for key, v in pairs(used) do
 		if type(v) == "table" then
 			if v.HeaderText then
-				fn(v)
+				fn(v, key)
 			else
-				for _, block in pairs(v) do
+				for id, block in pairs(v) do
 					if type(block) == "table" and block.HeaderText then
-						fn(block)
+						fn(block, id)
 					end
 				end
 			end
@@ -1908,18 +2251,49 @@ local function EachBlock(module, fn)
 	end
 end
 
--- Blizzard's own colour for the title, as it last set it
-local function BlizzardColor(block)
-	if block.UpdateHighlight then
-		block.sgTinting = true
-		pcall(block.UpdateHighlight, block)
-		block.sgTinting = nil
-		return
+-- one half of the glow: from clear at the end to blue at the middle
+local function GlowHalf(block, fromClear)
+	local t = block:CreateTexture(nil, "BACKGROUND", nil, -7)
+	t:SetColorTexture(1, 1, 1, 1)
+	local r, g, b, a = GLOW[1], GLOW[2], GLOW[3], GLOW[4]
+	local clear, full = { r, g, b, 0 }, { r, g, b, a }
+	local left, right = fromClear and clear or full, fromClear and full or clear
+	local ok = CreateColor and pcall(t.SetGradient, t, "HORIZONTAL", CreateColor(unpack(left)), CreateColor(unpack(right)))
+	if not ok and t.SetGradientAlpha then
+		ok = pcall(t.SetGradientAlpha, t, "HORIZONTAL", left[1], left[2], left[3], left[4], right[1], right[2], right[3], right[4])
 	end
-	local colors = OBJECTIVE_TRACKER_COLOR
-	local c = colors and (block.isHighlighted and colors.HeaderHighlight or colors.Header)
-	if c then
-		block.HeaderText:SetTextColor(c.r, c.g, c.b)
+	if not ok then
+		t:SetColorTexture(r, g, b, a * 0.6)
+	end
+	return t
+end
+
+local function Glow(block)
+	local g = block.sgGlow
+	if not g then
+		g = { left = GlowHalf(block, true), right = GlowHalf(block, false) }
+		block.sgGlow = g
+	end
+	local text = block.HeaderText
+	local w = (text:GetStringWidth() or 0) + 16
+	local h = (text:GetStringHeight() or text:GetHeight() or 12) + 6
+	g.left:ClearAllPoints()
+	g.left:SetPoint("LEFT", text, "LEFT", -8, 0)
+	g.left:SetSize(w / 2, h)
+	g.right:ClearAllPoints()
+	g.right:SetPoint("LEFT", g.left, "RIGHT")
+	g.right:SetSize(w / 2, h)
+	return g
+end
+
+local function ShowGlow(block, on)
+	if on then
+		local g = Glow(block)
+		g.left:Show()
+		g.right:Show()
+	elseif block.sgGlow then
+		block.sgGlow.left:Hide()
+		block.sgGlow.right:Hide()
 	end
 end
 
@@ -1928,43 +2302,33 @@ local function HookBlock(block)
 		return
 	end
 	hookedBlocks[block] = true
-	for _, method in ipairs({ "UpdateHighlight", "SetHeader" }) do
-		if type(block[method]) == "function" then
-			hooksecurefunc(block, method, function(self)
-				if not self.sgTinting then
-					Try(TintBlock, self)
-				end
-			end)
-		end
+	if type(block.SetHeader) == "function" then
+		-- a new header: the block may now hold another quest; read again at
+		-- the next pass over the tracker
+		hooksecurefunc(block, "SetHeader", function(self)
+			self.sgQuestID = nil
+			ShowGlow(self, false)
+		end)
 	end
 end
 
-function TintBlock(block)
+-- the quest's ID: the key Blizzard keeps the block under (this client's
+-- blocks don't carry it), kept on the block for the hooks
+function TintBlock(block, key)
 	local text = block.HeaderText
-	local id = tonumber(block.id or block.questID)
+	local id = tonumber(key) or block.sgQuestID or tonumber(block.id or block.questID)
 	if not (text and id) then
 		return
 	end
+	block.sgQuestID = id
 	HookBlock(block)
-	if On(VAR_QSHARED) and block:IsShown() and SharedWithGroup(id) then
-		local hi = block.isHighlighted
-		if hi == nil then
-			local r = text:GetTextColor()
-			hi = r and r > 0.9 or false
-		end
-		local c = hi and SHARED_HIGHLIGHT or SHARED_COLOR
-		text:SetTextColor(c[1], c[2], c[3])
-		block.sgShared = true
-	elseif block.sgShared then
-		block.sgShared = nil
-		BlizzardColor(block)
-	end
+	ShowGlow(block, On(VAR_QSHARED) and block:IsShown() and SharedWithGroup(id) or false)
 end
 
 local function TintAll()
 	for _, m in ipairs(QuestModules()) do
-		EachBlock(m, function(block)
-			Try(TintBlock, block)
+		EachBlock(m, function(block, id)
+			Try(TintBlock, block, id)
 		end)
 	end
 end
@@ -2048,8 +2412,12 @@ local function TimeText(left)
 	return ("%ds"):format(math.floor(left))
 end
 
--- { { name, icon, left } } of the buffs the arrow hides
-local function HiddenBuffs()
+-- { { name, icon, left } } of the buffs the arrow hides. In combat the game
+-- keeps the auras secret from addons: the list read before combat stands
+-- (its times counted on), and is read again when combat ends.
+local lastHidden, lastHiddenAt = {}, 0
+
+local function ReadHiddenBuffs()
 	local list = {}
 	local now = GetTime()
 	-- weapon enchants, as Blizzard counts them
@@ -2087,6 +2455,25 @@ local function HiddenBuffs()
 		local left = (duration and duration > 0 and expiration and expiration > 0) and (expiration - now) or nil
 		if LongTime(left) then
 			list[#list + 1] = { name = name, icon = icon, left = left }
+		end
+	end
+	return list
+end
+
+local function HiddenBuffs()
+	if not InCombatLockdown() then
+		local ok, list = pcall(ReadHiddenBuffs)
+		if ok and list then
+			lastHidden, lastHiddenAt = list, GetTime()
+			return list
+		end
+	end
+	local gone = GetTime() - lastHiddenAt
+	local list = {}
+	for _, b in ipairs(lastHidden) do
+		local left = b.left and (b.left - gone) or nil
+		if not b.left or left > 0 then
+			list[#list + 1] = { name = b.name, icon = b.icon, left = left }
 		end
 	end
 	return list
@@ -2215,6 +2602,7 @@ local function ApplyHiddenBuffs()
 		end
 		local watch = CreateFrame("Frame")
 		watch:RegisterUnitEvent("UNIT_AURA", "player")
+		watch:RegisterEvent("PLAYER_REGEN_ENABLED")
 		watch:SetScript("OnEvent", function()
 			Try(UpdateHiddenBuffs)
 		end)
@@ -2427,7 +2815,7 @@ function ns.TweaksItems()
 		Keep(VAR_QFILTER, on)
 		Try(ApplyQuestFilter)
 	end)
-	items[#items + 1] = { kind = "checkbox", setting = qfilter, settings = { qfilter }, name = T.QFILTER, tooltip = T.QFILTER_DESC, newKey = "qfilter" }
+	items[#items + 1] = { kind = "checkbox", setting = qfilter, settings = { qfilter }, name = T.QFILTER, tooltip = T.QFILTER_DESC, newKey = "qshare" }
 	local qmin = ns.Pseudo(VAR_QMIN, T.QMIN, T.QMIN_DESC, false, function()
 		return On(VAR_QMIN)
 	end, function(on)

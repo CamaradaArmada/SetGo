@@ -52,7 +52,10 @@ function Art.AtlasExists(name)
 	if atlasCache[name] == nil then
 		local ok = false
 		if C_Texture and C_Texture.GetAtlasInfo then
-			ok = type(Try(C_Texture.GetAtlasInfo, name)) == "table"
+			-- read into a local first: for a missing atlas the game may
+			-- return nothing at all, and type() with nothing is an error
+			local info = Try(C_Texture.GetAtlasInfo, name)
+			ok = type(info) == "table"
 		end
 		atlasCache[name] = ok
 	end

@@ -8,6 +8,24 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "1.3.0",
+		title = "SetGo! 1.3.0",
+		text = [[
+|cffffd100New features|r
+• Speak! Chat Board (replaces Copy chat): a window for everything that isn't players talking to you, so the chat can stay for talking: public channels, system messages, what commands and addons print, loot, money, experience, reputation, achievements and more. Tabs work as in the chat, each with its own channels and kinds of message, and can keep their history after a reload. A Whispers side has a tab per conversation. It has a typing box, a search, and Copy for the messages you tick. Pin a tab to see its new messages over the game while the Board is closed, with an alert sound if you want one. Opens from the chat settings button's menu or a key in Key Bindings.
+• Share tracked quests: in a group, a button next to the quest filter shares each tracked quest that someone in the group hasn't got.
+
+|cffffd100Improvements|r
+• Quest filter: in a zone with no quests in your log, it keeps the quests you already track, and a filter that would leave nothing to track is skipped, shown in grey in the tooltip instead of a chat message. Arriving in a new zone no longer empties the tracker.
+• Quest filter with an empty tracker: the filter button stays where it was, so you can always bring quests back.
+• Highlight Shared Quests (was Shared Quests in Blue): a soft blue glow behind the titles of the quests your group is on too, since this client can't recolour the titles.
+• Live preview: on the profile in use, action bars and Blizzard's frames show or hide on the Layout tab as you tick them, so you see them before applying.
+• Hide! Rules: each card is now a rule with its own frames (picked by kind), conditions, Show or Hide, delay and cooldown icons, so frames that show and hide together are set up once. Your cards carry over.
+
+|cffffd100Fixes|r
+• 5 performance improvements or bug fixes.]],
+	},
+	{
 		version = "1.2.0",
 		title = "SetGo! 1.2.0",
 		text = [[
@@ -79,14 +97,16 @@ ns.CHANGELOG = {
 -- key = where its mark is: "tweaks" (a dot on the Interface Tweaks tab, and
 -- "New" on the tab), "gear" ("New" beside the gear until the settings page
 -- opens), "hide" ("New" beside the condition in Hide!'s menu until it is
--- pointed at)
+-- pointed at), "module" (a dot on a module's option, its newKey, and on the
+-- module's icon on the Addons tab, until its options are opened)
 ns.NEW_FEATURES = {
-	qfilter = "tweaks", -- Interface Tweaks: quest filter (zones, completed, shared)
+	qshare = "tweaks", -- Interface Tweaks: quest filter, with Share tracked quests (1.3.0; was qfilter in 1.2.0)
 	tracker = "tweaks", -- Interface Tweaks: the minimap Tracker, as the day and night indicator
 	hiddenbuffs = "tweaks", -- Interface Tweaks: hidden buffs icon
 	qshared = "tweaks", -- Interface Tweaks: shared quests in blue
 	settings = "gear", -- SetGo!'s settings page
 	instance = "hide", -- Hide!: the "In an instance" condition
+	board = "module", -- Speak!: the Chat Board (a dot on its option and on Speak!'s icon, Addons tab)
 }
 
 -- new and not seen yet by this account

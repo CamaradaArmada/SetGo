@@ -585,6 +585,11 @@ function ns.ApplyProfile(name, force)
 		ns.Print(L.MSG_COMBAT)
 		return
 	end
+	-- the form showed bars or frames before saving (ProfileForm.lua): the
+	-- reload clears what the bars' setting marked
+	if ns.previewTouched then
+		force = true
+	end
 	if not ns.SettingsReady() then
 		ns.Print(L.MSG_NOT_READY)
 		return
@@ -1172,30 +1177,6 @@ function ns.ParseProfileText(text)
 		return nil
 	end
 	return out
-end
-
-function ns.CopyProfile(name)
-	local p = PresetOf(name)
-	if not p then
-		return nil
-	end
-	if ns.ProfilesFull() then
-		ns.Print(L.MSG_PROFILES_FULL:format(ns.MAX_PROFILES))
-		return nil
-	end
-	local copy = Copy(p)
-	copy.id = ns.NewId()
-	copy.layoutMade = nil
-	copy.layoutSeeded = nil
-	copy.created, copy.saved = nil, nil
-	local newName = ns.FreePresetName(L.COPY_NAME:format(name))
-	Save(newName, copy)
-	-- this character's action bars for it go with the copy
-	local skills = ns.charDB.skills[p.id]
-	if skills then
-		ns.charDB.skills[copy.id] = Copy(skills)
-	end
-	return newName
 end
 
 function ns.DeleteProfileAll(name)

@@ -6,7 +6,6 @@ local L = {
 
 	-- book
 	HOME = "Quick settings",
-	HOME_SHORT = "Home",
 	CONTENTS = "Contents",
 	PENDING = "%d changes not applied yet.",
 	NO_PENDING = "No changes yet.",
@@ -109,7 +108,6 @@ if GetLocale() == "ptBR" then
 	L.OPEN = "Abrir SetGo!"
 
 	L.HOME = "Definições rápidas"
-	L.HOME_SHORT = "Início"
 	L.CONTENTS = "Índice"
 	L.PENDING = "%d alterações por aplicar."
 	L.NO_PENDING = "Sem alterações."

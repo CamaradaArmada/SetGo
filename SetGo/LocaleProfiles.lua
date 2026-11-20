@@ -17,7 +17,6 @@ local EN = {
 	DIFF_SKILLS = "%d action bar slots",
 	PROFILE_MATCHES = "This character matches the profile.",
 	NONE = "None",
-	COPY_NAME = "%s (copy)",
 	MSG_SKILLS_RESTORED = "%d action bar slots put back.",
 	MSG_SKILLS_FAILED = "%d action bar slots could not be put back: spells not known here, or macros and items no longer there.",
 	MSG_UI_REAPPLIED = "Account-wide elements set as the profile \"%s\" has them.",
@@ -63,7 +62,6 @@ local PT = {
 	DIFF_SKILLS = "%d espaços das barras de acção",
 	PROFILE_MATCHES = "Esta personagem está igual ao perfil.",
 	NONE = "Nenhum",
-	COPY_NAME = "%s (cópia)",
 	MSG_SKILLS_RESTORED = "%d espaços das barras de acção repostos.",
 	MSG_SKILLS_FAILED = "%d espaços das barras de acção não foram repostos: feitiços que esta personagem não conhece, ou macros e itens que já não existem.",
 	MSG_UI_REAPPLIED = "Elementos da conta acertados pelo perfil \"%s\".",
@@ -114,7 +112,6 @@ end
 local EN17 = {
 	PANEL_DESC = "Quick setup for the Blizzard UI: profiles with an Edit Mode layout, what it switches on, modules, keys, action bars and, if you want, their own character settings, to use on all your characters.",
 	FORM_TAB_LAYOUT = "Layout",
-	FORM_TAB_MODULES = "Modules",
 	NP_COPY_PROFILE = "Copy from",
 	NEW_PRESET_DESC = "A new profile: its layout, what it switches on, its modules and, if you want, its own settings. Save keeps it; Apply puts it on this character.",
 	PRESET_OPEN_DESC = "Opens the profile: what it holds, and Apply.",
@@ -129,7 +126,6 @@ local EN17 = {
 local PT17 = {
 	PANEL_DESC = "Configuração rápida da interface da Blizzard: perfis com um layout do Edit Mode, o que ligam, módulos, teclas, barras de acção e, se quiseres, definições próprias da personagem, para usares em todas as tuas personagens.",
 	FORM_TAB_LAYOUT = "Layout",
-	FORM_TAB_MODULES = "Módulos",
 	NP_COPY_PROFILE = "Copiar de",
 	NEW_PRESET_DESC = "Um perfil novo: o layout, o que liga, os módulos e, se quiseres, definições próprias. Guardar fica com ele; Aplicar põe-no nesta personagem.",
 	PRESET_OPEN_DESC = "Abre o perfil: o que tem, e Aplicar.",
@@ -263,7 +259,6 @@ end
 --------------------------------------------------------------------------------
 
 local EN22 = {
-	FORM_TAB_SETTINGS = "Settings",
 	SCOPE_SETTINGS = "Character settings",
 	SCOPE_KEYS = "Keybinds",
 	SCOPE_GLOBAL = "Global",
@@ -290,7 +285,6 @@ local EN22 = {
 }
 
 local PT22 = {
-	FORM_TAB_SETTINGS = "Definições",
 	SCOPE_SETTINGS = "Definições da personagem",
 	SCOPE_KEYS = "Atalhos de teclado",
 	SCOPE_GLOBAL = "Global",
@@ -776,6 +770,7 @@ local ENW = {
 	LAYOUT_NEW_FROM = "New layout from: %s",
 	LAYOUT_DD_DESC = "The Edit Mode layout this profile uses: one of Blizzard's, one of your account's, or a new one made from another (the profile keeps it as its own).",
 	BAR1_ALWAYS = "Action bar 1 is always shown.",
+	POPUP_PREVIEW_RELOAD = "The action bars are back as they were. Reload the interface now? Changing them from SetGo! marks them as touched by an addon, which can block them in combat until the next reload.",
 }
 
 local PTW = {
@@ -803,6 +798,7 @@ local PTW = {
 	LAYOUT_NEW_FROM = "Novo layout a partir de: %s",
 	LAYOUT_DD_DESC = "O layout do Edit Mode que este perfil usa: um da Blizzard, um da tua conta, ou um novo feito a partir de outro (o perfil guarda-o como seu).",
 	BAR1_ALWAYS = "A barra de acção 1 está sempre visível.",
+	POPUP_PREVIEW_RELOAD = "As barras de acção voltaram ao que eram. Recarregar a interface agora? Mudá-las a partir do SetGo! marca-as como tocadas por um addon, o que as pode bloquear em combate até ao próximo reload.",
 }
 
 for key, value in pairs(ENW) do
