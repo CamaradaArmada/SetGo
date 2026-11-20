@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.3.0
+
+SetGo! (builds 73 to 83)
+- Share tracked quests (build 79): in a group, a button next to the quest
+  filter shares each tracked quest that can be shared and that someone in
+  the group hasn't got, one a second; its tooltip says how many.
+- Quest filter (build 76): in a zone with no quests in your log, it keeps
+  the quests already tracked and only takes out the completed or high level
+  ones; Completed, Not Completed and Untrack High Level are skipped when
+  they would leave nothing to track, shown in grey in the tooltip, with no
+  chat message. Choosing an option already chosen keeps it (All clears).
+- Quest filter with an empty tracker (build 79): Blizzard hides the whole
+  tracker, so a button of SetGo!'s own stays where the filter was (the
+  filter's shape in white with a light shadow), with the same clicks.
+- Highlight Shared Quests (build 80, was Shared Quests in Blue): a soft glow
+  in the party's blue behind the titles of the quests someone in the group
+  is on too, as wide as the title and fading at both ends; the titles'
+  colour can't be changed in this client.
+- Live preview (build 82): on the profile in use, the Layout tab shows or
+  hides action bars 2 to 8 and Blizzard's frames as they are ticked (the
+  bars wait for combat to end). Leaving without saving or Undo puts them
+  back, with a reload offered when the bars were touched; Apply reloads.
+- New marks (build 83): the quest filter option is marked again for Share
+  tracked quests, and a module's new options get Blizzard's blue dot, also
+  on the module's icon on the Addons tab, until its options are opened
+  (the Chat Board option in Speak!).
+- Fixes: the Hidden Buffs Icon no longer reads the buffs in combat, where
+  they are secret (73); a quest filter click in combat waits for combat to
+  end (77); checking whether an atlas exists no longer fails when the game
+  doesn't have it, which kept the quest filter and share buttons hidden (81).
+- Cleanup (83): ns.CopyProfile and its string, the FORM_TAB_MODULES,
+  FORM_TAB_SETTINGS and HOME_SHORT strings; the test of CopyProfile.
+
+Hide! (builds 26 to 27)
+- Rules (build 26): each card is a rule (up to 10, "New rule" at the
+  bottom) with a Frames dropdown that picks its frames by kind (Check all,
+  Uncheck all; a frame is in one rule only), its conditions, Show or Hide,
+  its out of combat delay and, with action bars 1 to 8, its cooldown icons.
+  The Anchored frames dropdown goes. Existing cards become rules with their
+  frames and the frames that followed them; cards with the same settings
+  become one rule.
+- Cleanup (27): the unused FrameLabel and its string.
+
+Speak! (builds 20 to 39)
+- Chat Board (builds 20 to 38, replaces Copy chat): a narrow window in
+  SetGo!'s style for everything that isn't players talking to you: public
+  channels, system messages, commands' and addons' output, loot, money,
+  currency, experience, honor, reputation, skill ups, crafting,
+  achievements, battlegrounds, creatures and more; player chat can be
+  chosen too. Two side tabs, Channels and Whispers. Channels: tabs as in
+  the chat (new, rename, delete, drag to reorder, page arrows when they
+  don't fit); the cog picks each tab's channels and kinds of message and
+  whether it keeps its history (the last 100 messages of each kind, up to
+  an hour old, after a reload or login). Whispers: a tab per conversation
+  (whispers and Battle.net), saved or cleared at logout. A typing box with
+  its destination per tab; Enter sends, / goes to the chat as a command;
+  the chat's Enter goes to the Board while it is open. The pin shows a
+  tab's new messages over the game while the Board is closed, fading after
+  a set time, with an optional alert sound and task bar flash; the pinned
+  window moves, resizes, has an opacity and a lock, and an eye to hide it.
+  The cog can hide chosen addons' lines from the main chat. Search, All,
+  None and Copy for ticked messages. Opens from the settings button's menu
+  or a key (Bindings.xml, new). Opening it no longer fails on the typing
+  box's menu (28).
+- New mark (39): Blizzard's blue dot on the Chat Board option. Cleanup:
+  an unused constant and the OptionalDeps on the old SetGo_Chat.
+
 ## 1.2.0
 
 SetGo! (builds 42 to 72)
