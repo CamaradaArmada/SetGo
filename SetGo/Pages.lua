@@ -16,16 +16,6 @@ function ns.HideGlobal()
 	return true
 end
 
-function ns.DefaultTab()
-	local tab = ns.db and ns.db.defaultTab
-	for _, t in ipairs(ns.TABS) do
-		if t == tab then
-			return t
-		end
-	end
-	return "presets"
-end
-
 --------------------------------------------------------------------------------
 -- The size of SetGo!'s windows (the book, the Quick Menu; not the
 -- welcome a new character gets): the account's, at once, as a scale
@@ -114,11 +104,6 @@ function ns.SetGoItems()
 	if setgo then
 		return setgo
 	end
-	local tab = ns.Pseudo("SETGO_DEFAULT_TAB", L.SETGO_TAB, L.SETGO_TAB_DESC, "presets", function()
-		return ns.DefaultTab()
-	end, function(value)
-		ns.db.defaultTab = value
-	end)
 	local minimap = ns.Pseudo("SETGO_MINIMAP", L.SETGO_MINIMAP, L.SETGO_MINIMAP_DESC, true, function()
 		return not (ns.db.minimap and ns.db.minimap.hide)
 	end, function(on)

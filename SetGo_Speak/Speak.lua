@@ -3022,8 +3022,6 @@ end
 -- Blizzard's side tabs (the character window's): 55 x 55, the art 55 x 60
 local SIDE = 55
 
-local SetClassIcon -- forward, below
-
 local function SideMenu(owner, root)
 	local c = convs[owner.with]
 	if not c then
@@ -3151,22 +3149,6 @@ function Channels.OpenConv(with)
 	f.search:SetText(W.filter[with or "\001none"] or "")
 	Fill()
 	Channels.Side()
-end
-
--- a class's round icon: its atlas, else the class circles' file
-function SetClassIcon(tex, c)
-	tex:SetTexCoord(0, 1, 0, 1)
-	local class = c.class
-	if c.bn then
-		tex:SetTexture("Interface\\FriendsFrame\\Battlenet-Battleneticon")
-	elseif class and HasAtlas("classicon-" .. class:lower()) then
-		tex:SetAtlas("classicon-" .. class:lower())
-	elseif class and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[class] then
-		tex:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
-		tex:SetTexCoord(unpack(CLASS_ICON_TCOORDS[class]))
-	else
-		tex:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-	end
 end
 
 local function SideButton(f, i, size)
@@ -3338,7 +3320,7 @@ function Channels.View()
 	if W.view then
 		return W.view
 	end
-	local f = Channels.Frame()
+	Channels.Frame()
 	local view = CreateFrame("Frame", "SetGoSpeakChannelsPin", UIParent)
 	view:SetFrameStrata("LOW")
 	view:SetClampedToScreen(true)

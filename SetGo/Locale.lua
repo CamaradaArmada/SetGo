@@ -61,8 +61,6 @@ local L = {
 	DISCARD = "Discard",
 	DISCARD_DESC = "Forgets every change not applied yet.",
 	SETGO_TITLE = "SetGo! settings",
-	SETGO_TAB = "Opening tab",
-	SETGO_TAB_DESC = "The tab listed on the first page when SetGo! opens.",
 	SETGO_MINIMAP = "Minimap button",
 	SETGO_MINIMAP_DESC = "Shows the SetGo! button on the minimap. The addon menu by the minimap always has it.",
 
@@ -157,8 +155,6 @@ if GetLocale() == "ptBR" then
 	L.DISCARD = "Descartar"
 	L.DISCARD_DESC = "Esquece todas as alterações que ainda não aplicaste."
 	L.SETGO_TITLE = "Opções do SetGo!"
-	L.SETGO_TAB = "Separador inicial"
-	L.SETGO_TAB_DESC = "O separador que aparece na primeira página quando o SetGo! abre."
 	L.SETGO_MINIMAP = "Botão no minimapa"
 	L.SETGO_MINIMAP_DESC = "Mostra o botão do SetGo! no minimapa. O menu de addons junto ao minimapa tem-no sempre."
 

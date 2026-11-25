@@ -41,7 +41,7 @@ local function Tabs()
 	return ALL_TABS
 end
 local BLIZZARD_TINT = { 0.12, 0.23, 0.45 } -- Blizzard's layouts: blue ink
-local CELL_H, CELL_GAP = 28, 3
+local CELL_GAP = 3
 local DEFAULT_ICON = 134400 -- the question mark
 local HEAD_H = 76 -- the name and the button, then Copy from and Export
 local TABS_TOP = U.PAD_TOP + HEAD_H
@@ -875,7 +875,6 @@ end
 
 -- apply: also put it on this character (a new profile)
 local function FormSave(name, apply)
-	local first = #ns.ProfileSlots() == 0
 	-- saved: what shows is now the profile's (no going back on leaving)
 	form.liveBase = nil
 	previewBarsNow = false
@@ -2096,10 +2095,7 @@ local function RefreshAddonList()
 	local custom = form.customAddons
 	-- the game's groups: an addon whose group is another addon here goes
 	-- under it
-	local all, byName, matched = ns.AddonList(), {}, {}
-	for _, a in ipairs(all) do
-		byName[a.name] = a
-	end
+	local all, matched = ns.AddonList(), {}
 	local tops, kids = {}, {}
 	local aceMap = ns.AceMap(all)
 	-- which addon each one goes with: its Group or X-Part-Of (Spoken_Quests

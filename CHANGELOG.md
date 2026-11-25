@@ -2,7 +2,7 @@
 
 ## 1.3.0
 
-SetGo! (builds 73 to 83)
+SetGo! (builds 73 to 84)
 - Share tracked quests (build 79): in a group, a button next to the quest
   filter shares each tracked quest that can be shared and that someone in
   the group hasn't got, one a second; its tooltip says how many.
@@ -32,6 +32,9 @@ SetGo! (builds 73 to 83)
   doesn't have it, which kept the quest filter and share buttons hidden (81).
 - Cleanup (83): ns.CopyProfile and its string, the FORM_TAB_MODULES,
   FORM_TAB_SETTINGS and HOME_SHORT strings; the test of CopyProfile.
+- Cleanup (84): ns.DefaultTab and the Opening tab setting left behind when
+  its dropdown went in 1.2.0, with its SETGO_TAB strings; W.Paragraph,
+  the round icon's SetRoundShown, the NONE string and unused locals.
 
 Hide! (builds 26 to 27)
 - Rules (build 26): each card is a rule (up to 10, "New rule" at the
@@ -43,7 +46,7 @@ Hide! (builds 26 to 27)
   become one rule.
 - Cleanup (27): the unused FrameLabel and its string.
 
-Speak! (builds 20 to 39)
+Speak! (builds 20 to 40)
 - Chat Board (builds 20 to 38, replaces Copy chat): a narrow window in
   SetGo!'s style for everything that isn't players talking to you: public
   channels, system messages, commands' and addons' output, loot, money,
@@ -66,6 +69,7 @@ Speak! (builds 20 to 39)
   box's menu (28).
 - New mark (39): Blizzard's blue dot on the Chat Board option. Cleanup:
   an unused constant and the OptionalDeps on the old SetGo_Chat.
+- Cleanup (40): the unused SetClassIcon.
 
 ## 1.2.0
 
