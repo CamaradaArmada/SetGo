@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: SetGo! BlessYou!
+## Notes: One button for your buffs: what you're missing, what your group is missing, and a buff back for whoever buffs you. A SetGo! module.
+## Notes-ptBR: Um botão para os teus buffs: os que te faltam, os que faltam ao grupo, e um buff de volta para quem te dá um. Um módulo do SetGo!.
+## Author: Armada
+## Version: 1.4.0
+## X-Build: 1
+## Dependencies: SetGo
+## DefaultState: enabled
+## SavedVariables: SetGoBlessDB
+## IconTexture: Interface\Icons\spell_holy_greaterblessingofkings
+
+Data.lua
+BlessYou.lua

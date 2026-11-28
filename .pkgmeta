@@ -1,7 +1,7 @@
 package-as: SetGo
 
 manual-changelog:
-  filename: CHANGELOG.md
+  filename: CURSEFORGE.md
   markup-type: markdown
 
 move-folders:
@@ -10,10 +10,12 @@ move-folders:
   SetGo/SetGo_Look: SetGo_Look
   SetGo/SetGo_Speak: SetGo_Speak
   SetGo/SetGo_Hide: SetGo_Hide
+  SetGo/SetGo_BlessYou: SetGo_BlessYou
 
 ignore:
   - README.md
   - CHANGELOG.md
+  - CURSEFORGE.md
   - MODULES.md
   - .gitignore
   - tests

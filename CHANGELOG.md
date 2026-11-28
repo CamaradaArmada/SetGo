@@ -1,5 +1,102 @@
 # Changelog
 
+## 1.4.0
+
+SetGo! (build 85)
+- BlessYou!: a new module, in the module list, on the Addons tab and in the
+  minimap button's Modules menu (Data.lua, MOD_BLESS, MOD_BLESS_DESC,
+  MOD_BLESS_SHORT).
+- Minimap button menu: the modules that are switched on can add a shortcut
+  to their own window (a new `shortcut` field in SetGo.RegisterModule),
+  listed above Modules. BlessYou!'s buff menu is the first one.
+- Quick Menu: three buttons that open Blizzard's own windows: Cooldown
+  Manager settings, Click Casting and Quick Keybind Mode. Each one shows
+  only when the client has that window, loads it the first time, and does
+  nothing in combat.
+- Share tracked quests, one at a time: the next quest goes once everyone who
+  lacked it has answered (read from the game's own system messages:
+  accepted, declined, busy, already has it, can't take it) or after 10
+  seconds, instead of one a second. Busy: that quest is tried again at the
+  end, once. In combat the next one waits for combat to end. While it
+  shares, the button spins (still and grey while paused), its tooltip shows
+  the quest (n of total) and each member's answer, and a click stops it.
+- Interface Tweaks, Damage Meter Reset Button: a button next to the damage
+  meter's session menu that clears every session (current and overall),
+  through the game's C_DamageMeter.ResetAllCombatSessions. It is placed when
+  Blizzard_DamageMeter loads, and marked new with Blizzard's blue dot
+  (Changelog.lua: dmreset).
+- New marks: the features of 1.2.0 (the Tracker, the Hidden Buffs Icon, the
+  settings page and Hide!'s "In an instance") are no longer marked new.
+- Changelog tab: 1.4.0.
+
+BlessYou! (build 1)
+- New module: one secure button with the next buff to cast. Your own buffs
+  first, then your group's, then a buff back for whoever buffed you. Left
+  click casts it. Shift + right click dismisses it until you enter an
+  instance or reload, or until that buff is on that person and wears off
+  again. Ctrl + drag moves it (it snaps to the middle of the screen). In
+  combat it hides, because its attributes can't change then.
+- Group buffs: the group version (Gift of the Wild, Prayer of Fortitude and
+  the like) when 3 or more in one party need it and you have the reagent; a
+  greater blessing when 2 or more of one class need the same blessing and
+  you have a Symbol of Kings. Spell ranks are picked by the target's level.
+- Buff back: someone outside your group who gives you a buff of 5 minutes or
+  more is offered one of yours for the next 10 minutes, cast with a macro
+  (/targetexact). Who buffed you comes from the combat log when the client
+  allows it, else from the aura's caster.
+- Party menu: a small window with your party and the buff each one gets.
+  Right click a buff to change it for as long as you're in that party. It
+  can open by itself when you join a party, and from the minimap button's
+  menu (SetGo!'s new module shortcut).
+- Paladins: blessing priority per kind of class (melee, casters, hybrids),
+  three places from left to right; the next one goes when the first is
+  already on someone (from another paladin) or not learned yet. The aura to
+  put up when none is on.
+- Reminders: how long before a buff runs out it is reminded, and when
+  (never, in a group, always); weapon stones and flasks, main and off hand;
+  whose missing buffs to offer (just me, me and my group, everyone I can
+  buff).
+- A macro to drag to an action bar that casts the next buff (not stones or
+  flasks); with the mouse over a player, the buff that player is missing.
+- Thanks: an optional /thank to whoever gives you a buff of 5 minutes or
+  more (never, outside your group, everyone): once every 5 minutes per
+  person, out of combat only, and not for buffs you already had at login,
+  reload or zone change.
+- /blessyou; English and Portuguese.
+
+Fetch! (build 6)
+- Keyring: while the bag bar is anchored to it, the keyring sits in the
+  bar's row like one of its buttons, on the same slot background (its own
+  icon hidden meanwhile), with the toggle arrow over it.
+- While anchored, the right click is Fetch!'s (it hides or shows the bar)
+  and no longer opens the keyring too: the keyring takes left clicks only.
+  Unanchored it gets both back. Not changed in combat; the next update
+  catches up.
+
+Speak! (builds 41 to 43)
+- Pinned window: the tab under it is gone. A cog at its top right, shown
+  with the mouse over the window, holds its options: background opacity,
+  Text alignment (left, centre, right; new), Lock the window and Close
+  (unpins the tab; new). The window is dragged by itself. The eye is larger
+  and shows struck through while the window is shown (in red where the
+  client has no struck through eye).
+- The Board's pin button uses the friends list's pin, grey while the tab
+  isn't pinned.
+- Messages: long words and links wrap instead of being cut, and each line
+  is drawn at the width its height was measured at, so lines no longer
+  overlap or leave gaps.
+- Typing box: the cursor is in it as soon as the Board opens; its text uses
+  Friz Quadrata at the chat's size (12 at least); a shift-clicked quest no
+  longer goes in twice.
+
+Hide!, Look!: only the version.
+
+Package
+- .pkgmeta: SetGo_BlessYou in move-folders, so it is packaged as its own
+  folder; the CurseForge release notes come from CURSEFORGE.md (short, for
+  players) instead of this file.
+- Tests on GitHub at every push to main (tests.yml), not only at a release.
+
 ## 1.3.0
 
 SetGo! (builds 73 to 84)

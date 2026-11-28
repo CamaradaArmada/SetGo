@@ -8,6 +8,25 @@ local _, ns = ...
 
 ns.CHANGELOG = {
 	{
+		version = "1.4.0",
+		title = "SetGo! 1.4.0",
+		text = [[
+|cffffd100New features|r
+• BlessYou!: a new module with one button for your buffs: what you're missing, what your group is missing, and a buff back for whoever buffs you. Left click casts it. It uses group versions and greater blessings when they're worth it; paladins set a blessing priority by kind of class. A party menu changes each player's buff for as long as you're in that party, a macro casts the next buff from your bars, and it can /thank whoever buffs you. Type /blessyou, or open its settings in SetGo!.
+• Damage Meter Reset Button: a new Interface Tweak. A button next to the damage meter's session menu clears every session, current and overall, in one click.
+• Quick Menu: buttons for Blizzard's Cooldown Manager settings, Click Casting and Quick Keybind Mode.
+
+|cffffd100Improvements|r
+• Share tracked quests: one quest at a time, waiting for everyone's answer, so the server no longer turns them down. The tooltip shows each member's answer, a busy player gets the quest again at the end, and a click stops sharing.
+• Minimap button menu: shortcuts to the windows of your modules, such as BlessYou!'s buff menu.
+• Speak! pinned window: its options are on a cog at the top right, with a new text alignment and a Close button; the eye shows struck through while the window is shown.
+• Speak! Chat Board: long links and words wrap instead of being cut off, and the cursor is in the typing box as soon as the Board opens.
+• Fetch! keyring: it sits in the bag bar like one of its buttons, and its right click only hides or shows the bar.
+
+|cffffd100Fixes|r
+• 3 performance improvements or bug fixes.]],
+	},
+	{
 		version = "1.3.0",
 		title = "SetGo! 1.3.0",
 		text = [[
@@ -101,12 +120,9 @@ ns.CHANGELOG = {
 -- module's icon on the Addons tab, until its options are opened)
 ns.NEW_FEATURES = {
 	qshare = "tweaks", -- Interface Tweaks: quest filter, with Share tracked quests (1.3.0; was qfilter in 1.2.0)
-	tracker = "tweaks", -- Interface Tweaks: the minimap Tracker, as the day and night indicator
-	hiddenbuffs = "tweaks", -- Interface Tweaks: hidden buffs icon
 	qshared = "tweaks", -- Interface Tweaks: shared quests in blue
-	settings = "gear", -- SetGo!'s settings page
-	instance = "hide", -- Hide!: the "In an instance" condition
 	board = "module", -- Speak!: the Chat Board (a dot on its option and on Speak!'s icon, Addons tab)
+	dmreset = "tweaks", -- Interface Tweaks: the damage meter's Reset Button (1.4.0)
 }
 
 -- new and not seen yet by this account

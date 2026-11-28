@@ -41,6 +41,8 @@ local L = {
 	MOD_SPEAK_DESC = "A cleaner chat in the style of the new interface, soft or with tooltip borders: Blizzard fonts, fading tabs and one settings button.",
 	MOD_HIDE = "Hide!",
 	MOD_HIDE_DESC = "Hides Blizzard frames like a macro: always, or only when (or except when) you are in combat, mounted, holding a key and more.",
+	MOD_BLESS = "BlessYou!",
+	MOD_BLESS_DESC = "One button for your buffs: what you're missing, what your group is missing, and a buff back for whoever buffs you.",
 	NO_MODULES = "No modules installed. They come as separate folders (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) in the AddOns folder.",
 	POPUP_RELOAD_MODULES = "Reload the interface now to switch the module on or off?",
 
@@ -136,6 +138,8 @@ if GetLocale() == "ptBR" then
 	L.MOD_SPEAK_DESC = "Um chat mais limpo, no estilo da nova interface, esbatido ou com a moldura das tooltips: fontes da Blizzard, separadores que desvanecem e um só botão de definições."
 	L.MOD_HIDE = "Hide!"
 	L.MOD_HIDE_DESC = "Esconde frames da Blizzard como uma macro: sempre, ou só quando (ou excepto quando) estás em combate, montado, a carregar numa tecla e mais."
+	L.MOD_BLESS = "BlessYou!"
+	L.MOD_BLESS_DESC = "Um botão para os teus buffs: os que te faltam, os que faltam ao grupo, e um buff de volta para quem te dá um."
 	L.NO_MODULES = "Não há módulos instalados. Vêm em pastas separadas (SetGo_Fetch, SetGo_Look, SetGo_Speak, SetGo_Hide) na pasta AddOns."
 	L.POPUP_RELOAD_MODULES = "Recarregar a interface agora para ligar ou desligar o módulo?"
 

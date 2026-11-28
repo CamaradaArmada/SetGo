@@ -48,6 +48,16 @@ local T = {
 	QSHARE_TITLE = "Share tracked quests",
 	QSHARE_COUNT = "Click: share %d with your group",
 	QSHARE_NONE = "Your group already has every tracked quest that can be shared.",
+	QSHARE_NOW = "%s (%d of %d)",
+	QSHARE_PAUSED = "Paused until combat ends.",
+	QSHARE_STOP = "Click: stop sharing",
+	QSHARE_HAS = "Has it",
+	QSHARE_ACCEPTED = "Accepted",
+	QSHARE_DECLINED = "Declined",
+	QSHARE_BUSY = "Busy: again at the end",
+	QSHARE_CANT = "Can't take it",
+	QSHARE_WAIT = "Waiting...",
+	QSHARE_NOANSWER = "No answer",
 	QFILTER_TITLE = "Quest filter",
 	QFILTER_ALL = "All",
 	QFILTER_DONE = "Completed",
@@ -76,8 +86,18 @@ local T = {
 	TRACK_OFF = "Off",
 	TRACK_COMBAT = "The tracking skill can't be chosen in combat.",
 	TRACK_AT = "SetGo! Tracker: x %.1f, y %.1f from the minimap's middle.",
+	DAMAGE = "Damage Meter",
+	DMRESET = "Reset Button",
+	DMRESET_DESC = "A button next to the damage meter's session menu that clears every session (current and overall).",
+	DMRESET_TITLE = "Reset",
+	DMRESET_HINT = "Clears every session: current and overall.",
 }
 if GetLocale() == "ptBR" then
+	T.DAMAGE = "Medidor de dano"
+	T.DMRESET = "Botão de reset"
+	T.DMRESET_DESC = "Um botão ao lado do menu de sessões do medidor de dano que apaga todas as sessões (a actual e a total)."
+	T.DMRESET_TITLE = "Reset"
+	T.DMRESET_HINT = "Apaga todas as sessões: a actual e a total."
 	T.DESC = "Alterações experimentais à interface da Blizzard. Cada perfil tem as suas."
 	T.NOTE = "Guardadas no perfil em uso, mas não fazem parte dele: não são copiadas, exportadas nem vão nos presets. Um perfil novo começa com todas desligadas."
 	T.LOOT = "Saque"
@@ -110,6 +130,16 @@ if GetLocale() == "ptBR" then
 	T.QSHARE_TITLE = "Partilhar as missões seguidas"
 	T.QSHARE_COUNT = "Clique: partilhar %d com o grupo"
 	T.QSHARE_NONE = "O grupo já tem todas as missões seguidas que se podem partilhar."
+	T.QSHARE_NOW = "%s (%d de %d)"
+	T.QSHARE_PAUSED = "Em pausa até ao fim do combate."
+	T.QSHARE_STOP = "Clique: parar a partilha"
+	T.QSHARE_HAS = "Já tem"
+	T.QSHARE_ACCEPTED = "Aceitou"
+	T.QSHARE_DECLINED = "Recusou"
+	T.QSHARE_BUSY = "Ocupado: outra vez no fim"
+	T.QSHARE_CANT = "Não pode aceitar"
+	T.QSHARE_WAIT = "À espera..."
+	T.QSHARE_NOANSWER = "Sem resposta"
 	T.QFILTER_TITLE = "Filtro das missões"
 	T.QFILTER_ALL = "Todas"
 	T.QFILTER_DONE = "Acabadas"
@@ -1857,7 +1887,11 @@ end
 --------------------------------------------------------------------------------
 -- Share tracked quests: a button left of the filter, in a group. Shares each
 -- tracked quest that can be shared and that someone in the group hasn't got,
--- one a second (the server turns down several at once).
+-- one at a time: the next goes once everyone who lacked it has answered (the
+-- game's own system messages: accepted, declined, busy...) or after 10
+-- seconds. Busy: that quest again at the end, once. In combat the next one
+-- waits for combat to end. While sharing, the button spins and its tooltip
+-- shows the quest and each member's answer; a click stops.
 --------------------------------------------------------------------------------
 
 local QSHARE_ATLASES = { "socialqueuing-icon-group", "groupfinder-icon-friend", "UI-LFG-RoleIcon-Leader" }
@@ -1895,40 +1929,260 @@ local function ToShare()
 	return list
 end
 
-local function ShareNext()
-	local id = table.remove(shareQueue, 1)
-	if not id then
-		if shareTicker then
-			shareTicker:Cancel()
-			shareTicker = nil
-		end
-		return
+local SHARE_WAIT = 10
+local share -- { queue, total, n, id, sentAt, members = { {name, state} }, retried, paused }
+local shareTicker
+local UpdateShareLook
+
+-- the game's answers to a shared quest: its own strings, as patterns
+local SHARE_ANSWERS = {
+	{ "ERR_QUEST_PUSH_SUCCESS_S", "wait" },
+	{ "ERR_QUEST_PUSH_ACCEPTED_S", "accepted" },
+	{ "ERR_QUEST_PUSH_ONQUEST_S", "has" },
+	{ "ERR_QUEST_PUSH_ALREADY_DONE_S", "has" },
+	{ "ERR_QUEST_PUSH_DECLINED_S", "declined" },
+	{ "ERR_QUEST_PUSH_BUSY_S", "busy" },
+	{ "ERR_QUEST_PUSH_INVALID_S", "cant" },
+	{ "ERR_QUEST_PUSH_INVALID2_S", "cant" },
+	{ "ERR_QUEST_PUSH_LOG_FULL_S", "cant" },
+	{ "ERR_QUEST_PUSH_TOO_FAR_S", "cant" },
+	{ "ERR_QUEST_PUSH_NOT_IN_PARTY_S", "cant" },
+	{ "ERR_QUEST_PUSH_DIFFERENTSERVERDAILY_S", "cant" },
+	{ "ERR_QUEST_PUSH_TIMER_EXPIRED_S", "cant" },
+	{ "ERR_QUEST_PUSH_NOT_ALLOWED_S", "cant" },
+	{ "ERR_QUEST_PUSH_LOW_LEVEL_S", "cant" },
+	{ "ERR_QUEST_PUSH_HIGH_LEVEL_S", "cant" },
+	{ "ERR_QUEST_PUSH_CLASS_S", "cant" },
+	{ "ERR_QUEST_PUSH_RACE_S", "cant" },
+	{ "ERR_QUEST_PUSH_DEAD_S", "cant" },
+	{ "ERR_QUEST_PUSH_EXPANSION_S", "cant" },
+	{ "ERR_QUEST_PUSH_NEW_PLAYER_EXPERIENCE_S", "cant" },
+}
+local sharePatterns
+
+local function SharePatterns()
+	if sharePatterns then
+		return sharePatterns
 	end
-	Try(Q.SetSelectedQuest, id)
-	Try(QuestLogPushQuest)
+	sharePatterns = {}
+	for _, a in ipairs(SHARE_ANSWERS) do
+		local text = _G[a[1]]
+		if type(text) == "string" and text:find("%%s") then
+			local pattern = "^" .. text:gsub("([%(%)%.%+%-%*%?%[%]%^%$%%])", "%%%1"):gsub("%%%%s", "(.+)") .. "$"
+			sharePatterns[#sharePatterns + 1] = { pattern, a[2] }
+		end
+	end
+	return sharePatterns
 end
 
-local function ShareTracked()
-	shareQueue = ToShare()
-	if #shareQueue == 0 then
+local SHARE_LOOK = {
+	has = { "QSHARE_HAS", 0.3, 0.9, 0.3 },
+	accepted = { "QSHARE_ACCEPTED", 0.3, 0.9, 0.3 },
+	declined = { "QSHARE_DECLINED", 1, 0.3, 0.3 },
+	cant = { "QSHARE_CANT", 1, 0.3, 0.3 },
+	busy = { "QSHARE_BUSY", 1, 0.82, 0 },
+	wait = { "QSHARE_WAIT", 0.6, 0.6, 0.6 },
+	noanswer = { "QSHARE_NOANSWER", 0.6, 0.6, 0.6 },
+}
+
+local function GroupUnits()
+	local list = {}
+	local raid = IsInRaid and IsInRaid()
+	local n = raid and (GetNumGroupMembers and GetNumGroupMembers() or 0) or 4
+	for i = 1, n do
+		local unit = raid and ("raid" .. i) or ("party" .. i)
+		if UnitExists(unit) and not UnitIsUnit(unit, "player") then
+			list[#list + 1] = unit
+		end
+	end
+	return list
+end
+
+local function StopSharing()
+	share = nil
+	if shareTicker then
+		shareTicker:Cancel()
+		shareTicker = nil
+	end
+	if UpdateShareLook then
+		UpdateShareLook()
+	end
+end
+
+-- the next quest in the queue, to everyone who lacks it
+local function ShareNext()
+	if not share then
 		return
 	end
-	ShareNext()
-	if #shareQueue > 0 and not shareTicker then
-		shareTicker = C_Timer.NewTicker(1, ShareNext)
+	if InCombatLockdown() then
+		share.paused = true
+		return
 	end
+	share.paused = nil
+	while true do
+		local id = table.remove(share.queue, 1)
+		if not id then
+			StopSharing()
+			return
+		end
+		local members, lacking = {}, false
+		for _, unit in ipairs(GroupUnits()) do
+			local has = Try(Q.IsUnitOnQuest, unit, id) and true or false
+			members[#members + 1] = { name = UnitName(unit) or "?", state = has and "has" or "wait" }
+			lacking = lacking or not has
+		end
+		share.n = share.n + 1
+		if lacking then
+			share.id, share.members, share.sentAt = id, members, GetTime()
+			Try(Q.SetSelectedQuest, id)
+			Try(QuestLogPushQuest)
+			return
+		end
+	end
+end
+
+-- every half second: on to the next one once nobody is waiting, or after
+-- SHARE_WAIT seconds
+local function ShareStep()
+	if not share then
+		return
+	end
+	if share.paused or not share.id then
+		ShareNext()
+	else
+		local waiting = false
+		for _, m in ipairs(share.members) do
+			if m.state == "wait" then
+				waiting = true
+			end
+		end
+		if not waiting or GetTime() - share.sentAt > SHARE_WAIT then
+			for _, m in ipairs(share.members) do
+				if m.state == "wait" then
+					m.state = "noanswer"
+				end
+			end
+			share.id = nil
+			ShareNext()
+		end
+	end
+	if UpdateShareLook then
+		UpdateShareLook()
+	end
+end
+
+-- an answer in the system messages
+local function ShareAnswer(msg)
+	if not (share and share.id and type(msg) == "string") then
+		return
+	end
+	for _, p in ipairs(SharePatterns()) do
+		local who = msg:match(p[1])
+		if who then
+			who = who:gsub("%-.*", "")
+			for _, m in ipairs(share.members) do
+				if m.name == who then
+					-- "sharing with" only marks the ones still waiting
+					if p[2] ~= "wait" or m.state == "wait" then
+						m.state = p[2]
+					end
+					if p[2] == "busy" and not share.retried[share.id] then
+						share.retried[share.id] = true
+						share.queue[#share.queue + 1] = share.id
+						share.total = share.total + 1
+					end
+				end
+			end
+			if UpdateShareLook then
+				UpdateShareLook()
+			end
+			return
+		end
+	end
+end
+
+local shareWatch
+
+local function ShareTracked()
+	if share then
+		StopSharing()
+		return
+	end
+	local queue = ToShare()
+	if #queue == 0 then
+		return
+	end
+	share = { queue = queue, total = #queue, n = 0, retried = {} }
+	if not shareWatch then
+		shareWatch = CreateFrame("Frame")
+		shareWatch:SetScript("OnEvent", function(_, _, msg)
+			Try(ShareAnswer, msg)
+		end)
+	end
+	shareWatch:RegisterEvent("CHAT_MSG_SYSTEM")
+	ShareNext()
+	shareTicker = shareTicker or C_Timer.NewTicker(0.5, function()
+		Try(ShareStep)
+	end)
+	UpdateShareLook()
 end
 
 local function QShareTooltip(self)
 	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 	GameTooltip:SetText(T.QSHARE_TITLE, 1, 1, 1)
-	local n = #ToShare()
-	if n > 0 then
-		GameTooltip:AddLine(T.QSHARE_COUNT:format(n), 0.8, 0.8, 0.8)
+	if share then
+		if share.id then
+			local title = Q.GetTitleForQuestID and Q.GetTitleForQuestID(share.id) or tostring(share.id)
+			GameTooltip:AddLine(T.QSHARE_NOW:format(title, share.n, share.total), 1, 0.82, 0)
+			for _, m in ipairs(share.members or {}) do
+				local look = SHARE_LOOK[m.state] or SHARE_LOOK.wait
+				GameTooltip:AddDoubleLine(m.name, T[look[1]], 1, 1, 1, look[2], look[3], look[4])
+			end
+		end
+		if share.paused then
+			GameTooltip:AddLine(T.QSHARE_PAUSED, 1, 0.5, 0.25)
+		end
+		GameTooltip:AddLine(T.QSHARE_STOP, 0.8, 0.8, 0.8)
 	else
-		GameTooltip:AddLine(T.QSHARE_NONE, 0.6, 0.6, 0.6, true)
+		local n = #ToShare()
+		if n > 0 then
+			GameTooltip:AddLine(T.QSHARE_COUNT:format(n), 0.8, 0.8, 0.8)
+		else
+			GameTooltip:AddLine(T.QSHARE_NONE, 0.6, 0.6, 0.6, true)
+		end
 	end
 	GameTooltip:Show()
+end
+
+-- the button while sharing: a spinning wheel in place of its icon (still,
+-- and grey, while paused); the tooltip kept up to date
+function UpdateShareLook()
+	local b = qShare
+	if not b then
+		return
+	end
+	local on = share ~= nil
+	local normal = b:GetNormalTexture()
+	if normal then
+		normal:SetAlpha(on and 0 or 1)
+	end
+	if b.spin then
+		b.spin:SetShown(on)
+		b.spin:SetDesaturated(on and share.paused and true or false)
+		if on and not share.paused then
+			if not b.spinAnim:IsPlaying() then
+				b.spinAnim:Play()
+			end
+		else
+			b.spinAnim:Stop()
+		end
+	end
+	if not on and shareWatch then
+		shareWatch:UnregisterEvent("CHAT_MSG_SYSTEM")
+	end
+	if GameTooltip:IsOwned(b) then
+		QShareTooltip(b)
+	end
 end
 
 local function MakeQShareButton()
@@ -1952,6 +2206,30 @@ local function MakeQShareButton()
 		b:SetNormalTexture("Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon")
 		b:SetHighlightTexture("Interface\\FriendsFrame\\UI-Toast-FriendOnlineIcon", "ADD")
 	end
+	-- the wheel while sharing
+	local spin = b:CreateTexture(nil, "OVERLAY")
+	spin:SetAllPoints()
+	-- the first spinner this client has (the queue's, then the auction
+	-- house's), else the old refresh arrow
+	local spinAtlas
+	for _, atlas in ipairs({ "plunderstorm-glues-queue-pending-spinner-back", "auctionhouse-ui-loadingspinner" }) do
+		if Art.AtlasExists(atlas) then
+			spinAtlas = atlas
+			break
+		end
+	end
+	if spinAtlas then
+		spin:SetAtlas(spinAtlas)
+	else
+		spin:SetTexture("Interface\\Buttons\\UI-RefreshButton")
+	end
+	spin:Hide()
+	local anim = spin:CreateAnimationGroup()
+	local rot = anim:CreateAnimation("Rotation")
+	rot:SetDegrees(-360)
+	rot:SetDuration(1)
+	anim:SetLooping("REPEAT")
+	b.spin, b.spinAnim = spin, anim
 	b:SetScript("OnClick", function(self)
 		ShareTracked()
 		if GameTooltip:IsOwned(self) then
@@ -2609,6 +2887,142 @@ local function ApplyHiddenBuffs()
 	UpdateHiddenBuffs()
 end
 
+--------------------------------------------------------------------------------
+-- Damage Meter Reset Button: on Blizzard's damage meter (its main window),
+-- next to the session menu, a button that clears every session through the
+-- game's own C_DamageMeter.ResetAllCombatSessions. The window loads on
+-- demand: placed when Blizzard_DamageMeter loads.
+--------------------------------------------------------------------------------
+
+local VAR_DMRESET = "SETGO_TWEAK_DMRESET"
+local dmButton
+
+local function DMWindow()
+	local dm = DamageMeter
+	if not (dm and dm.GetPrimarySessionWindow) then
+		return nil
+	end
+	local ok, w = pcall(dm.GetPrimarySessionWindow, dm)
+	return ok and w or nil
+end
+
+local function DMResetTooltip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_TOP")
+	GameTooltip:SetText(T.DMRESET_TITLE, 1, 1, 1)
+	GameTooltip:AddLine(T.DMRESET_HINT, 0.8, 0.8, 0.8, true)
+	GameTooltip:Show()
+end
+
+local function MakeDMReset()
+	if dmButton then
+		return dmButton
+	end
+	local w = DMWindow()
+	local menu = w and w.GetSessionDropdown and w:GetSessionDropdown()
+	if not menu then
+		return nil
+	end
+	local b = CreateFrame("Button", nil, w)
+	-- the same size as the session button next to it, and its very face:
+	-- each of its textures copied (atlas or file, colour, size and place),
+	-- except the highlight
+	b:SetSize(menu:GetSize())
+	b:SetPoint("RIGHT", menu, "LEFT", -10, 0)
+	b:SetFrameLevel(menu:GetFrameLevel())
+	local mx, my = menu:GetCenter()
+	local faces = {}
+	for _, r in ipairs({ menu:GetRegions() }) do
+		-- only what covers the button (its face), not a small icon on it
+		local big = r.GetWidth and r:GetWidth() >= 0.8 * (menu:GetWidth() or 0)
+		if r.IsObjectType and r:IsObjectType("Texture") and r:IsShown() and big and r:GetDrawLayer() ~= "HIGHLIGHT" then
+			local layer, sub = r:GetDrawLayer()
+			local t = b:CreateTexture(nil, layer, nil, sub)
+			local atlas = r.GetAtlas and r:GetAtlas()
+			if atlas and atlas ~= "" then
+				t:SetAtlas(atlas)
+			else
+				t:SetTexture(r:GetTexture())
+				t:SetTexCoord(r:GetTexCoord())
+			end
+			t:SetVertexColor(r:GetVertexColor())
+			t:SetSize(r:GetSize())
+			local rx, ry = r:GetCenter()
+			if rx and mx then
+				t:SetPoint("CENTER", b, "CENTER", rx - mx, ry - my)
+			else
+				t:SetAllPoints()
+			end
+			faces[#faces + 1] = t
+		end
+	end
+	local h = math.min(b:GetWidth(), b:GetHeight())
+	b:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	-- the round arrow on it
+	local glyph = b:CreateTexture(nil, "OVERLAY", nil, 7)
+	glyph:SetPoint("CENTER")
+	glyph:SetSize(h * 0.7, h * 0.7)
+	glyph:SetTexture("Interface\\Buttons\\UI-RefreshButton")
+	local up, over, down
+	local face = { SetAtlas = function() end }
+	b:SetScript("OnEnter", function(self)
+		if over then
+			face:SetAtlas(over)
+		end
+		DMResetTooltip(self)
+	end)
+	b:SetScript("OnLeave", function()
+		if up then
+			face:SetAtlas(up)
+		end
+		GameTooltip:Hide()
+	end)
+	b:SetScript("OnMouseDown", function()
+		if down then
+			face:SetAtlas(down)
+		end
+		glyph:SetPoint("CENTER", 1, -1)
+	end)
+	b:SetScript("OnMouseUp", function(self)
+		local atlas = (self:IsMouseOver() and over) or up
+		if atlas then
+			face:SetAtlas(atlas)
+		end
+		glyph:SetPoint("CENTER")
+	end)
+	b:SetScript("OnClick", function()
+		if C_DamageMeter and C_DamageMeter.ResetAllCombatSessions then
+			Try(C_DamageMeter.ResetAllCombatSessions)
+		end
+	end)
+	dmButton = b
+	return b
+end
+
+local dmWatch
+
+local function ApplyDMReset()
+	local on = On(VAR_DMRESET)
+	if on and not dmButton then
+		MakeDMReset()
+		-- the window not there yet: when Blizzard's damage meter loads
+		if not dmButton and not dmWatch then
+			dmWatch = CreateFrame("Frame")
+			dmWatch:RegisterEvent("ADDON_LOADED")
+			dmWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
+			dmWatch:SetScript("OnEvent", function(self)
+				C_Timer.After(0, function()
+					if On(VAR_DMRESET) and Try(MakeDMReset) then
+						self:UnregisterAllEvents()
+					end
+				end)
+			end)
+		end
+	end
+	if dmButton then
+		dmButton:SetShown(on)
+	end
+end
+
 function ns.ApplyTweaks()
 	if not ns.db then
 		return
@@ -2622,6 +3036,7 @@ function ns.ApplyTweaks()
 	Try(ApplyTrackerMinTweak)
 	Try(ApplyQuestShared)
 	Try(ApplyHiddenBuffs)
+	Try(ApplyDMReset)
 end
 
 -- another profile in use here: its tweaks
@@ -2829,5 +3244,14 @@ function ns.TweaksItems()
 		Try(ApplyQuestShared)
 	end)
 	items[#items + 1] = { kind = "checkbox", setting = qshared, settings = { qshared }, name = T.QSHARED, tooltip = T.QSHARED_DESC, newKey = "qshared" }
+	-- the damage meter
+	items[#items + 1] = { kind = "header", name = T.DAMAGE }
+	local dmreset = ns.Pseudo(VAR_DMRESET, T.DMRESET, T.DMRESET_DESC, false, function()
+		return On(VAR_DMRESET)
+	end, function(on)
+		Keep(VAR_DMRESET, on)
+		Try(ApplyDMReset)
+	end)
+	items[#items + 1] = { kind = "checkbox", setting = dmreset, settings = { dmreset }, name = T.DMRESET, tooltip = T.DMRESET_DESC, newKey = "dmreset" }
 	return items
 end

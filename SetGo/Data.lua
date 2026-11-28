@@ -323,6 +323,7 @@ ns.KNOWN_MODULES = {
 	{ addon = "SetGo_Look", key = "adventure", title = "MOD_LOOK", desc = "MOD_LOOK_DESC" }, -- key kept from SetGo_Adventure
 	{ addon = "SetGo_Speak", key = "chat", title = "MOD_SPEAK", desc = "MOD_SPEAK_DESC" }, -- key kept from SetGo_Chat
 	{ addon = "SetGo_Hide", key = "hide", title = "MOD_HIDE", desc = "MOD_HIDE_DESC" },
+	{ addon = "SetGo_BlessYou", key = "bless", title = "MOD_BLESS", desc = "MOD_BLESS_DESC" },
 }
 
 ns.modules = {}

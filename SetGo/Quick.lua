@@ -20,6 +20,12 @@ local L = {
 	ALL_PLATES = "Always show nameplates",
 	ALL_PLATES_DESC = "Shows nameplates all the time. Off: they only show in combat.",
 	OPEN_SETGO = "Open SetGo!",
+	COOLDOWNS = "Cooldown Manager",
+	COOLDOWNS_DESC = "Opens Blizzard's Cooldown Manager settings, where you choose which skills it shows and in what order.",
+	CLICK = "Click Casting",
+	CLICK_DESC = "Opens Blizzard's Click Casting: spells cast with a click on a unit frame (yours, your group's, your target's).",
+	QUICKBIND = "Quick Keybind Mode",
+	QUICKBIND_DESC = "Opens Blizzard's Quick Keybind Mode: mouse over a button and press a key to bind it.",
 }
 if GetLocale() == "ptBR" then
 	L.TITLE = "Menu rápido"
@@ -39,6 +45,12 @@ if GetLocale() == "ptBR" then
 	L.ALL_PLATES = "Mostrar sempre as placas de nome"
 	L.ALL_PLATES_DESC = "Mostra as placas de nome a toda a hora. Desligado: só aparecem em combate."
 	L.OPEN_SETGO = "Abrir SetGo!"
+	L.COOLDOWNS = "Gestor de recargas"
+	L.COOLDOWNS_DESC = "Abre as definições do Gestor de recargas da Blizzard, onde escolhes que skills mostra e por que ordem."
+	L.CLICK = "Lançamento por clique"
+	L.CLICK_DESC = "Abre o Lançamento por clique da Blizzard: feitiços lançados com um clique numa unit frame (a tua, a do grupo, a do alvo)."
+	L.QUICKBIND = "Modo de teclas rápido"
+	L.QUICKBIND_DESC = "Abre o Modo de teclas rápido da Blizzard: passa o rato por cima de um botão e carrega numa tecla para a associar."
 end
 BINDING_NAME_SETGO_QUICK = L.BINDING
 ns.QUICK_L = L
@@ -525,6 +537,81 @@ local function SetGoRow(y)
 	return y + 22 + 8
 end
 
+-- Blizzard's Cooldown Manager settings (the skills it shows): loaded the
+-- first time if the game keeps it apart
+local function CooldownSettings()
+	if not CooldownViewerSettings and C_AddOns and C_AddOns.LoadAddOn then
+		pcall(C_AddOns.LoadAddOn, "Blizzard_CooldownViewer")
+	end
+	return CooldownViewerSettings
+end
+
+-- a button that opens one of Blizzard's windows (frame: returns it,
+-- loading it first if needed; toggle: Blizzard's own way to open it, if any)
+local function WindowRow(y, label, desc, frameOf, toggle)
+	y = y + 4
+	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+	b:SetSize(CW, 22)
+	b:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD + 2, -y)
+	b:SetText(label)
+	TipScripts(b, label, desc)
+	b:SetScript("OnClick", function()
+		if InCombatLockdown() then
+			return
+		end
+		local f = frameOf()
+		frame:Hide()
+		if toggle and toggle() then
+			return
+		end
+		if not f then
+			return
+		end
+		if f:IsShown() then
+			HideUIPanel(f)
+		else
+			ShowUIPanel(f)
+		end
+	end)
+	return y + 22
+end
+
+local function CooldownsRow(y)
+	if not (CooldownSettings() or (C_CVar.GetCVar("cooldownViewerEnabled") ~= nil)) then
+		return y
+	end
+	return WindowRow(y, SetGo.G("COOLDOWN_VIEWER_LABEL", L.COOLDOWNS), L.COOLDOWNS_DESC, CooldownSettings)
+end
+
+-- Click Casting (loaded the first time)
+local function ClickFrame()
+	if not ClickBindingFrame and C_AddOns and C_AddOns.LoadAddOn then
+		pcall(C_AddOns.LoadAddOn, "Blizzard_ClickBindingUI")
+	end
+	return ClickBindingFrame
+end
+
+local function ClickRow(y)
+	if not (ClickFrame() or ToggleClickBindingFrame) then
+		return y
+	end
+	return WindowRow(y, SetGo.G("CLICK_CAST_BINDINGS", L.CLICK), L.CLICK_DESC, ClickFrame, function()
+		if type(ToggleClickBindingFrame) == "function" then
+			ToggleClickBindingFrame()
+			return true
+		end
+	end)
+end
+
+local function QuickBindRow(y)
+	if not QuickKeybindFrame then
+		return y
+	end
+	return WindowRow(y, SetGo.G("QUICK_KEYBIND_MODE", L.QUICKBIND), L.QUICKBIND_DESC, function()
+		return QuickKeybindFrame
+	end)
+end
+
 -- By the minimap, on the side with room (Edit Mode can move it): open to
 -- its right when it sits in the left half of the screen, and level with its
 -- top or bottom edge, whichever is nearer the screen edge.
@@ -614,6 +701,10 @@ local function Build()
 	y = Slider(y, SetGo.G("MASTER_VOLUME", L.MASTER), "Sound_MasterVolume", 1)
 	y = Slider(y, SetGo.G("MUSIC_VOLUME", L.MUSIC), "Sound_MusicVolume", 0.4)
 	y = QuietRow(y)
+	y = CooldownsRow(y)
+	y = ClickRow(y)
+	y = QuickBindRow(y)
+	y = y + 4
 	frame:SetSize(FRAME_W, y + 16)
 
 	-- Esc, the X, the key and the menu close it

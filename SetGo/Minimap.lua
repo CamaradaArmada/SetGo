@@ -1,5 +1,6 @@
 local ADDON, ns = ...
 local L = ns.L
+local Try = ns.Try
 
 --------------------------------------------------------------------------------
 -- Minimap button (LibDBIcon, so minimap button collectors pick it up) and the
@@ -39,6 +40,20 @@ function ns.ContextMenu(owner)
 			end
 		end
 		root:CreateDivider()
+		-- shortcuts the modules switched on offer (RegisterModule's
+		-- shortcut): their own windows
+		local any = false
+		for _, def in ipairs(ns.modules or {}) do
+			if type(def.shortcut) == "function" and ns.ModuleOn(def.key) then
+				root:CreateButton(def.title, function()
+					Try(def.shortcut)
+				end)
+				any = true
+			end
+		end
+		if any then
+			root:CreateDivider()
+		end
 		-- the modules: on and off (the interface reloads after asking)
 		local modules = root:CreateButton(L.MODULES)
 		for _, m in ipairs(ns.KNOWN_MODULES) do

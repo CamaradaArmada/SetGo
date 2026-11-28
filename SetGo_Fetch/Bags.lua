@@ -312,7 +312,8 @@ local ARROW_ATLASES = { "common-icon-redo", "common-icon-undo", "transmog-icon-r
 local ARROW_FILE = "Interface\\Buttons\\UI-RefreshButton"
 local TIP_DELAY = 0.6
 
-local sign
+local sign, back, ring
+local rightBlocked = false -- only undone if we did it
 function ns.SetupKeyToggle(keyring)
 	if sign then
 		return
@@ -341,6 +342,27 @@ function ns.SetupKeyToggle(keyring)
 	end
 	ns.keySignSource = found or "none"
 	sign.icon = icon
+
+	-- the slot background of the bar's buttons, under the keyring, whose
+	-- icon is hidden meanwhile (it fills the whole button): the keyring
+	-- sits in the row like one of them, with the arrow. Just below the
+	-- keyring, in its strata, so its highlight stays on top; takes no
+	-- clicks. Strata and level are read again each time it shows
+	-- (UpdateKeyToggle): at load the keyring isn't at its final level yet.
+	-- Hiding the icon is only its alpha: a texture, no taint.
+	ring = keyring
+	back = CreateFrame("Frame", nil, UIParent)
+	back:EnableMouse(false)
+	back:SetAllPoints(keyring)
+	back:Hide()
+	local bg = back:CreateTexture(nil, "BACKGROUND")
+	bg:SetAllPoints()
+	local Art = SetGo.Art
+	if Art and Art.AtlasExists(Art.SLOT_BACKGROUND) then
+		bg:SetAtlas(Art.SLOT_BACKGROUND)
+	else
+		bg:SetColorTexture(0, 0, 0, 0.5)
+	end
 
 	-- the tooltip line, after a delay, added to the keyring's own tooltip
 	local gen = 0
@@ -371,5 +393,30 @@ function ns.UpdateKeyToggle()
 	-- only while the bar is shown: put away, the keyring is just the keyring
 	-- (its tooltip still tells about the right click)
 	local away = ns.bagPeek or ns.bagOnCursor
-	sign:SetShown(ns.Anchored() and not away)
+	local shown = ns.Anchored() and not away
+	sign:SetShown(shown)
+	if back then
+		if shown then
+			back:SetFrameStrata(ring:GetFrameStrata())
+			back:SetFrameLevel(math.max(0, ring:GetFrameLevel() - 1))
+		end
+		back:SetShown(shown)
+		local icon = ring.icon or _G[(ring:GetName() or "") .. "IconTexture"]
+		if icon and icon.SetAlpha then
+			icon:SetAlpha(shown and 0 or 1)
+		end
+	end
+	-- Anchored, the right click is ours (it toggles the bar), so it no longer
+	-- opens the keyring: the keyring takes left clicks only. Unanchored, it
+	-- gets both back, as Blizzard registers them. Not a protected button,
+	-- but left alone in combat all the same; the next update catches up.
+	local block = ns.Anchored()
+	if ring and ring.RegisterForClicks and block ~= rightBlocked and not InCombatLockdown() then
+		if block then
+			ring:RegisterForClicks("LeftButtonUp")
+		else
+			ring:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		end
+		rightBlocked = block
+	end
 end

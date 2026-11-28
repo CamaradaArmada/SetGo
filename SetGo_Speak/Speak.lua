@@ -120,7 +120,12 @@ local L = {
 	PIN_SHOW = "Show the window",
 	PIN_OPACITY = "Background opacity",
 	PIN_LOCK = "Lock the window",
-	PIN_DESC = "With the Board closed, this tab stays on screen where the window is: only its new messages, over the game, each fading after a while (the cog, When pinned, sets the time, a sound and the task bar flash). Drag it anywhere; the grip at its bottom right resizes it; right click its tab for the background opacity and to lock it; the eye at its bottom left hides it and shows it again. One tab at a time: pinning another unpins this one.",
+	PIN_CLOSE = "Close (unpins the tab)",
+	PIN_JUSTIFY = "Text alignment",
+	PIN_LEFT = "Left",
+	PIN_CENTER = "Centre",
+	PIN_RIGHT = "Right",
+	PIN_DESC = "With the Board closed, this tab stays on screen where the window is: only its new messages, over the game, each fading after a while (the cog, When pinned, sets the time, a sound and the task bar flash). Drag it anywhere; the grip at its bottom right resizes it; its cog, top right with the mouse over it, sets the background opacity and the text alignment and locks it; the eye at its bottom left (struck through while shown) hides it and shows it again. One tab at a time: pinning another unpins this one.",
 	CHANNELS_OFF = "Speak!: the Chat Board is switched off. Switch it on in Speak!'s page in SetGo!.",
 	SET_CHANNELS = "Chat Board",
 	SET_CHANNELS_DESC = "Keeps the messages for the Chat Board and shows it in the settings button's menu and on its key. Off, nothing is kept.",
@@ -247,7 +252,12 @@ if GetLocale() == "ptBR" then
 	L.PIN_SHOW = "Mostrar a janela"
 	L.PIN_OPACITY = "Opacidade do fundo"
 	L.PIN_LOCK = "Trancar a janela"
-	L.PIN_DESC = "Com o Quadro fechado, este separador fica no ecrã onde a janela está: só as mensagens novas, por cima do jogo, cada uma a desaparecer passado um tempo (o cog, Quando fixado, escolhe o tempo, um som e o piscar na barra de tarefas). Arrasta-o para onde quiseres; a pega no canto de baixo à direita muda o tamanho; o clique direito na aba escolhe a opacidade do fundo e tranca-o; o olho no canto de baixo à esquerda esconde-o e volta a mostrá-lo. Um separador de cada vez: fixar outro solta este."
+	L.PIN_CLOSE = "Fechar (solta o separador)"
+	L.PIN_JUSTIFY = "Alinhamento do texto"
+	L.PIN_LEFT = "À esquerda"
+	L.PIN_CENTER = "Ao centro"
+	L.PIN_RIGHT = "À direita"
+	L.PIN_DESC = "Com o Quadro fechado, este separador fica no ecrã onde a janela está: só as mensagens novas, por cima do jogo, cada uma a desaparecer passado um tempo (o cog, Quando fixado, escolhe o tempo, um som e o piscar na barra de tarefas). Arrasta-o para onde quiseres; a pega no canto de baixo à direita muda o tamanho; o cog, em cima à direita com o rato por cima, escolhe a opacidade do fundo e o alinhamento do texto e tranca-o; o olho no canto de baixo à esquerda (riscado enquanto se vê) esconde-o e volta a mostrá-lo. Um separador de cada vez: fixar outro solta este."
 	L.CHANNELS_OFF = "Speak!: o Quadro está desligado. Liga-o na página do Speak!, no SetGo!."
 	L.SET_CHANNELS = "Quadro"
 	L.SET_CHANNELS_DESC = "Guarda as mensagens para o Quadro e mostra-o no menu do botão de definições e na sua tecla. Desligado, não guarda nada."
@@ -1572,7 +1582,13 @@ local LOCK_ON = "Interface\\Buttons\\LockButton-Locked-Up"
 local LOCK_OFF = "Interface\\Buttons\\LockButton-Unlocked-Up"
 local LOCK_HIGHLIGHT = "Interface\\Buttons\\LockButton-Border"
 -- the raid tools plain eye; the first one the game has
-local EYE_ATLAS = { "GM-icon-visible", "RaidFrame-Icon-Visible", "UI-HUD-RaidFrame-Visible" }
+local ART = {
+	eye = { "GM-icon-visible", "RaidFrame-Icon-Visible", "UI-HUD-RaidFrame-Visible" },
+	-- the same eye struck through: shown while the window is (a click hides it)
+	eyeOff = { "GM-icon-visibleDis", "GM-icon-invisible", "RaidFrame-Icon-Hidden", "UI-HUD-RaidFrame-Hidden" },
+	-- the friends list's pin; grey while not pinned
+	pin = "friends-icon-pinned",
+}
 local EYE_REST = 0.4
 local EYE_FILE = "Interface\\LFGFrame\\LFG-Eye"
 local ROW_PAD = 4
@@ -1844,9 +1860,12 @@ local function InitRow(row, entry)
 		row.text = row:CreateFontString(nil, "ARTWORK")
 		row.text:SetFontObject(channelFont)
 		row.text:SetPoint("TOPLEFT", row.check, "TOPRIGHT", ROW_PAD, -ROW_PAD + 2)
-		row.text:SetPoint("RIGHT", -ROW_PAD, 0)
 		row.text:SetJustifyH("LEFT")
 		row.text:SetWordWrap(true)
+		-- long words and links break too, instead of being cut
+		if row.text.SetNonSpaceWrap then
+			row.text:SetNonSpaceWrap(true)
+		end
 		-- names and items work as in the chat: a name opens a whisper (right
 		-- click: Blizzard's menu), an item its tooltip
 		row:SetHyperlinksEnabled(true)
@@ -1878,6 +1897,8 @@ local function InitRow(row, entry)
 		end)
 	end
 	row.entry = entry
+	-- the very width its height was measured at
+	row.text:SetWidth(TextWidth())
 	row.text:SetText(Line(entry, W.marks))
 	local on = W.selected[entry] and true or false
 	row.check:SetChecked(on)
@@ -2536,12 +2557,16 @@ function Channels.Frame()
 	-- the pin: this tab stays on screen, as text only, while the window is
 	-- closed
 	f.pin = CreateFrame("Button", nil, f)
-	f.pin:SetSize(24, 24)
+	f.pin:SetSize(20, 20)
 	f.pin:SetPoint("RIGHT", f.cog, "LEFT", -6, 0)
 	f.pin:SetFrameLevel(ground:GetFrameLevel() + 30)
 	f.pin.icon = f.pin:CreateTexture(nil, "ARTWORK")
 	f.pin.icon:SetAllPoints()
-	f.pin:SetHighlightTexture(LOCK_HIGHLIGHT, "ADD")
+	if HasAtlas(ART.pin) then
+		f.pin:SetHighlightAtlas(ART.pin, "ADD")
+	else
+		f.pin:SetHighlightTexture(LOCK_HIGHLIGHT, "ADD")
+	end
 	f.pin:SetScript("OnClick", function(self)
 		local tab = CurrentTab()
 		local on = not tab.pinned
@@ -2592,6 +2617,9 @@ function Channels.Frame()
 	local measure = f:CreateFontString(nil, "BACKGROUND")
 	measure:SetFontObject(channelFont)
 	measure:SetWordWrap(true)
+	if measure.SetNonSpaceWrap then
+		measure:SetNonSpaceWrap(true)
+	end
 	measure:SetJustifyH("LEFT")
 	measure:SetAlpha(0)
 	measure:SetPoint("TOPLEFT", UIParent, "BOTTOMRIGHT", 100, -100)
@@ -2689,6 +2717,13 @@ function Channels.Frame()
 		end
 		Channels.UpdatePin()
 		Channels.TakeEnter(true)
+		-- the cursor in the box (a moment later: the key that opened it
+		-- would be typed in)
+		C_Timer.After(0, function()
+			if f:IsShown() and not f.search:HasFocus() then
+				f.input:SetFocus()
+			end
+		end)
 	end)
 	f:SetScript("OnHide", function()
 		if PlaySound and SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_CLOSE then
@@ -2957,6 +2992,10 @@ function Input.Build(f)
 	box:SetPoint("RIGHT", 0, 0)
 	box:SetAutoFocus(false)
 	box:SetFontObject(ChatFontNormal)
+	do
+		local _, chatSize = ChatFontNormal:GetFont()
+		box:SetFont("Fonts\\FRIZQT__.TTF", math.max(12, chatSize or 13), "")
+	end
 	box:SetMaxLetters(255)
 	box:SetHistoryLines(30)
 	if box.SetAltArrowKeyMode then
@@ -3279,8 +3318,14 @@ function Channels.PinButton()
 		return
 	end
 	local on = CurrentTab().pinned and true or false
-	f.pin.icon:SetTexture(on and LOCK_ON or LOCK_OFF)
-	f.pin:SetAlpha(on and 1 or 0.7)
+	if HasAtlas(ART.pin) then
+		f.pin.icon:SetAtlas(ART.pin)
+		f.pin.icon:SetDesaturated(not on)
+		f.pin:SetAlpha(on and 1 or 0.6)
+	else
+		f.pin.icon:SetTexture(on and LOCK_ON or LOCK_OFF)
+		f.pin:SetAlpha(on and 1 or 0.7)
+	end
 end
 
 local function PinnedTab()
@@ -3343,7 +3388,7 @@ function Channels.View()
 	text:SetPoint("TOPLEFT", 14, -12)
 	text:SetPoint("BOTTOMRIGHT", -14, 30)
 	text:SetFontObject(channelFont)
-	text:SetJustifyH("LEFT")
+	text:SetJustifyH(db.pinJustify or "LEFT")
 	text:SetFading(false)
 	text:SetMaxLines(300)
 	text:EnableMouse(false)
@@ -3353,43 +3398,58 @@ function Channels.View()
 	view.text = text
 	local level = text:GetFrameLevel() + 5
 
-	-- the tab under it: the tab's name; drag to move, right click for options
+	-- the cog, top right, only with the mouse over it: the options
 	local tab = CreateFrame("Button", nil, view)
-	-- the chat's tab, upside down: its size, its margins, mirrored
-	tab:SetHeight(32)
-	tab.skin = Skin.New(tab, "BACKGROUND", -8)
-	tab.skin:SetColor(0, 0, 0)
-	tab.skin:SetBorderColor(1, 1, 1)
-	local m = LAYOUT.bordered.tab
-	-- the soft ground too (the chat's tabs have none), on the part shown
-	tab.skin:Place(tab, { 0, 0, 0, m[3] }, { m[1], m[2], m[4], m[3] })
-	tab.label = tab:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-	tab.label:SetPoint("CENTER", 0, 5)
-	tab:RegisterForClicks("RightButtonUp")
-	tab:RegisterForDrag("LeftButton")
+	tab:SetSize(22, 22)
+	tab:SetPoint("TOPRIGHT", -6, -6)
+	tab:SetFrameLevel(level)
+	if HasAtlas(EDIT_COG:format("")) then
+		tab:SetNormalAtlas(EDIT_COG:format(""))
+		tab:SetPushedAtlas(EDIT_COG:format("pressed-"))
+		tab:SetHighlightAtlas(EDIT_COG:format("hover-"), "BLEND")
+	else
+		local icon = tab:CreateTexture(nil, "ARTWORK")
+		icon:SetAllPoints()
+		icon:SetTexture("Interface\\Icons\\inv_misc_gear_01")
+	end
+	tab:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	NewFade(tab)
 	view.tabButton = tab
 
 	-- the eye: hides the window or shows it again; it stays, fainter
 	local eye = CreateFrame("Button", nil, view)
-	eye:SetSize(20, 20)
-	eye:SetPoint("BOTTOMLEFT", 6, 6)
+	eye:SetSize(28, 28)
+	eye:SetPoint("BOTTOMLEFT", 4, 4)
 	eye:SetFrameLevel(level)
 	local icon = eye:CreateTexture(nil, "ARTWORK")
 	icon:SetAllPoints()
-	local atlas
-	for _, name in ipairs(EYE_ATLAS) do
-		if HasAtlas(name) then
-			atlas = name
-			break
+	local function First(list)
+		for _, name in ipairs(list) do
+			if HasAtlas(name) then
+				return name
+			end
 		end
 	end
-	if atlas then
-		icon:SetAtlas(atlas)
-	else
-		icon:SetTexture(EYE_FILE)
-		icon:SetTexCoord(0, 0.125, 0, 0.25)
-		icon:SetDesaturated(true)
+	local atlasOn, atlasOff = First(ART.eye), First(ART.eyeOff)
+	-- hidden: the eye; shown: the eye struck through (or the eye in red)
+	function eye.Update(hidden)
+		icon:SetVertexColor(1, 1, 1)
+		if hidden and atlasOn or not hidden and atlasOff then
+			icon:SetTexCoord(0, 1, 0, 1)
+			icon:SetDesaturated(false)
+			icon:SetAtlas(hidden and atlasOn or atlasOff)
+			return
+		end
+		if atlasOn then
+			icon:SetAtlas(atlasOn)
+		else
+			icon:SetTexture(EYE_FILE)
+			icon:SetTexCoord(0, 0.125, 0, 0.25)
+			icon:SetDesaturated(true)
+		end
+		if not hidden then
+			icon:SetVertexColor(1, 0.4, 0.4)
+		end
 	end
 	NewFade(eye)
 	eye:SetAlpha(EYE_REST)
@@ -3413,8 +3473,8 @@ function Channels.View()
 		local alpha = tonumber(db.pinAlpha) or 1
 		local skinOn = on and not hidden
 		view.skin:FadeTo(skinOn and alpha or 0, d, skinOn and 1 or 0)
-		tab.skin:FadeTo(skinOn and alpha or 0, d, skinOn and 1 or 0)
 		FadeTo(tab, skinOn and 1 or 0, d)
+		tab:EnableMouse(skinOn)
 		local gripOn = skinOn and not db.pinLocked
 		FadeTo(grip, gripOn and 1 or 0, d)
 		grip:EnableMouse(gripOn)
@@ -3451,6 +3511,7 @@ function Channels.View()
 		text:SetShown(not hidden)
 		tab:SetShown(not hidden)
 		view:EnableMouse(not hidden)
+		eye.Update(hidden)
 		Hover(Over() and true or false, true)
 	end
 	eye:SetScript("OnClick", function(self)
@@ -3479,8 +3540,6 @@ function Channels.View()
 	end
 	view:SetScript("OnDragStart", DragStart)
 	view:SetScript("OnDragStop", DragStop)
-	tab:SetScript("OnDragStart", DragStart)
-	tab:SetScript("OnDragStop", DragStop)
 	grip:SetScript("OnMouseDown", function()
 		if db.pinLocked then
 			return
@@ -3493,7 +3552,7 @@ function Channels.View()
 	-- right click on the tab: the ground's opacity, locked or not
 	tab:SetScript("OnClick", function(self)
 		view.menu = MenuUtil.CreateContextMenu(self, function(_, root)
-			root:CreateTitle(self.label:GetText() or "")
+			root:CreateTitle(view.tab and view.tab.name or "")
 			local opacity = root:CreateButton(L.PIN_OPACITY)
 			for _, a in ipairs({ 0.25, 0.5, 0.75, 1 }) do
 				opacity:CreateRadio(("%d%%"):format(a * 100), function()
@@ -3504,11 +3563,30 @@ function Channels.View()
 					return MenuRefresh()
 				end)
 			end
+			local justify = root:CreateButton(L.PIN_JUSTIFY)
+			for _, j in ipairs({ { "LEFT", L.PIN_LEFT }, { "CENTER", L.PIN_CENTER }, { "RIGHT", L.PIN_RIGHT } }) do
+				justify:CreateRadio(j[2], function()
+					return (db.pinJustify or "LEFT") == j[1]
+				end, function()
+					db.pinJustify = j[1]
+					text:SetJustifyH(j[1])
+					return MenuRefresh()
+				end)
+			end
 			root:CreateCheckbox(L.PIN_LOCK, function()
 				return db.pinLocked and true or false
 			end, function()
 				db.pinLocked = not db.pinLocked or nil
 				Hover(true, true)
+			end)
+			-- closing it unpins the tab
+			root:CreateDivider()
+			root:CreateButton(L.PIN_CLOSE, function()
+				for _, t in ipairs(TabList()) do
+					t.pinned = nil
+				end
+				Channels.PinButton()
+				Channels.UpdatePin()
 			end)
 		end)
 	end)
@@ -3540,14 +3618,6 @@ function Channels.UpdatePin()
 	-- empty: only what comes from now on, gone after the tab's time.
 	PlaceView(view)
 	view.skin:Show(Look())
-	-- where the chat's tabs sit over its ground, mirrored under ours
-	local look = Look()
-	local T, body = LAYOUT[look].tabs or { x = 0, y = 0 }, LAYOUT[look].body
-	view.tabButton:ClearAllPoints()
-	view.tabButton:SetPoint("TOPLEFT", view, "BOTTOMLEFT", 2 + T.x + body[1], body[3] - T.y)
-	view.tabButton.skin:Show(look)
-	view.tabButton.label:SetText(tab.name or "")
-	view.tabButton:SetWidth(math.max(60, view.tabButton.label:GetStringWidth() + 24))
 	view.ApplyHidden()
 	local fade = tab.fade or 60
 	view.text:SetFading(fade > 0)
@@ -3619,9 +3689,11 @@ local function QuestClicked(questID, undo)
 		end
 		busy = false
 		local link = GetQuestLink and GetQuestLink(questID)
-		if link then
+		-- Blizzard may have sent it through the chat's own way already
+		if link and W.linked ~= link then
 			box:Insert(link)
 		end
+		W.linked = nil
 	end)
 end
 
