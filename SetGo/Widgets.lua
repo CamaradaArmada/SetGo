@@ -100,12 +100,6 @@ end
 -- Text rows
 --------------------------------------------------------------------------------
 
-function W.Paragraph(page, y, width, text, font)
-	local fs, h = W.Text(page, font or W.FONT_BODY, width, text)
-	fs:SetPoint("TOPLEFT", page, "TOPLEFT", 0, -y)
-	return y + h + ROW_GAP, fs
-end
-
 -- section header with a thin rule, as in Blizzard's settings list
 function W.Header(page, y, width, text)
 	if y > 0 then

@@ -1,0 +1,40 @@
+# Publishes SetGo! to CurseForge when a version tag is pushed (1.3.0, or
+# v1.3.0; 1.3.1-beta1 goes out as a beta, 1.3.1-alpha1 as an alpha).
+# Needs the repository secret CF_API_KEY: a CurseForge API token.
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # the tag must be the version in the TOC files (v is optional)
+      - name: Check version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          base="${tag%%-*}"
+          bad=0
+          for toc in SetGo*/*.toc; do
+            version=$(sed -n 's/^## Version: *//p' "$toc" | tr -d '\r')
+            if [ "$version" != "$base" ]; then
+              echo "::error file=$toc::Version $version, tag $GITHUB_REF_NAME"
+              bad=1
+            fi
+          done
+          exit $bad
+
+      - name: Tests
+        run: bash tests/run.sh
+
+      - name: Package and upload
+        uses: BigWigsMods/packager@v2

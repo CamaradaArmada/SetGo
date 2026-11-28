@@ -517,8 +517,8 @@ local function PlaceFrameArt(c, pct)
 		local p1 = points[1] and points[1][1]
 		base.keep = #points == 1 and (p1 == "CENTER" or p1 == "TOP" or p1 == "BOTTOM")
 		if not base.keep then
-			local tx, ty = tex:GetCenter()
-			local cx, cy = c:GetCenter()
+			local tx = tex:GetCenter()
+			local cx = c:GetCenter()
 			local top, ctop = tex:GetTop(), c:GetTop()
 			if not (tx and cx and top and ctop) then
 				return
@@ -808,7 +808,6 @@ HookXP = function()
 		return
 	end
 	xpHooked = true
-	local E = Enum_()
 	local main, second = Containers()
 	if StatusTrackingBarManager and StatusTrackingBarManager.UpdateBarsShown then
 		hooksecurefunc(StatusTrackingBarManager, "UpdateBarsShown", QueueXP)
@@ -2152,7 +2151,7 @@ local function TrackerParts()
 end
 
 local function ApplyTrackerMin()
-	local tracker, header, parts = TrackerParts()
+	local tracker, _, parts = TrackerParts()
 	if not tracker then
 		return
 	end

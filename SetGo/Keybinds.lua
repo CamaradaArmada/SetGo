@@ -1,6 +1,5 @@
 local _, ns = ...
 local L = ns.L
-local Try = ns.Try
 
 --------------------------------------------------------------------------------
 -- Key bindings, as a preset keeps them: { [key] = command }. Read and written

@@ -384,7 +384,7 @@ end
 -- Left page: tabs, then the chosen tab's list (Profiles: cards)
 --------------------------------------------------------------------------------
 
-local TAB_H, ROW_H = 26, 22
+local TAB_H = 26
 
 -- what the Modules and SetGo! tabs list; group = the right page
 local function Entries(tab)
@@ -564,10 +564,6 @@ local function RoundIcon(parent, size)
 		ring:SetSize(size + 8, size + 8)
 	end
 	tex.ring = ring
-	function tex:SetRoundShown(on)
-		self:SetShown(on)
-		self.ring:SetShown(on)
-	end
 	return tex
 end
 ns.RoundIcon = RoundIcon
