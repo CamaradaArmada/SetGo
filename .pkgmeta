@@ -1,5 +1,9 @@
 package-as: SetGo
 
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
 move-folders:
   SetGo/SetGo: SetGo
   SetGo/SetGo_Fetch: SetGo_Fetch

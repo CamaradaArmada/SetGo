@@ -5,6 +5,7 @@
 ## Author: Armada
 ## Version: 1.3.0
 ## X-Build: 84
+## X-Curse-Project-ID: 1732431
 ## SavedVariables: SetGoDB, SetGoQuickDB
 ## SavedVariablesPerCharacter: SetGoCharDB, SetGoQuickCharDB
 ## IconTexture: Interface\Icons\inv_misc_gear_01
